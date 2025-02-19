@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import { AuthContext } from '../../AuthProvider/AuthProvider';
@@ -10,6 +10,7 @@ const FoodOrder = () => {
     const [display,setDisplay] = useState([])
     const {user} = useContext(AuthContext)
     let {id} = useParams()
+    const navigate = useNavigate();
 
     console.log(user.email)
     console.log(user.displayName)
@@ -24,9 +25,34 @@ const FoodOrder = () => {
             setDisplay(matchedFood)
          })
     }, [])
-    const handlePurchase = (e) => {
 
-        
+    const handlePurchase = async (orderData) => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                credentials: 'include',
+                body: JSON.stringify(orderData)
+            });
+    
+            const data = await response.json();
+    
+            if (data.success) {
+                toast.success('Order placed successfully!');
+                navigate('/orderFood');
+            } else {
+                toast.error(data.error || 'Failed to place order');
+            }
+        } catch (error) {
+            console.error('Error placing order:', error);
+            toast.error('Error placing order. Please try again.');
+        }
+    };
+
+    const handleSubmit = (e) => {
         e.preventDefault()
         const form = e.target
         const buyerName =  user.displayName
@@ -42,35 +68,12 @@ const FoodOrder = () => {
         console.log(addProduct)
 
         if(quantity >0){
-            fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
-            method : "POST",
-            headers : {
-                "Content-Type" : "application/json"
-            },
-            body : JSON.stringify(addProduct)
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log(data)
-            const toastId =toast.loading("Thank you for purchasing")
-            toast.success("Thank you for purchasing", {id : toastId})
-            // alert("Thank you for purchasing")
-            form.reset()
-        })
-        }
-
-        else{
+            handlePurchase(addProduct);
+        } else {
             alert("Not available")
         }
-
-        
-
-        
     }
 
-    
-
-   
     console.log(display)
     return (
         <>
@@ -85,7 +88,7 @@ const FoodOrder = () => {
   <div className="py-8 px-4 mx-auto w-full lg:py-2">
       <h2 className="mb-16 text-2xl text-center font-bold text-gray-900 ">Confirm Your Purchase</h2>
       
-      <form className=' w-full' onSubmit={handlePurchase} >
+      <form className=' w-full' onSubmit={handleSubmit} >
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
               
               <div className="w-full">
