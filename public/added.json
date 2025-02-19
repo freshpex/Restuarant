@@ -1,0 +1,57 @@
+[
+    {
+      "foodName": "Classic Cheeseburger",
+      "foodOrigin": "United States",
+      "price": 9.99,
+      "foodImage": "https://images.unsplash.com/photo-1555196301-9acc011dfde4?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "foodShortDescription": "A mouthwatering classic cheeseburger with all the fixings.",
+      "foodQuantity": 14,
+      "foodCategory": "Burger"
+    },
+    {
+      "foodName": "Spicy Chicken Burger",
+      "foodOrigin": "United States",
+      "price": 8.49,
+      "foodImage": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1899&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "foodShortDescription": "A spicy chicken burger with a kick of flavor.",
+      "foodQuantity": 15,
+      "foodCategory": "Burger"
+    },
+    {
+      "foodName": "Margherita Pizza",
+      "foodOrigin": "Italy",
+      "price": 11.99,
+      "foodImage": "https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "foodShortDescription": "A classic Margherita pizza with fresh basil and mozzarella.",
+      "foodQuantity": 12,
+      "foodCategory": "Pizza"
+    },
+    {
+      "foodName": "Pepperoni Pizza",
+      "foodOrigin": "United States",
+      "price": 12.99,
+      "foodImage": "pepperoni_pizza.jpg",
+      "foodShortDescription": "A delicious pepperoni pizza with loads of pepperoni slices.",
+      "foodQuantity": 19,
+      "foodCategory": "Pizza"
+    },
+    {
+      "foodName": "Veggie Burger",
+      "foodOrigin": "United States",
+      "price": 7.99,
+      "foodImage": "veggie_burger.jpg",
+      "foodShortDescription": "A healthy and tasty veggie burger with fresh vegetables.",
+      "foodQuantity": 17,
+      "foodCategory": "Burger"
+    },
+    {
+      "foodName": "Hawaiian Pizza",
+      "foodOrigin": "United States",
+      "price": 13.49,
+      "foodImage": "hawaiian_pizza.jpg",
+      "foodShortDescription": "A tropical Hawaiian pizza with ham and pineapple slices.",
+      "foodQuantity": 13,
+      "foodCategory": "Pizza"
+    }
+  ]
+  
