@@ -8,17 +8,7 @@ import Testimonial from "../Testimonial/Testimonial";
 import { Link } from "react-router-dom";
 import TopSelling from "../../TopSelling/TopSelling";
 
-
-
 const Hero = () => {
-   
-    
-
-
-        
-       
-    
-
     return (
         <>
         <Helmet>
