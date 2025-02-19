@@ -46,7 +46,19 @@ function App() {
       {
            path : "/food",
            element : <Food />,
-           loader : () => fetch(`${import.meta.env.VITE_API}/foodCount`)
+           loader : async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API}/foodCount`);
+                if (!res.ok) {
+                    throw new Error('Failed to fetch count');
+                }
+                const data = await res.json();
+                return data;
+            } catch (error) {
+                console.error('Error loading food count:', error.message);
+                return { count: 0 };
+            }
+        }
       },
       {
         path : "/seeFood/:id",
@@ -66,7 +78,7 @@ function App() {
       {
          path : "/myFood",
          element : <PrivateRouter><MyFood /></PrivateRouter>,
-         loader : () => fetch("${import.meta.env.VITE_API}/addFood")
+         loader : () => fetch(`${import.meta.env.VITE_API}/addFood`)
       },
       {
          path : "/addFood",
@@ -86,7 +98,7 @@ function App() {
       {
         path : "/topSelling",
         element : <TopSelling />,
-        loader : () => fetch("${import.meta.env.VITE_API}/topSellingFoods")
+        loader : () => fetch(`${import.meta.env.VITE_API}/topSellingFoods`)
       },
       {
         path : "/blog",

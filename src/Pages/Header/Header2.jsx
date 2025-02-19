@@ -1,16 +1,15 @@
 import React, { useContext, useEffect, useState } from "react";
 import { FaTimes, FaStream } from "react-icons/fa";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-// import { AuthProvider } from "../AuthContext/AuthContext";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Logo from "../../assets/Logo.png"
 import { BsMoonStars ,BsCartCheck,BsSun } from "react-icons/bs";
 import { AuthContext } from "../../AuthProvider/AuthProvider";
-const Header2 = () => {
+
+const Header2 = ({setUser}) => {
     const {user, logOut} = useContext(AuthContext)
   const [nav, setNav] = useState(false);
-  // const [show, setShow] = useState(true);
   const [avatar, setAvatar] = useState(false);
   const [toggle, setToggle] = useState(false)
   const [show, setShow] = useState(false)
@@ -19,51 +18,51 @@ const Header2 = () => {
     setToggle(!toggle)
     
   }
-//   const { logOut, user,setUser, loading } = useContext(AuthProvider);
+  
   const navigate = useNavigate();
 
-//   const [theme, setTheme] = useState("light")
-//    const element = document.documentElement
-//    const darkQuery = window.matchMedia("(prefers-color-scheme : light)")
-//   const options = [
-//     {
-//     icon : "sunny-outline",
-//     text : "light"
-//   },
-//   {
-//     icon : "moon-outline",
-//     text : "dark"
-//   }
-// ]
+  const [theme, setTheme] = useState("light")
+   const element = document.documentElement
+   const darkQuery = window.matchMedia("(prefers-color-scheme : light)")
+  const options = [
+    {
+    icon : "sunny-outline",
+    text : "light"
+  },
+  {
+    icon : "moon-outline",
+    text : "dark"
+  }
+]
 
-// const onWindowMatch = () => {
-//   if(localStorage.theme === "dark" || (!("theme" in localStorage) && darkQuery.matches)
+const onWindowMatch = () => {
+  if(localStorage.theme === "dark" || (!("theme" in localStorage) && darkQuery.matches)
   
-//   ){
-//     element.classList.add("dark")
-//   }
-// }
+  ){
+    element.classList.add("dark")
+  }
+}
 
-// onWindowMatch()
+onWindowMatch()
 
-// useEffect(() => {
-//   switch(theme) {
-//     case "dark" :
-//     element.classList.add("dark")
-//     localStorage.setItem("theme", "dark")
-//     break
+useEffect(() => {
+  switch(theme) {
+    case "dark" :
+    element.classList.add("dark")
+    localStorage.setItem("theme", "dark")
+    break
 
-//     case "light" :
-//       element.classList.remove("dark")
-//       localStorage.setItem("theme", "light")
-//       break 
+    case "light" :
+      element.classList.remove("dark")
+      localStorage.setItem("theme", "light")
+      break 
 
-//       default : 
-//       localStorage.removeItem("theme")
-//       break
-//   }
+      default : 
+      localStorage.removeItem("theme")
+      break
+  }
  
-// }, [theme])
+}, [theme])
   
   const handleShow = () => {
     setAvatar((prev) => !prev);
@@ -84,9 +83,9 @@ const Header2 = () => {
           
           setUser(null )
           window.location.reload()
-          // setTimeout(() => {
-          //   navigate('/login')
-          // }, 2000);
+          setTimeout(() => {
+            navigate('/login')
+          }, 2000);
       })
       .catch();
 

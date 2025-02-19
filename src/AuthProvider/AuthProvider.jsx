@@ -46,30 +46,35 @@ const AuthProvider = ({children}) => {
 
     useEffect(() => {
         const unSubscribe = onAuthStateChanged(auth, currentUser => {
-           
-                setUser(currentUser) 
-                
-                const userEmail = currentUser?.email || user?.email
-
-                const loggedUser = {email : userEmail}
-                
-                setLoading(false)
-                console.log("create user", currentUser)
-                if(currentUser){
-                    
-                    axios.post(`${import.meta.env.VITE_API}/jwt`,loggedUser, {withCredentials : true})
-                    .then(res => {
-                        console.log(res.data)
-                    })
-                }
-
-                else{
-                    axios.post(`${import.meta.env.VITE_API}/logout`,loggedUser, {withCredentials : true})
-                    .then(res => {
-                        console.log(res.data)
-                    })  
-                }
+            setUser(currentUser)
+            const userEmail = currentUser?.email || user?.email
+            const loggedUser = {email : userEmail}
+            setLoading(false)
             
+            console.log("Auth state changed")
+            
+            if(currentUser){
+                axios.post(`${import.meta.env.VITE_API}/jwt`, loggedUser, {
+                    withCredentials: true
+                })
+                .then(res => {
+                    if(res.data.success) {
+                        console.log("JWT token created successfully")
+                    }
+                })
+                .catch(error => {
+                    console.error("JWT creation error:", error.message)
+                })
+            } else {
+                axios.post(`${import.meta.env.VITE_API}/logout`, loggedUser, {
+                    withCredentials: true
+                })
+                .then(res => {
+                    if(res.data.success) {
+                        console.log("Logged out successfully")
+                    }
+                })
+            }
         })
 
         return () => {

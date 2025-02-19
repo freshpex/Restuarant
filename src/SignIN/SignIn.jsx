@@ -50,7 +50,7 @@ const handleGoogle = () => {
       
       const email = e.target.email.value
       const password = e.target.password.value
-     console.log(email, password)
+
      const toastId =toast.loading("Logged In")
       logIn(email, password)
       .then((result) => {
@@ -69,7 +69,7 @@ const handleGoogle = () => {
   return (
       <>
       <Helmet><title>Tim's Kitchen | Sign In</title></Helmet>
-      <Header2 />
+      <Header2 setUser={setUser}/>
       {/* <div className="w-full h-screen relative">
       <img  className="w-full h-screen  bg-center bg-cover object-cover" src="https://png.pngtree.com/thumb_back/fh260/back_our/20190621/ourmid/pngtree-black-meat-western-food-banner-background-image_194600.jpg" alt="" />
       </div> */}
