@@ -4,42 +4,60 @@ import { AuthContext } from '../../AuthProvider/AuthProvider';
 import { Helmet } from 'react-helmet';
 import { useLoaderData } from 'react-router-dom';
 import axios from 'axios';
+import LoadingSpinner from '../../Components/LoadingSpinner';
 
 const OrderFood = () => {
+    const {user} = useContext(AuthContext);
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const {user} = useContext(AuthContext)
-    
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const response = await fetch(
+                    `${import.meta.env.VITE_API}/orders/user/${user.email}`,
+                    { credentials: 'include' }
+                );
+                if (!response.ok) throw new Error('Failed to fetch orders');
+                const data = await response.json();
+                setOrders(data);
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const orderedFood = useLoaderData()
+        if (user?.email) {
+            fetchOrders();
+        }
+    }, [user]);
 
+    const handleDelete = async (id) => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API}/orders/${id}`, {
+                method: "DELETE",
+                credentials: 'include'
+            });
+            if (!response.ok) throw new Error('Failed to delete order');
+            
+            setOrders(prev => prev.filter(order => order._id !== id));
+            toast.success('Order removed successfully');
+        } catch (error) {
+            toast.error('Failed to remove order');
+            console.error('Error deleting order:', error);
+        }
+    };
 
-   const filterdOrder = orderedFood.filter(item => item.email === user.email)
-   const [shoppingCart, setCart] = useState(filterdOrder)
-  //   useEffect(() => {
-  //     axios.get(`${import.meta.env.VITE_API}/purchaseFood?email=${user?.email}`)
-  //     .then(res => {
-  //         console.log(res.data)
-  //         setCart(res.data)
-  //     })
-  // }, [])
-        
+    if (loading) return (
+        <>
+            <Header2 />
+            <div className="bg-[#121212] min-h-screen">
+                <LoadingSpinner />
+            </div>
+        </>
+    );
 
-     
-
-
-    const handleDelete = (id) => {
-        fetch(`${import.meta.env.VITE_API}/purchaseFood/${id}`, {
-            method : "DELETE"
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log(data)
-            const deletedOne = shoppingCart.filter(item => item._id !== id)
-            setCart(deletedOne)
-        })
-    }
-
-    
     return (
         <>
          <Helmet>
@@ -47,9 +65,9 @@ const OrderFood = () => {
          </Helmet>
         <Header2 />
         <h2 className=' text-3xl pt-44 text-center text-white bg-[#121212]'>My Ordered Food</h2>
-        {shoppingCart.length > 0 ?
+        {orders.length > 0 ?
         <div className=' bg-[#121212] lg:px-28 px-6  pt-10 pb-44 flex flex-col gap-8 justify-center items-center'>
-        {shoppingCart.map(data => {
+        {orders.map(data => {
             return <div className="card   sm:card-side w-full lg:w-[800px] bg-base-100 ">
             <figure>
               <img 

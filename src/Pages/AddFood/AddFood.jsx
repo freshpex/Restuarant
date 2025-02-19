@@ -5,42 +5,48 @@ import { AuthContext } from '../../AuthProvider/AuthProvider';
 import toast from 'react-hot-toast';
 
 const AddFood = () => {
-    const {user} = useContext(AuthContext)
-    const handleAddCoffee = (e) => {
-        e.preventDefault()
-        const form = e.target
-        const buyerName = user.displayName
-        const email = user.email
-        const foodName = form.food.value
-        const foodPrice = form.price.value
-        const foodCategory = form.category.value
-        const foodDescription = form.description.value
-        const foodOrigin = form.origin.value
-        const foodQuantity = form.quantity.value
-        const foodImage = form.image.value
+    const {user} = useContext(AuthContext);
     
+    const handleAddFood = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const newFood = {
+            buyerName: user.displayName,
+            email: user.email,
+            foodName: form.food.value,
+            foodPrice: form.price.value,
+            foodCategory: form.category.value,
+            foodDescription: form.description.value,
+            foodOrigin: form.origin.value,
+            foodQuantity: parseInt(form.quantity.value),
+            foodImage: form.image.value,
+            orderCount: 0,
+            addedDate: new Date().toISOString()
+        };
 
-        const addProduct = {buyerName,email, foodName, foodPrice, foodDescription,foodOrigin,  foodQuantity, foodCategory, foodImage}
-        console.log(addProduct)
-
-        fetch(`${import.meta.env.VITE_API}/addFood`, {
-            method : "POST",
-            headers : {
-                "Content-Type" : "application/json"
-            },
-            body : JSON.stringify(addProduct)
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log(data)
-            // form.reset()
-            // alert("food added")
-            const toastId =toast.loading("Food is added")
-            toast.success("Food is added", {id : toastId})
-        })
-
-        
-    }
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API}/foods`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: 'include',
+                body: JSON.stringify(newFood)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                toast.success("Food item added successfully");
+                form.reset();
+            } else {
+                toast.error(data.error || "Failed to add food");
+            }
+        } catch (error) {
+            toast.error("Error adding food item");
+            console.error(error);
+        }
+    };
     
     return (
         <>
@@ -55,7 +61,7 @@ const AddFood = () => {
   <div class="py-8 px-4 mx-auto w-full lg:py-2">
       <h2 class="mb-16 text-2xl text-center font-bold text-gray-900 ">Add a Food Item</h2>
       
-      <form className=' w-full' onSubmit={handleAddCoffee} >
+      <form className=' w-full' onSubmit={handleAddFood} >
           <div class="grid gap-4 sm:grid-cols-2 sm:gap-6">
               
               <div class="w-full">

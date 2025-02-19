@@ -86,8 +86,22 @@ const Food = () => {
                
             </div>
         </div>
-        <div className=' bg-[#121212] -mt-40 pb-20 lg:px-28 px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
-            {filter.map(data => <AllFoodCard key={data._id} data={data} />)}
+        <div className=' bg-[#121212] -mt-40 pb-20 lg:px-28 px-6'>
+            {isLoading ? (
+                <LoadingSpinner />
+            ) : error ? (
+                <div className="text-red-500 text-center py-10">
+                    Error: {error}
+                </div>
+            ) : filter.length === 0 ? (
+                <div className="text-white text-center py-10">
+                    No foods found. Try a different search.
+                </div>
+            ) : (
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
+                    {filter.map(data => <AllFoodCard key={data._id} data={data} />)}
+                </div>
+            )}
         </div>
 
         
