@@ -5,32 +5,46 @@ import { Helmet } from 'react-helmet';
 import { useLoaderData } from 'react-router-dom';
 import axios from 'axios';
 import LoadingSpinner from '../../Components/LoadingSpinner';
+import toast from 'react-hot-toast';
 
 const OrderFood = () => {
     const {user} = useContext(AuthContext);
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { orders: initialOrders, error: initialError } = useLoaderData() || { orders: [], error: null };
+    const [orders, setOrders] = useState(initialOrders);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(initialError);
 
     useEffect(() => {
         const fetchOrders = async () => {
             try {
+                if (!user?.email) return;
+                
                 const response = await fetch(
                     `${import.meta.env.VITE_API}/orders/user/${user.email}`,
-                    { credentials: 'include' }
+                    { 
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
                 );
-                if (!response.ok) throw new Error('Failed to fetch orders');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 setOrders(data);
-            } catch (error) {
-                console.error('Error fetching orders:', error);
+                setError(null);
+            } catch (err) {
+                console.error('Error fetching orders:', err);
+                setError('Failed to load orders. Please try again later.');
             } finally {
                 setLoading(false);
             }
         };
 
-        if (user?.email) {
-            fetchOrders();
-        }
+        fetchOrders();
     }, [user]);
 
     const handleDelete = async (id) => {
@@ -65,6 +79,7 @@ const OrderFood = () => {
          </Helmet>
         <Header2 />
         <h2 className=' text-3xl pt-44 text-center text-white bg-[#121212]'>My Ordered Food</h2>
+        {error && <div className="text-red-500 text-center">{error}</div>}
         {orders.length > 0 ?
         <div className=' bg-[#121212] lg:px-28 px-6  pt-10 pb-44 flex flex-col gap-8 justify-center items-center'>
         {orders.map(data => {

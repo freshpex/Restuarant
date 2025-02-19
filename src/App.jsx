@@ -88,7 +88,27 @@ function App() {
       {
          path : "/orderFood",
          element : <PrivateRouter><OrderFood /></PrivateRouter>,
-         loader : () =>  fetch(`${import.meta.env.VITE_API}/purchaseFood`)
+         loader: async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!res.ok) {
+                    // Don't use Error constructor, just return empty array with error state
+                    return { orders: [], error: 'Failed to fetch orders' };
+                }
+                
+                const data = await res.json();
+                return { orders: data, error: null };
+            } catch (err) {
+                console.error('Error loading purchase orders:', err.message);
+                return { orders: [], error: err.message };
+            }
+        }
       },
       {
           path : "/update/:id",
