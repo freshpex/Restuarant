@@ -11,20 +11,24 @@ const OrderFood = () => {
     const {user} = useContext(AuthContext);
     const { orders: initialOrders, error: initialError } = useLoaderData() || { orders: [], error: null };
     const [orders, setOrders] = useState(initialOrders);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(initialError);
 
     useEffect(() => {
         const fetchOrders = async () => {
+            if (!user?.email) {
+                setLoading(false);
+                return;
+            }
+
             try {
-                if (!user?.email) return;
-                
                 const response = await fetch(
                     `${import.meta.env.VITE_API}/orders/user/${user.email}`,
                     { 
                         credentials: 'include',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
                         }
                     }
                 );
@@ -34,11 +38,16 @@ const OrderFood = () => {
                 }
                 
                 const data = await response.json();
-                setOrders(data);
-                setError(null);
+                if (Array.isArray(data)) {
+                    setOrders(data);
+                    setError(null);
+                } else {
+                    throw new Error('Invalid data format received');
+                }
             } catch (err) {
                 console.error('Error fetching orders:', err);
                 setError('Failed to load orders. Please try again later.');
+                setOrders([]);
             } finally {
                 setLoading(false);
             }

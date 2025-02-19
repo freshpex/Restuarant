@@ -93,19 +93,25 @@ function App() {
                 const res = await fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
                     credentials: 'include',
                     headers: {
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
                 if (!res.ok) {
-                    // Don't use Error constructor, just return empty array with error state
-                    return { orders: [], error: 'Failed to fetch orders' };
+                    console.error('Purchase food fetch failed:', res.status, res.statusText);
+                    return { orders: [], error: `Failed to fetch orders: ${res.statusText}` };
                 }
                 
                 const data = await res.json();
+                if (!Array.isArray(data)) {
+                    console.error('Invalid data format received:', data);
+                    return { orders: [], error: 'Invalid data format received' };
+                }
+                
                 return { orders: data, error: null };
             } catch (err) {
-                console.error('Error loading purchase orders:', err.message);
+                console.error('Error loading purchase orders:', err);
                 return { orders: [], error: err.message };
             }
         }
