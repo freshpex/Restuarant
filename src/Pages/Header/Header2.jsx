@@ -21,48 +21,48 @@ const Header2 = () => {
   
   const navigate = useNavigate();
 
-  const [theme, setTheme] = useState("light")
-   const element = document.documentElement
-   const darkQuery = window.matchMedia("(prefers-color-scheme : light)")
-  const options = [
-    {
-    icon : "sunny-outline",
-    text : "light"
-  },
-  {
-    icon : "moon-outline",
-    text : "dark"
-  }
-]
+//   const [theme, setTheme] = useState("light")
+//    const element = document.documentElement
+//    const darkQuery = window.matchMedia("(prefers-color-scheme : light)")
+//   const options = [
+//     {
+//     icon : "sunny-outline",
+//     text : "light"
+//   },
+//   {
+//     icon : "moon-outline",
+//     text : "dark"
+//   }
+// ]
 
-const onWindowMatch = () => {
-  if(localStorage.theme === "dark" || (!("theme" in localStorage) && darkQuery.matches)
+// const onWindowMatch = () => {
+//   if(localStorage.theme === "dark" || (!("theme" in localStorage) && darkQuery.matches)
   
-  ){
-    element.classList.add("dark")
-  }
-}
+//   ){
+//     element.classNameList.add("dark")
+//   }
+// }
 
-onWindowMatch()
+// onWindowMatch()
 
-useEffect(() => {
-  switch(theme) {
-    case "dark" :
-    element.classList.add("dark")
-    localStorage.setItem("theme", "dark")
-    break
+// useEffect(() => {
+//   switch(theme) {
+//     case "dark" :
+//     element.classNameList.add("dark")
+//     localStorage.setItem("theme", "dark")
+//     break
 
-    case "light" :
-      element.classList.remove("dark")
-      localStorage.setItem("theme", "light")
-      break 
+//     case "light" :
+//       element.classNameList.remove("dark")
+//       localStorage.setItem("theme", "light")
+//       break 
 
-      default : 
-      localStorage.removeItem("theme")
-      break
-  }
+//       default : 
+//       localStorage.removeItem("theme")
+//       break
+//   }
  
-}, [theme])
+// }, [theme])
   
   const handleShow = () => {
     setAvatar((prev) => !prev);

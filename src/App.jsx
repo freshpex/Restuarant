@@ -49,9 +49,18 @@ function App() {
            loader : () => fetch(`${import.meta.env.VITE_API}/foodCount`)
       },
       {
-        path : "/seeFood/:id",
-        element :  <SeeFood />,
-        loader : ({params}) => fetch(`${import.meta.env.VITE_API}/${params.id}`)
+        path: "/seeFood/:id",
+        element: <SeeFood />,
+        loader: async ({params}) => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API}/foods/${params.id}`);
+                if (!res.ok) throw new Error('Failed to fetch food details');
+                return res.json();
+            } catch (error) {
+                console.error('Error loading food:', error);
+                return null;
+            }
+        }
       },
       {
          path : "/topFood/:id",

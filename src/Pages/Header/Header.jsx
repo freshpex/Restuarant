@@ -41,7 +41,7 @@ const Header = () => {
 //   if(localStorage.theme === "dark" || (!("theme" in localStorage) && darkQuery.matches)
   
 //   ){
-//     element.classList.add("dark")
+//     element.classNameList.add("dark")
 //   }
 // }
 
@@ -50,12 +50,12 @@ const Header = () => {
 // useEffect(() => {
 //   switch(theme) {
 //     case "dark" :
-//     element.classList.add("dark")
+//     element.classNameList.add("dark")
 //     localStorage.setItem("theme", "dark")
 //     break
 
 //     case "light" :
-//       element.classList.remove("dark")
+//       element.classNameList.remove("dark")
 //       localStorage.setItem("theme", "light")
 //       break 
 

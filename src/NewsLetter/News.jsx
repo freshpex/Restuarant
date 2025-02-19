@@ -5,7 +5,7 @@ const News = () => {
         <div className=' bg-[#121212]  pt-36 w-full h-screen relative'>
             
             <img className='w-[83%] rounded-lg brightness-75  mx-auto h-[80%] my-auto bg-center bg-cover object-cover'  src="https://tastyc.bslthemes.com/wp-content/uploads/2021/04/gallery-i-6.jpg" alt="" />
-            <div class="absolute inset-0"></div>
+            <div className="absolute inset-0"></div>
             <div className=' absolute w-full top-0 left-0 h-full'>
 
                 <div className='   inset-0 absolute top-0    flex flex-col gap-10 justify-center items-center text-black h-full w-full p-5 '>
