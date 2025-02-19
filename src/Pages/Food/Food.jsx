@@ -4,11 +4,13 @@ import { Helmet } from 'react-helmet';
 import AllFoodCard from './AllFoodCard';
 import { useLoaderData } from 'react-router-dom';
 import {AiOutlineRight,AiOutlineLeft} from "react-icons/ai"
-const Food = () => {
-    // window.scrollTo(0,0)
+import LoadingSpinner from '../../Components/LoadingSpinner';
 
-    const [search,setSearch] = useState([])
-     const [display,setDisplay] = useState([])
+const Food = () => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [search, setSearch] = useState([])
+    const [display, setDisplay] = useState([])
     const [filter, setFilter] = useState([])
     const [foodPerPage, setPage] = useState(9)
     const [current, setCurrent] = useState(0)
@@ -40,14 +42,24 @@ const Food = () => {
     }
 
     useEffect(() => {
+        setIsLoading(true);
         fetch(`${import.meta.env.VITE_API}/foods?page=${current}&size=${foodPerPage}`)
-        .then(res => res.json())
-        .then(data => {
-            setSearch(data);
-            setFilter(data);
-        });
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                return res.json();
+            })
+            .then(data => {
+                setSearch(data);
+                setFilter(data);
+                setIsLoading(false);
+            })
+            .catch(err => {
+                setError(err.message);
+                setIsLoading(false);
+            });
     }, [current, foodPerPage]);
-
     
     const handleSearch = () => {
         if (display === '') {

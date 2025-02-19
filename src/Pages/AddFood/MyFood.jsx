@@ -34,22 +34,26 @@ const MyFood = () => {
         }
     }, [user]);
 
-    if (loading) return <LoadingSpinner />;
-    if (error) return <div className="text-center text-red-500 py-10">{error}</div>;
-    if (!foods.length) {
-        return (
-            <div className='bg-[#121212] h-screen flex justify-center items-center text-3xl text-gray-800'>
-                <h2>No Food Items are Added</h2>
-            </div>
-        );
-    }
-
     return (
         <>
             <Header2 />
-            <div className='bg-[#121212] py-40 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 lg:px-28 px-6'>
-                {foods.map(food => <MyFoodCard display={food} key={food._id} />)}
-            </div>
+
+            {loading ? (
+                <LoadingSpinner />
+            ) : foods.length >= 1 ? (                
+                <div className='bg-[#121212] py-40 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 lg:px-28 px-6'>
+                    {foods.map(food => <MyFoodCard display={food} key={food._id} />)}
+                </div>
+            ) : error ? (
+                <div className="text-red-500 text-center py-10">
+                    Error: {error}
+                </div>            
+            ) : (
+                <div className='bg-[#121212] h-screen flex justify-center items-center text-3xl text-gray-800'>
+                    
+                    <h2>No Food Items has been Added</h2>
+                </div>
+            )}
         </>
     );
 };

@@ -46,19 +46,7 @@ function App() {
       {
            path : "/food",
            element : <Food />,
-           loader : async () => {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_API}/foodCount`);
-                if (!res.ok) {
-                    throw new Error('Failed to fetch count');
-                }
-                const data = await res.json();
-                return data;
-            } catch (err) {
-                console.error('Error loading food count:', err.message);
-                return { count: 0 };
-            }
-        }
+           loader : () => fetch(`${import.meta.env.VITE_API}/foodCount`)
       },
       {
         path : "/seeFood/:id",
@@ -78,7 +66,7 @@ function App() {
       {
          path : "/myFood",
          element : <PrivateRouter><MyFood /></PrivateRouter>,
-         loader : () => fetch(`${import.meta.env.VITE_API}/addFood`)
+         loader : () => fetch("${import.meta.env.VITE_API}/addFood")
       },
       {
          path : "/addFood",
@@ -88,33 +76,7 @@ function App() {
       {
          path : "/orderFood",
          element : <PrivateRouter><OrderFood /></PrivateRouter>,
-         loader: async () => {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-                
-                if (!res.ok) {
-                    console.error('Purchase food fetch failed:', res.status, res.statusText);
-                    return { orders: [], error: `Failed to fetch orders: ${res.statusText}` };
-                }
-                
-                const data = await res.json();
-                if (!Array.isArray(data)) {
-                    console.error('Invalid data format received:', data);
-                    return { orders: [], error: 'Invalid data format received' };
-                }
-                
-                return { orders: data, error: null };
-            } catch (err) {
-                console.error('Error loading purchase orders:', err);
-                return { orders: [], error: err.message };
-            }
-        }
+         loader : () =>  fetch(`${import.meta.env.VITE_API}/purchaseFood`)
       },
       {
           path : "/update/:id",
@@ -124,7 +86,7 @@ function App() {
       {
         path : "/topSelling",
         element : <TopSelling />,
-        loader : () => fetch(`${import.meta.env.VITE_API}/topSellingFoods`)
+        loader : () => fetch("${import.meta.env.VITE_API}/topSellingFoods")
       },
       {
         path : "/blog",
