@@ -35,7 +35,10 @@ const AuthProvider = ({children}) => {
     const logOut = () => {
         setLoading(true)
        
-        return signOut(auth)
+        return signOut(auth).catch(error => {
+            console.error("Logout error:", error.message)
+            setLoading(false)
+        })
     }
 
     const signInWithGoogle = () => {

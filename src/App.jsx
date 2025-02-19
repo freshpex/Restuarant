@@ -54,8 +54,8 @@ function App() {
                 }
                 const data = await res.json();
                 return data;
-            } catch (error) {
-                console.error('Error loading food count:', error.message);
+            } catch (err) {
+                console.error('Error loading food count:', err.message);
                 return { count: 0 };
             }
         }

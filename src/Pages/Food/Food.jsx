@@ -4,24 +4,21 @@ import { Helmet } from 'react-helmet';
 import AllFoodCard from './AllFoodCard';
 import { useLoaderData } from 'react-router-dom';
 import {AiOutlineRight,AiOutlineLeft} from "react-icons/ai"
-import LoadingSpinner from '../../Components/LoadingSpinner';
-
 const Food = () => {
     // window.scrollTo(0,0)
+
     const [search,setSearch] = useState([])
      const [display,setDisplay] = useState([])
     const [filter, setFilter] = useState([])
     const [foodPerPage, setPage] = useState(9)
     const [current, setCurrent] = useState(0)
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
     
-      const loaderData = useLoaderData();
-    const count = loaderData?.count || 0;
+    const {count} = useLoaderData()
+    console.log(count)
 
-    // calculation of number of pages
+
     const numberOfPage = Math.max(1, Math.ceil(count / foodPerPage));
-    const page = Array.from({ length: numberOfPage }, (_, i) => i);
+     const page = [...Array(numberOfPage).keys()];
 
     console.log(page)
 
@@ -43,23 +40,11 @@ const Food = () => {
     }
 
     useEffect(() => {
-        setIsLoading(true);
-        setError(null);
         fetch(`${import.meta.env.VITE_API}/foods?page=${current}&size=${foodPerPage}`)
-        .then(res => {
-            if (!res.ok) {
-                throw new Error('Failed to fetch foods');
-            }
-            return res.json();
-        })
+        .then(res => res.json())
         .then(data => {
             setSearch(data);
             setFilter(data);
-            setIsLoading(false);
-        })
-        .catch(err => {
-            setError(err.message);
-            setIsLoading(false);
         });
     }, [current, foodPerPage]);
 
@@ -101,35 +86,22 @@ const Food = () => {
                
             </div>
         </div>
-        <div className='bg-[#121212] -mt-40 pb-20 lg:px-28 px-6'>
-            {isLoading ? (
-                <LoadingSpinner />
-            ) : error ? (
-                <div className="text-red-500 text-center py-10">
-                    Error: {error}
-                </div>
-            ) : filter.length === 0 ? (
-                <div className="text-white text-center py-10">
-                    No foods found. Try a different search.
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                    {filter.map(data => <AllFoodCard key={data._id} data={data} />)}
-                </div>
-            )}
+        <div className=' bg-[#121212] -mt-40 pb-20 lg:px-28 px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
+            {filter.map(data => <AllFoodCard key={data._id} data={data} />)}
         </div>
 
-        {!isLoading && !error && filter.length > 0 && (
-            <div className='bg-[#121212] flex justify-center items-center pb-20 text-center text-white'>
-                <button className='px-3 mx-2 rounded-md border py-2  bg-[#121212] text-white' onClick={handlePrev}><AiOutlineLeft /></button>
-                {page.map(pages => <button onClick={() => setCurrent(pages)} key={pages} className={`mx-2 px-3 rounded-md border py-1  bg-[#121212] text-white ${current === pages && "bg-yellow-800 text-white"}`}>{pages +1}</button>)}
-                <button className='px-3 rounded-md border py-2 mx-2  bg-[#121212] text-white' onClick={handleNext}><AiOutlineRight /></button>
-                <select className='text-black hidden'  value={foodPerPage} onChange={handlePage} name="" id="">
+        
+        {/* <h2 className='text-white bg-black text-center pb-3'>Current page {current}</h2> */}
+        <div className=' bg-[#121212] flex justify-center items-center pb-20 text-center text-white'>
+        
+            <button className='px-3 mx-2 rounded-md border py-2  bg-[#121212] text-white' onClick={handlePrev}><AiOutlineLeft /></button>
+           {page.map(pages => <button onClick={() => setCurrent(pages)} key={pages} className={`mx-2 px-3 rounded-md border py-1  bg-[#121212] text-white ${current === pages && "bg-yellow-800 text-white"}`}>{pages +1}</button>)}
+           <button className='px-3 rounded-md border py-2 mx-2  bg-[#121212] text-white' onClick={handleNext}><AiOutlineRight /></button>
+           <select className='text-black hidden'  value={foodPerPage} onChange={handlePage} name="" id="">
                     <option  value={2}>2</option>
                     
                 </select>
-            </div>
-        )}
+        </div>
         </>
     );
 };

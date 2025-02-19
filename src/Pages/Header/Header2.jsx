@@ -7,8 +7,8 @@ import Logo from "../../assets/Logo.png"
 import { BsMoonStars ,BsCartCheck,BsSun } from "react-icons/bs";
 import { AuthContext } from "../../AuthProvider/AuthProvider";
 
-const Header2 = ({setUser}) => {
-    const {user, logOut} = useContext(AuthContext)
+const Header2 = () => {
+    const {user, setUser, logOut} = useContext(AuthContext);
   const [nav, setNav] = useState(false);
   const [avatar, setAvatar] = useState(false);
   const [toggle, setToggle] = useState(false)
@@ -87,7 +87,7 @@ useEffect(() => {
             navigate('/login')
           }, 2000);
       })
-      .catch();
+      .catch(console.error);
 
       
   };
@@ -161,7 +161,7 @@ useEffect(() => {
           </NavLink>
         </li>
         
-        {/* {user &&  (
+        {user &&  (
           <li>
             <NavLink
               to="/event"
@@ -206,7 +206,7 @@ useEffect(() => {
           >
             Contact
           </NavLink>
-        </li> */}
+        </li>
       </ul>
       <div className=" hidden gap-5  items-center lg:flex">
         
