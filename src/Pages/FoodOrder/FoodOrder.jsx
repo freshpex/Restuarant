@@ -18,21 +18,32 @@ const FoodOrder = () => {
     
 
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_API}/foods`)
-         .then(res => res.json())
-         .then(data => {
-            const matchedFood = data.find(item => item._id === id)
-            setDisplay(matchedFood)
-         })
-    }, [])
+        fetch(`${import.meta.env.VITE_API}/foods/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch food');
+            return res.json();
+        })
+        .then(data => setDisplay(data))
+        .catch(error => console.error('Error:', error));
+    }, [id]);
 
     const handlePurchase = async (orderData) => {
         try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                toast.error('Please login first');
+                return;
+            }
+
             const response = await fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${token}`
                 },
                 credentials: 'include',
                 body: JSON.stringify(orderData)
@@ -40,7 +51,7 @@ const FoodOrder = () => {
     
             const data = await response.json();
     
-            if (data.success) {
+            if (response.ok && data.success) {
                 toast.success('Order placed successfully!');
                 navigate('/orderFood');
             } else {

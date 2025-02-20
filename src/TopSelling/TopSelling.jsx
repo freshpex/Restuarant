@@ -3,25 +3,46 @@ import { Link, useLoaderData } from 'react-router-dom';
 import TopSellingFood from './TopSellingFood';
 
 const TopSelling = () => {
-
-    const [selling, setSelling] = useState([])
-
-    // const allFood = useLoaderData()
-    // console.log(allFood)
-
-    // const mapped = allFood.map(item => item)
-    // console.log(mapped)
+    const [topSelling, setTopSelling] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_API}/topSellingFoods`)
-        .then(res => res.json())
-        .then(data => {
-            console.log(data)
-            setSelling(data)
-        })
-    }, [])
+        const fetchTopSelling = async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API}/topSellingFoods`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch top selling foods');
+                }
+                
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    throw new Error('Invalid response format');
+                }
+                
+                setTopSelling(data);
+            } catch (err) {
+                setError(err.message);
+                console.error('Error:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    console.log(selling)
+        fetchTopSelling();
+    }, []);
+
+    if (loading) return <LoadingSpinner />;
+    if (error) return <div className="text-red-500 text-center py-10">{error}</div>;
+    if (!topSelling.length) return <div className="text-center py-10">No top selling foods found</div>;
+
+    const displayedItems = topSelling.slice(0, 6);
+
     return (
         <>
         <div className=" bg-[#121212] flex-col flex gap-4 py-4 justify-center items-center">
@@ -36,7 +57,7 @@ const TopSelling = () => {
         </div>
       </div>
         <div className=' lg:px-28 px-6 bg-[#121212] pb-20 pt-10 grid grid-cols-1 md:grid-cols-2 gap-10 lg:grid-cols-3'>
-            {selling.slice(0,6).map(data=> <TopSellingFood data={data} key={data._id} />)}
+            {displayedItems.map(data=> <TopSellingFood data={data} key={data._id} />)}
         </div>
 
         <div className=' bg-[#121212] pt-8 pb-36 flex justify-center items-center'>

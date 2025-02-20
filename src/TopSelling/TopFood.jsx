@@ -10,20 +10,26 @@ import {
     Button,
   } from "@material-tailwind/react";
 const TopFood = () => {
-
-    const {id} = useParams()
-    console.log(id)
-    const [display,setDisplay] = useState([])
+    const [display, setDisplay] = useState(null);
+    const { id } = useParams();
 
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_API}/foods`)
-         .then(res => res.json())
-         .then(data => {
-            const matchedFood = data.find(item => item._id === id)
-            setDisplay(matchedFood)
-         })
-    }, [])
-    console.log(display)
+        const fetchFood = async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API}/foods/${id}`);
+                if (!response.ok) throw new Error('Failed to fetch food');
+                const data = await response.json();
+                setDisplay(data);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        };
+        
+        fetchFood();
+    }, [id]);
+
+    if (!display) return <LoadingSpinner />;
+
     return (
         <>
         <Header2 />

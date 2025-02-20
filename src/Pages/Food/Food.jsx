@@ -15,12 +15,9 @@ const Food = () => {
     const [foodPerPage, setPage] = useState(9)
     const [current, setCurrent] = useState(0)
     
-    const {count} = useLoaderData()
-    console.log(count)
-
-
+    const {count} = useLoaderData() || { count: 0 };
     const numberOfPage = Math.max(1, Math.ceil(count / foodPerPage));
-     const page = [...Array(numberOfPage).keys()];
+    const page = [...Array(numberOfPage).keys()];
 
     console.log(page)
 
@@ -43,22 +40,28 @@ const Food = () => {
 
     useEffect(() => {
         setIsLoading(true);
-        fetch(`${import.meta.env.VITE_API}/foods?page=${current}&size=${foodPerPage}`)
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Failed to fetch data');
-                }
-                return res.json();
-            })
-            .then(data => {
-                setSearch(data);
-                setFilter(data);
-                setIsLoading(false);
-            })
-            .catch(err => {
-                setError(err.message);
-                setIsLoading(false);
-            });
+        fetch(`${import.meta.env.VITE_API}/foods?page=${current}&size=${foodPerPage}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch foods');
+            return res.json();
+        })
+        .then(data => {
+            if (!Array.isArray(data)) {
+                throw new Error('Invalid data format');
+            }
+            setSearch(data);
+            setFilter(data);
+        })
+        .catch(err => {
+            setError(err.message);
+        })
+        .finally(() => {
+            setIsLoading(false);
+        });
     }, [current, foodPerPage]);
     
     const handleSearch = () => {
