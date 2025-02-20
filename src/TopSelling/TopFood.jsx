@@ -9,6 +9,8 @@ import {
     Typography,
     Button,
   } from "@material-tailwind/react";
+  import LoadingSpinner from '../Components/LoadingSpinner';
+  
 const TopFood = () => {
     const [display, setDisplay] = useState(null);
     const { id } = useParams();

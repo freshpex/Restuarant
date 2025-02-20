@@ -85,12 +85,53 @@ function App() {
       {
          path : "/orderFood",
          element : <PrivateRouter><OrderFood /></PrivateRouter>,
-         loader : () =>  fetch(`${import.meta.env.VITE_API}/purchaseFood`)
+         loader: async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch orders: ${res.statusText}`);
+                }
+                
+                const data = await res.json();
+                return { orders: data, error: null };
+            } catch (err) {
+                console.error('Error loading purchase orders:', err);
+                return { orders: [], error: err.message };
+            }
+        }
       },
       {
           path : "/update/:id",
           element : <PrivateRouter><UpdateFood /></PrivateRouter>,
-          loader : ({params}) => fetch(`${import.meta.env.VITE_API}/update/${params.id}`)
+          loader: async ({params}) => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${import.meta.env.VITE_API}/update/${params.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!res.ok) {
+                    console.error('Failed to fetch food:', res.status, res.statusText);
+                    return null;
+                }
+                
+                return res.json();
+            } catch (error) {
+                console.error('Error loading food for update:', error);
+                return null;
+            }
+        }
       },
       {
         path : "/topSelling",

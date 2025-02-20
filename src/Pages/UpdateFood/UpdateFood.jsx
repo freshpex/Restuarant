@@ -1,54 +1,85 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import { AuthContext } from '../../AuthProvider/AuthProvider';
-
+import LoadingSpinner from '../../Components/LoadingSpinner';
 import { useLoaderData, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const UpdateFood = () => {
-    const {user} = useContext(AuthContext)
-    const navigate = useNavigate()
+    const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
+    const data = useLoaderData();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const data = useLoaderData()
-    console.log(data)
-    const handleAddCoffee = (e) => {
-        e.preventDefault()
-        const form = e.target
-        const buyerName = user.displayName
-        const email = user.email
-        const foodName = form.food.value
-        const foodPrice = form.price.value
-        const foodCategory = form.category.value
-        const foodDescription = form.description.value
-        const foodOrigin = form.origin.value
-        const foodQuantity = form.quantity.value
-        const foodImage = form.image.value
-    
+    useEffect(() => {
+        if (!data) {
+            setError('Failed to load food details');
+            setLoading(false);
+        } else {
+            setLoading(false);
+        }
+    }, [data]);
 
-        const addProduct = {buyerName,email, foodName, foodPrice, foodDescription,foodOrigin,  foodQuantity, foodCategory, foodImage}
-        console.log(addProduct)
+    if (loading) return <LoadingSpinner />;
+    if (error) return <div className="text-center text-red-500 py-10">{error}</div>;
+    if (!data) return <div className="text-center py-10">No food details found</div>;
 
-        fetch(`${import.meta.env.VITE_API}/update/${data._id}`, {
-            method : "PUT",
-            headers : {
-                "Content-Type" : "application/json"
-            },
-            body : JSON.stringify(addProduct)
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log(data)
-            // form.reset()
-            const toastId =toast.loading("Food is updated")
-            toast.success("Food is updated", {id : toastId})
-               navigate(-1)
-            
-        })
+    const handleAddCoffee = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const token = localStorage.getItem('token');
 
-        
-    }
-    
+        if (!token) {
+            toast.error('Please log in first');
+            navigate('/signIn');
+            return;
+        }
+
+        const addProduct = {
+            buyerName: user.displayName,
+            email: user.email,
+            foodName: form.food.value,
+            foodPrice: form.price.value,
+            foodDescription: form.description.value,
+            foodOrigin: form.origin.value,
+            foodQuantity: form.quantity.value,
+            foodCategory: form.category.value,
+            foodImage: form.image.value
+        };
+
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API}/update/${data._id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                credentials: 'include',
+                body: JSON.stringify(addProduct)
+            });
+
+            const result = await response.json();
+
+            if (response.status === 401) {
+                toast.error('Session expired. Please log in again');
+                navigate('/signIn');
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to update food');
+            }
+
+            toast.success("Food is updated");
+            navigate(-1);
+        } catch (error) {
+            console.error('Error updating food:', error);
+            toast.error(error.message || 'Failed to update food');
+        }
+    };
+
     return (
         <>
         

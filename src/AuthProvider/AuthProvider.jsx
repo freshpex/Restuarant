@@ -25,6 +25,22 @@ const AuthProvider = ({children}) => {
         setLoading(true)
         
         return signInWithEmailAndPassword(auth, email, password)
+            .then(async (result) => {
+                // Get JWT token after successful login
+                const response = await fetch(`${import.meta.env.VITE_API}/jwt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: result.user.email })
+                });
+                
+                const data = await response.json();
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                }
+                return result;
+            });
     }
 
     const [toggle,setToggle] = useState(false)
@@ -34,7 +50,7 @@ const AuthProvider = ({children}) => {
 
     const logOut = () => {
         setLoading(true)
-       
+        localStorage.removeItem('token');
         return signOut(auth).catch(error => {
             console.error("Logout error:", error.message)
             setLoading(false)

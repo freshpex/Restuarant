@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLoaderData } from 'react-router-dom';
 import TopSellingFood from './TopSellingFood';
+import LoadingSpinner from '../Components/LoadingSpinner';
 
 const TopSelling = () => {
     const [topSelling, setTopSelling] = useState([]);

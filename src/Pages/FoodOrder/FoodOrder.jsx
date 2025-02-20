@@ -18,24 +18,37 @@ const FoodOrder = () => {
     
 
     useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            toast.error('Please log in first');
+            navigate('/signIn');
+            return;
+        }
+
         fetch(`${import.meta.env.VITE_API}/foods/${id}`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            },
+            credentials: 'include'
         })
         .then(res => {
             if (!res.ok) throw new Error('Failed to fetch food');
             return res.json();
         })
         .then(data => setDisplay(data))
-        .catch(error => console.error('Error:', error));
-    }, [id]);
+        .catch(error => {
+            console.error('Error:', error);
+            toast.error('Error loading food details');
+        });
+    }, [id, navigate]);
 
     const handlePurchase = async (orderData) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                toast.error('Please login first');
+                toast.error('Please log in first');
+                navigate('/signIn');
                 return;
             }
 
@@ -51,7 +64,13 @@ const FoodOrder = () => {
     
             const data = await response.json();
     
-            if (response.ok && data.success) {
+            if (response.status === 401) {
+                toast.error('Session expired. Please log in again');
+                navigate('/signIn');
+                return;
+            }
+
+            if (data.success) {
                 toast.success('Order placed successfully!');
                 navigate('/orderFood');
             } else {

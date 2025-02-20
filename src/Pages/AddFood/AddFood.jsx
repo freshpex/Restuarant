@@ -25,10 +25,11 @@ const AddFood = () => {
         };
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API}/foods`, {
+            const response = await fetch(`${import.meta.env.VITE_API}/addFood`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem('token')}`
                 },
                 credentials: 'include',
                 body: JSON.stringify(newFood)
