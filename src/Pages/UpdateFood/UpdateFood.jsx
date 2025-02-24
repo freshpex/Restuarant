@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
-import { updateFood, clearSuccess, clearError } from '../../redux/slices/foodActionsSlice';
+import { updateFood, clearSuccess, clearError, fetchFoodForUpdate, clearFoodForUpdate } from '../../redux/slices/foodActionsSlice';
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Header2 from '../Header/Header2';
@@ -12,14 +12,26 @@ const UpdateFood = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { user } = useSelector(state => state.auth);
-    const { loading, error, success } = useSelector(state => state.foodActions);
-    const foodData = useSelector(state => state.food.currentFood);
+    const token = localStorage.getItem('token');
+    const { loading, error, success, foodForUpdate } = useSelector(state => state.foodActions);
+
+    useEffect(() => {
+        // Fetch food details when component mounts
+        if (id && token) {
+            dispatch(fetchFoodForUpdate({ id, token }));
+        }
+        
+        // Cleanup when component unmounts
+        return () => {
+            dispatch(clearFoodForUpdate());
+        };
+    }, [dispatch, id, token]);
 
     useEffect(() => {
         if (success) {
             toast.success("Food updated successfully");
             dispatch(clearSuccess());
-            navigate(-1);
+            navigate('/myFood');
         }
         if (error) {
             toast.error(error);
@@ -42,11 +54,11 @@ const UpdateFood = () => {
             foodImage: form.image.value
         };
 
-        await dispatch(updateFood({ id, foodData: updatedFood }));
+        dispatch(updateFood({ id, foodData: updatedFood, token }));
     };
 
     if (loading) return <LoadingSpinner />;
-    if (!foodData) return <div className="text-center py-10">No food details found</div>;
+    if (!foodForUpdate) return <div className="text-center py-10 text-white bg-[#121212]">Loading food details...</div>;
 
     return (
         <>
@@ -73,31 +85,31 @@ const UpdateFood = () => {
                                 </div>
                                 <div className="w-full">
                                     <label htmlFor="food" className="block mb-2 text-sm font-medium text-gray-900 ">Food Name</label>
-                                    <input defaultValue={foodData.foodName}  type="text" name="food" id="food" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter product type" required />
+                                    <input defaultValue={foodForUpdate.foodName}  type="text" name="food" id="food" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter product type" required />
                                 </div>
                                 <div className="w-full">
                                     <label htmlFor="price" className="block mb-2 text-sm font-medium text-gray-900 ">Price</label>
-                                    <input  defaultValue={foodData.foodPrice} type="number" name="price" id="price" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter product price" required/>
+                                    <input  defaultValue={foodForUpdate.foodPrice} type="number" name="price" id="price" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter product price" required/>
                                 </div>
                                 <div className="w-full">
                                     <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900 ">Short Description</label>
-                                    <input defaultValue={foodData.foodDescription} type="text" name="description" id="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter description" required />
+                                    <input defaultValue={foodForUpdate.foodDescription} type="text" name="description" id="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter description" required />
                                 </div>
                                 <div className="w-full">
                                     <label htmlFor="category" className="block mb-2 text-sm font-medium text-gray-900 ">Food Category</label>
-                                    <input defaultValue={foodData.foodCategory} type="text" name="category" id="category" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food category" required />
+                                    <input defaultValue={foodForUpdate.foodCategory} type="text" name="category" id="category" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food category" required />
                                 </div>
                                 <div className="w-full">
                                     <label htmlFor="image" className="block mb-2 text-sm font-medium text-gray-900 ">Food Image</label>
-                                    <input defaultValue={foodData.foodImage} type="text" name="image" id="image" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food url" required />
+                                    <input defaultValue={foodForUpdate.foodImage} type="text" name="image" id="image" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food url" required />
                                 </div>
                                 <div className="w-full">
                                     <label htmlFor="origin" className="block mb-2 text-sm font-medium text-gray-900 ">Food Origin</label>
-                                    <input defaultValue={foodData.foodOrigin} type="text" name="origin" id="origin" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food image url" required />
+                                    <input defaultValue={foodForUpdate.foodOrigin} type="text" name="origin" id="origin" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food image url" required />
                                 </div>
                                 <div className="sm:col-span-2">
                                     <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900 ">Food Quantity</label>
-                                    <input defaultValue={foodData.foodQuantity} type='number' name='quantity'  className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500  dark:placeholder-gray-400  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food  quantity" />
+                                    <input defaultValue={foodForUpdate.foodQuantity} type='number' name='quantity'  className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500  dark:placeholder-gray-400  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter food  quantity" />
                                 </div>
                             </div>
                             <button 

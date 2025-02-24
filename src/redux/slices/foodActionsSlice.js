@@ -181,14 +181,47 @@ export const deleteOrder = createAsyncThunk(
 
 export const fetchTopFoodById = createAsyncThunk(
   'foodActions/fetchTopFoodById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API}/topFood/${id}`,
+        {
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch food');
+      }
+
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchFoodForUpdate = createAsyncThunk(
+  'foodActions/fetchFoodForUpdate',
   async ({ id, token }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API}/topFood/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `${import.meta.env.VITE_API}/update/${id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
         }
-      });
-      if (!response.ok) throw new Error('Failed to fetch top food');
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch food');
+      }
+      
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
@@ -206,6 +239,7 @@ const foodActionsSlice = createSlice({
     success: false,
     orders: [],
     currentTopFood: null,
+    foodForUpdate: null,
   },
   reducers: {
     clearError: (state) => {
@@ -213,6 +247,9 @@ const foodActionsSlice = createSlice({
     },
     clearSuccess: (state) => {
       state.success = false;
+    },
+    clearFoodForUpdate: (state) => {
+      state.foodForUpdate = null;
     }
   },
   extraReducers: (builder) => {
@@ -304,9 +341,22 @@ const foodActionsSlice = createSlice({
       .addCase(fetchTopFoodById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Fetch Food For Update
+      .addCase(fetchFoodForUpdate.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchFoodForUpdate.fulfilled, (state, action) => {
+        state.loading = false;
+        state.foodForUpdate = action.payload;
+      })
+      .addCase(fetchFoodForUpdate.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   }
 });
 
-export const { clearError, clearSuccess } = foodActionsSlice.actions;
+export const { clearError, clearSuccess, clearFoodForUpdate } = foodActionsSlice.actions;
 export default foodActionsSlice.reducer;

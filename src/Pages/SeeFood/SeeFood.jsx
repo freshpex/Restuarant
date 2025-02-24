@@ -19,12 +19,22 @@ const SeeFood = () => {
     const { currentFood: display, loading, error } = useSelector(state => state.food);
 
     useEffect(() => {
-        dispatch(fetchFoodById(id));
+        if (id) {
+            dispatch(fetchFoodById(id));
+        }
     }, [dispatch, id]);
 
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="text-red-500 text-center">{error}</div>;
-    if (!display) return <div className="text-center">Food not found</div>;
+    if (error) return (
+        <div className="text-red-500 text-center py-10 bg-[#121212]">
+            Error: {error}
+        </div>
+    );
+    if (!display) return (
+        <div className="text-white text-center py-10 bg-[#121212]">
+            Loading food details...
+        </div>
+    );
 
     return (
         <>

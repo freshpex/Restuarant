@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
-import { fetchTopFoodById } from '../redux/slices/foodActionsSlice';
+import { fetchFoodById } from '../redux/slices/foodSlice';
 import Header2 from '../Pages/Header/Header2';
 import { Helmet } from 'react-helmet';
 import LoadingSpinner from '../Components/LoadingSpinner';
@@ -16,24 +16,34 @@ import {
 const TopFood = () => {
     const dispatch = useDispatch();
     const { id } = useParams();
-    const { currentTopFood: display, loading, error } = useSelector(state => state.foodActions);
+    const { currentFood: display, loading, error } = useSelector(state => state.food);
 
     useEffect(() => {
-        dispatch(fetchTopFoodById(id));
+        if (id) {
+            dispatch(fetchFoodById(id));
+        }
     }, [dispatch, id]);
 
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="text-red-500 text-center py-10">{error}</div>;
-    if (!display) return <div className="text-center py-10">Food not found</div>;
+    if (error) return (
+        <div className="text-red-500 text-center py-10 bg-[#121212]">
+            Error: {error}
+        </div>
+    );
+    if (!display) return (
+        <div className="text-white text-center py-10 bg-[#121212]">
+            Loading food details...
+        </div>
+    );
 
     return (
         <>
             <Header2 />
             <Helmet>
-                <title>Tim's Kitchen | Top-Food</title>
+                <title>Tim's Kitchen | See-Food </title>
             </Helmet>
             <div className='bg-[#121212] lg:px-28 px-6 lg:py-0 py-44 lg:pt-20 flex md:h-screen justify-center items-center'>
-                <Card className="w-[900px] flex flex-col lg:flex-row">
+                <Card className="w-full max-w-[48rem]  flex flex-col lg:flex-row">
                     <CardHeader
                         shadow={false}
                         floated={false}
@@ -42,10 +52,10 @@ const TopFood = () => {
                         <img
                             src={display.foodImage}
                             alt="card-image"
-                            className="lg:h-full lg:w-full lg:object-cover"
+                            className="lg:h-full  lg:w-full lg:object-cover"
                         />
                     </CardHeader>
-                    <CardBody className='lg:px-10'>
+                    <CardBody className=' lg:px-10'>
                         <Typography variant="h6" color="gray" className="mb-4 uppercase">
                             {display.foodCategory}
                         </Typography>

@@ -44,7 +44,7 @@ function App() {
             if (user) {
                 const serializedUser = getSerializableUser(user);
                 try {
-                    const token = await user.getIdToken(true); // Force token refresh
+                    const token = await user.getIdToken(true);
                     localStorage.setItem('token', token);
                     dispatch(setCredentials({
                         user: serializedUser,
