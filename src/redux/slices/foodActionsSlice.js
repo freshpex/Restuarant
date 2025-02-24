@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
+const getAuthHeaders = (token) => ({
+  'Authorization': `Bearer ${token}`,
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+});
+
 export const addFood = createAsyncThunk(
   'foodActions/addFood',
   async ({ foodData, token }, { rejectWithValue }) => {
@@ -50,32 +56,23 @@ export const fetchUserFoods = createAsyncThunk(
   'foodActions/fetchUserFoods',
   async ({ email, token }, { rejectWithValue }) => {
     try {
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const response = await fetch(
         `${import.meta.env.VITE_API}/foods/user/${email}`,
         {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
+          headers: getAuthHeaders(token),
           credentials: 'include'
         }
       );
 
       if (response.status === 401) {
-        throw new Error('Unauthorized: Please login again');
+        localStorage.removeItem('token');
+        throw new Error('unauthorized');
       }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch user foods');
-      }
-
-      return await response.json();
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch user foods');
+      
+      return data;
     } catch (error) {
       return rejectWithValue(error.message);
     }

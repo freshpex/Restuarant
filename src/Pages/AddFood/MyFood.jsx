@@ -2,53 +2,43 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserFoods } from '../../redux/slices/foodActionsSlice';
-import toast from 'react-hot-toast';
 import Header2 from '../Header/Header2';
 import MyFoodCard from './MyFoodCard';
 import LoadingSpinner from '../../Components/LoadingSpinner';
+import toast from 'react-hot-toast';
 
 const MyFood = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { user, token, isAuthenticated } = useSelector(state => state.auth);
+    const { user } = useSelector(state => state.auth);
     const { userFoods, loading, error } = useSelector(state => state.foodActions);
+    const token = localStorage.getItem('token');
 
     useEffect(() => {
-        if (!isAuthenticated) {
-            navigate('/signIn');
-            return;
-        }
-
-        if (user?.email) {
+        if (user?.email && token) {
             dispatch(fetchUserFoods({ email: user.email, token }))
                 .unwrap()
                 .catch(error => {
-                    if (error.includes('unauthorized') || error.includes('token')) {
-                        navigate('/signIn');
+                    if (error === 'unauthorized') {
+                        localStorage.removeItem('token');
                     }
                     toast.error(error);
                 });
         }
-    }, [dispatch, user, token, isAuthenticated, navigate]);
+    }, [dispatch, user, token]);
+
+    if (loading) return <LoadingSpinner />;
 
     return (
         <>
             <Header2 />
-            {loading ? (
-                <LoadingSpinner />
-            ) : userFoods.length >= 1 ? (                
+            {userFoods.length > 0 ? (
                 <div className='bg-[#121212] py-40 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 lg:px-28 px-6'>
-                    {userFoods.map(food => 
-                        <MyFoodCard display={food} key={food._id} />
-                    )}
+                    {userFoods.map(food => <MyFoodCard key={food._id} display={food} />)}
                 </div>
-            ) : error ? (
-                <div className="text-red-500 text-center py-10">
-                    Error: {error}
-                </div>            
             ) : (
                 <div className='bg-[#121212] h-screen flex justify-center items-center text-3xl text-gray-800'>
-                    <h2>No Food Items have been Added</h2>
+                    <h2>{error || 'No Food Items have been Added'}</h2>
                 </div>
             )}
         </>
