@@ -1,9 +1,9 @@
-import {
-  createBrowserRouter,
-  RouterProvider,
-} from "react-router-dom";
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './Firebase/firebase.config.js';
 import Layout from "./MainLayout/Layout";
-import AuthProvider from "./AuthProvider/AuthProvider";
 import Registration from "./Registration/Registration";
 import SignIn from "./SignIN/SignIn";
 import Hero from "./Pages/Home/Hero";
@@ -22,152 +22,120 @@ import TopSelling from "./TopSelling/TopSelling";
 import TopFood from "./TopSelling/TopFood";
 import Error from "./Error/Error";
 import { Toaster } from "react-hot-toast";
+import { stopGlobalLoading } from './redux/slices/uiSlice';
+import GlobalLoadingSpinner from './Components/GlobalLoadingSpinner';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from './redux/store';
+
 function App() {
- 
-  const router = new createBrowserRouter(
-    [{
-     path : '/',
-     element : <Layout />,
-    errorElement : <Error />,
+    const dispatch = useDispatch();
 
-     children : [ 
-      {
-          path : '/',
-          element : <Hero />
-      },
-      {
-         path : "/about",
-         element : <About />
-      },
-      {
-        path : "/aboutUs",
-        element : <AboutUs />
-      },
-      {
-           path : "/food",
-           element : <Food />,
-           loader : () => fetch(`${import.meta.env.VITE_API}/foodCount`)
-      },
-      {
-        path: "/seeFood/:id",
-        element: <SeeFood />,
-        loader: async ({params}) => {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_API}/foods/${params.id}`);
-                if (!res.ok) throw new Error('Failed to fetch food details');
-                return res.json();
-            } catch (error) {
-                console.error('Error loading food:', error);
-                return null;
-            }
-        }
-      },
-      {
-         path : "/topFood/:id",
-         element : <TopFood />,
-         loader : ({params}) => fetch(`${import.meta.env.VITE_API}/${params.id}`)
-      },
-      {
-            path : "/foodOrder/:id",
-            element : <PrivateRouter><FoodOrder /></PrivateRouter>,
-            loader : ({params}) => fetch(`${import.meta.env.VITE_API}/${params.id}`)
-      },
-      {
-         path : "/myFood",
-         element : <PrivateRouter><MyFood /></PrivateRouter>,
-         loader : () => fetch("${import.meta.env.VITE_API}/addFood")
-      },
-      {
-         path : "/addFood",
-         element : <PrivateRouter><AddFood /></PrivateRouter>,
-        
-      },
-      {
-         path : "/orderFood",
-         element : <PrivateRouter><OrderFood /></PrivateRouter>,
-         loader: async () => {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_API}/purchaseFood`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include'
+    useEffect(() => {
+        // Simulate initial app loading
+        const timer = setTimeout(() => {
+            dispatch(stopGlobalLoading());
+        }, 2000); // Show loading for 2 seconds
+
+        return () => clearTimeout(timer);
+    }, [dispatch]);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in
+                user.getIdToken().then(token => {
+                    localStorage.setItem('token', token);
                 });
-                
-                if (!res.ok) {
-                    throw new Error(`Failed to fetch orders: ${res.statusText}`);
-                }
-                
-                const data = await res.json();
-                return { orders: data, error: null };
-            } catch (err) {
-                console.error('Error loading purchase orders:', err);
-                return { orders: [], error: err.message };
+            } else {
+                // User is signed out
+                localStorage.removeItem('token');
             }
-        }
-      },
-      {
-          path : "/update/:id",
-          element : <PrivateRouter><UpdateFood /></PrivateRouter>,
-          loader: async ({params}) => {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${import.meta.env.VITE_API}/update/${params.id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include'
-                });
-                
-                if (!res.ok) {
-                    console.error('Failed to fetch food:', res.status, res.statusText);
-                    return null;
+            dispatch(stopGlobalLoading());
+        });
+
+        return () => unsubscribe();
+    }, [dispatch]);
+
+    const router = createBrowserRouter([
+        {
+            path: '/',
+            element: <Layout />,
+            errorElement: <Error />,
+            children: [
+                {
+                    path: '/',
+                    element: <Hero />
+                },
+                {
+                    path: "/about",
+                    element: <About />
+                },
+                {
+                    path: "/aboutUs",
+                    element: <AboutUs />
+                },
+                {
+                    path: "/food",
+                    element: <Food />
+                },
+                {
+                    path: "/seeFood/:id",
+                    element: <SeeFood />
+                },
+                {
+                    path: "/topFood/:id",
+                    element: <TopFood />
+                },
+                {
+                    path: "/foodOrder/:id",
+                    element: <PrivateRouter><FoodOrder /></PrivateRouter>
+                },
+                {
+                    path: "/myFood",
+                    element: <PrivateRouter><MyFood /></PrivateRouter>
+                },
+                {
+                    path: "/addFood",
+                    element: <PrivateRouter><AddFood /></PrivateRouter>
+                },
+                {
+                    path: "/orderFood",
+                    element: <PrivateRouter><OrderFood /></PrivateRouter>
+                },
+                {
+                    path: "/update/:id",
+                    element: <PrivateRouter><UpdateFood /></PrivateRouter>
+                },
+                {
+                    path: "/topSelling",
+                    element: <TopSelling />
+                },
+                {
+                    path: "/blog",
+                    element: <Blog />
+                },
+                {
+                    path: "/signup",
+                    element: <Registration />
+                },
+                {
+                    path: "/signIn",
+                    element: <SignIn />
                 }
-                
-                return res.json();
-            } catch (error) {
-                console.error('Error loading food for update:', error);
-                return null;
-            }
+            ]
         }
-      },
-      {
-        path : "/topSelling",
-        element : <TopSelling />,
-        loader : () => fetch("${import.meta.env.VITE_API}/topSellingFoods")
-      },
-      {
-        path : "/blog",
-        element : <Blog />
-      },
-      {
-        path : "/signup",
-        element : <Registration />
-      },
-      {
-        path : "/signIn",
-        element : <SignIn />
-      }
-     ]
+    ]);
 
-
-  }
-])
-
-  return (
-
-    <>
-    <AuthProvider>
-    <RouterProvider router={router}>
-      
-    </RouterProvider>
-    
-    </AuthProvider>
-    <Toaster />
-    </>
-  )
+    return (
+        <Provider store={store}>
+            <PersistGate loading={null} persistor={persistor}>
+                <GlobalLoadingSpinner />
+                <RouterProvider router={router} />
+                <Toaster />
+            </PersistGate>
+        </Provider>
+    );
 }
 
-export default App
+export default App;

@@ -1,12 +1,26 @@
-import React, { useContext } from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { addFood, clearSuccess, clearError } from '../../redux/slices/foodActionsSlice';
+import toast from 'react-hot-toast';
 import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
-import { AuthContext } from '../../AuthProvider/AuthProvider';
-import toast from 'react-hot-toast';
 
 const AddFood = () => {
-    const {user} = useContext(AuthContext);
-    
+    const dispatch = useDispatch();
+    const { user } = useSelector(state => state.auth);
+    const { loading, error, success } = useSelector(state => state.foodActions);
+
+    useEffect(() => {
+        if (success) {
+            toast.success("Food item added successfully");
+            dispatch(clearSuccess());
+        }
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
+        }
+    }, [success, error, dispatch]);
+
     const handleAddFood = async (e) => {
         e.preventDefault();
         const form = e.target;
@@ -24,31 +38,12 @@ const AddFood = () => {
             addedDate: new Date().toISOString()
         };
 
-        try {
-            const response = await fetch(`${import.meta.env.VITE_API}/addFood`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${localStorage.getItem('token')}`
-                },
-                credentials: 'include',
-                body: JSON.stringify(newFood)
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                toast.success("Food item added successfully");
-                form.reset();
-            } else {
-                toast.error(data.error || "Failed to add food");
-            }
-        } catch (error) {
-            toast.error("Error adding food item");
-            console.error(error);
+        await dispatch(addFood(newFood));
+        if (!error) {
+            form.reset();
         }
     };
-    
+
     return (
         <>
         

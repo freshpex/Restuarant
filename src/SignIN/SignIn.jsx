@@ -1,3 +1,8 @@
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { loginUser, googleSignIn, clearError } from '../redux/slices/authSlice';
+import toast from 'react-hot-toast';
 import {
   Card,
   CardHeader,
@@ -8,72 +13,55 @@ import {
   Checkbox,
   Button,
 } from "@material-tailwind/react";
-import {toast} from 'react-hot-toast';
-import { Link, useLocation, useNavigate } from "react-router-dom";
 import {Helmet} from "react-helmet";
 
 import { useContext, useState } from "react";
 import { AuthContext } from "../AuthProvider/AuthProvider";
 import Header2 from "../Pages/Header/Header2";
 
-const  SignIn =() => {
-  window.scrollTo(0,0)
-  const {logIn, setUser,signInWithGoogle} = useContext(AuthContext)
-const [error, setError] = useState("")
-const [success, setSuccess] = useState("")
+const SignIn = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { loading, error, isAuthenticated } = useSelector(state => state.auth);
 
-const navigate = useNavigate()
-const location = useLocation()
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate(location.state?.from || '/');
+        }
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
+        }
+    }, [isAuthenticated, error, navigate, location, dispatch]);
 
-const handleGoogle = () => {
-  signInWithGoogle()
-  .then((result) => {
-    console.log(result.user)
-    toast.success("Login Successful", {
-      position: "top-center",
-      autoClose: 1000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-    });
-    setTimeout(() => {
-      navigate(location.state ? location.state : "/")
-    },2000)
-  })
-  .catch(error => console.log(error.message))
-}
-  const handleLogIn = (e) => {
-      e.preventDefault()
-      
-      const email = e.target.email.value
-      const password = e.target.password.value
+    const handleGoogle = async () => {
+        try {
+            await dispatch(googleSignIn()).unwrap();
+            toast.success('Logged in successfully');
+        } catch (error) {
+            toast.error(error);
+        }
+    };
 
-     const toastId =toast.loading("Logged In")
-      logIn(email, password)
-      .then((result) => {
-        console.log(result.user)
-        // setUser(result.user)
-        // setSuccess("Login Successful")
-        toast.success("Logged In", {id : toastId})
-        setTimeout(() => {
-          navigate(location.state ? location.state : "/")
-        },2000)
-        
-        
-      })
-      .catch(error => toast.error("password or email does not match", {id : toastId}))
-}
+    const handleLogIn = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const email = form.email.value;
+        const password = form.password.value;
+
+        try {
+            await dispatch(loginUser({ email, password })).unwrap();
+            toast.success('Logged in successfully');
+        } catch (error) {
+            toast.error(error);
+        }
+    };
+
   return (
       <>
       <Helmet><title>Tim's Kitchen | Sign In</title></Helmet>
       <Header2 setUser={setUser}/>
-      {/* <div className="w-full h-screen relative">
-      <img  className="w-full h-screen  bg-center bg-cover object-cover" src="https://png.pngtree.com/thumb_back/fh260/back_our/20190621/ourmid/pngtree-black-meat-western-food-banner-background-image_194600.jpg" alt="" />
-      </div> */}
-      
       <div className="  w-full bg-[#121212]   py-40 flex  justify-center items-center">
            <form className="" onSubmit={handleLogIn}>
     <Card className="w-96  ">
@@ -90,9 +78,6 @@ const handleGoogle = () => {
          
         <Input type="email" name="email" label="Email" size="lg" required />
         <Input type="password" name="password" label="Password" size="lg" required />
-        {/* {error && <div className=' text-red-600'>{error}</div>}
-              {success && <div className=' text-green-700'>{success}</div>}
-              <ToastContainer /> */}
         <div className="-ml-2.5">
           <Checkbox label="Remember Me" />
         </div>

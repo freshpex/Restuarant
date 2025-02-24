@@ -1,84 +1,55 @@
 import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchFoods, setCurrentPage } from '../../redux/slices/foodSlice';
 import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import AllFoodCard from './AllFoodCard';
-import { useLoaderData } from 'react-router-dom';
-import {AiOutlineRight,AiOutlineLeft} from "react-icons/ai"
+import {AiOutlineRight,AiOutlineLeft} from "react-icons/ai";
 import LoadingSpinner from '../../Components/LoadingSpinner';
 
 const Food = () => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [search, setSearch] = useState([])
-    const [display, setDisplay] = useState([])
-    const [filter, setFilter] = useState([])
-    const [foodPerPage, setPage] = useState(9)
-    const [current, setCurrent] = useState(0)
-    
-    const {count} = useLoaderData() || { count: 0 };
-    const numberOfPage = Math.max(1, Math.ceil(count / foodPerPage));
-    const page = [...Array(numberOfPage).keys()];
-
-    console.log(page)
-
-    const handlePrev = () => {
-        if(current > 0){
-            setCurrent(current - 1)
-        }
-    }
-
-    const handleNext = () => {
-        if(current < page.length -1){
-            setCurrent(current + 1)
-        }
-    }
-
-    const handlePage = (e) => {
-        setPage(parseInt(e.target.value))
-        setCurrent(1)
-    }
+    const dispatch = useDispatch();
+    const { foods, loading, error, currentPage } = useSelector(state => state.food);
+    const [search, setSearch] = useState('');
+    const [filter, setFilter] = useState([]);
+    const [foodPerPage] = useState(9);
 
     useEffect(() => {
-        setIsLoading(true);
-        fetch(`${import.meta.env.VITE_API}/foods?page=${current}&size=${foodPerPage}`, {
-            headers: {
-                'Accept': 'application/json'
-            }
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Failed to fetch foods');
-            return res.json();
-        })
-        .then(data => {
-            if (!Array.isArray(data)) {
-                throw new Error('Invalid data format');
-            }
-            setSearch(data);
-            setFilter(data);
-        })
-        .catch(err => {
-            setError(err.message);
-        })
-        .finally(() => {
-            setIsLoading(false);
-        });
-    }, [current, foodPerPage]);
-    
+        dispatch(fetchFoods({ page: currentPage, size: foodPerPage }));
+    }, [dispatch, currentPage, foodPerPage]);
+
+    useEffect(() => {
+        setFilter(foods);
+    }, [foods]);
+
+    const handlePrev = () => {
+        if (currentPage > 0) {
+            dispatch(setCurrentPage(currentPage - 1));
+        }
+    };
+
+    const handleNext = () => {
+        dispatch(setCurrentPage(currentPage + 1));
+    };
+
     const handleSearch = () => {
-        if (display === '') {
-            setFilter(search);
+        if (search === '') {
+            setFilter(foods);
         } else {
-            const filteredData = search.filter(item => item.foodName === display);
+            const filteredData = foods.filter(item => 
+                item.foodName.toLowerCase().includes(search.toLowerCase())
+            );
             setFilter(filteredData);
         }
-    }
+    };
+
     return (
         <>
-        <Header2 />
-        <Helmet>
-            <title>Tim's Kitchen | All-Food</title>
-        </Helmet>
-        <div className=' bg-[#121212]   w-full h-screen relative'>
+            <Header2 />
+            <Helmet>
+                <title>Tim's Kitchen | All-Food</title>
+            </Helmet>
+            <div className=' bg-[#121212]   w-full h-screen relative'>
             
             <img className='w-full  brightness-75  mx-auto h-[60%] my-auto bg-center bg-cover object-cover'  src="https://tastyc.bslthemes.com/wp-content/uploads/2021/04/gallery-i-6.jpg" alt="" />
             <div className="absolute inset-0"></div>
@@ -90,7 +61,7 @@ const Food = () => {
                     <h2 className=' text-3xl lg:text-5xl text-white font-bold'>Search Your Food</h2>
                     <div    className=' max-w-[700px] mx-auto w-full flex justify-center items-center' action="">
                         <div className=' lg:w-[350px]'>
-                            <input onChange={(e) => setDisplay(e.target.value)}    className=' border-2 py-3 w-full border-white text-gray-700 rounded-tl-lg rounded-bl-lg  px-4' type="text"  name="text" id="" placeholder='search your food...' />
+                            <input onChange={(e) => setSearch(e.target.value)} value={search} className=' border-2 py-3 w-full border-white text-gray-700 rounded-tl-lg rounded-bl-lg  px-4' type="text"  name="text" id="" placeholder='search your food...' />
                         </div>
 
                         <div className=' relative right-3'>
@@ -102,7 +73,7 @@ const Food = () => {
             </div>
         </div>
         <div className=' bg-[#121212] -mt-40 pb-20 lg:px-28 px-6'>
-            {isLoading ? (
+            {loading ? (
                 <LoadingSpinner />
             ) : error ? (
                 <div className="text-red-500 text-center py-10">
@@ -124,9 +95,9 @@ const Food = () => {
         <div className=' bg-[#121212] flex justify-center items-center pb-20 text-center text-white'>
         
             <button className='px-3 mx-2 rounded-md border py-2  bg-[#121212] text-white' onClick={handlePrev}><AiOutlineLeft /></button>
-           {page.map(pages => <button onClick={() => setCurrent(pages)} key={pages} className={`mx-2 px-3 rounded-md border py-1  bg-[#121212] text-white ${current === pages && "bg-yellow-800 text-white"}`}>{pages +1}</button>)}
+           {[...Array(Math.ceil(foods.length / foodPerPage)).keys()].map(pages => <button onClick={() => dispatch(setCurrentPage(pages))} key={pages} className={`mx-2 px-3 rounded-md border py-1  bg-[#121212] text-white ${currentPage === pages && "bg-yellow-800 text-white"}`}>{pages +1}</button>)}
            <button className='px-3 rounded-md border py-2 mx-2  bg-[#121212] text-white' onClick={handleNext}><AiOutlineRight /></button>
-           <select className='text-black hidden'  value={foodPerPage} onChange={handlePage} name="" id="">
+           <select className='text-black hidden'  value={foodPerPage} onChange={(e) => dispatch(setCurrentPage(parseInt(e.target.value)))} name="" id="">
                     <option  value={2}>2</option>
                     
                 </select>

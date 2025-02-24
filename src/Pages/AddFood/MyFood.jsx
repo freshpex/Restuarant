@@ -1,48 +1,31 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchUserFoods } from '../../redux/slices/foodActionsSlice';
 import Header2 from '../Header/Header2';
-import { AuthContext } from '../../AuthProvider/AuthProvider';
-import { useLoaderData } from 'react-router-dom';
 import MyFoodCard from './MyFoodCard';
-import axios from 'axios';
 import LoadingSpinner from '../../Components/LoadingSpinner';
 
 const MyFood = () => {
-    const {user} = useContext(AuthContext);
-    const [foods, setFoods] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const dispatch = useDispatch();
+    const { user } = useSelector(state => state.auth);
+    const { userFoods, loading, error } = useSelector(state => state.foodActions);
 
     useEffect(() => {
-        const fetchMyFoods = async () => {
-            try {
-                const response = await fetch(
-                    `${import.meta.env.VITE_API}/foods/user/${user.email}`,
-                    { credentials: 'include' }
-                );
-                if (!response.ok) throw new Error('Failed to fetch foods');
-                const data = await response.json();
-                setFoods(data);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         if (user?.email) {
-            fetchMyFoods();
+            dispatch(fetchUserFoods(user.email));
         }
-    }, [user]);
+    }, [dispatch, user]);
 
     return (
         <>
             <Header2 />
-
             {loading ? (
                 <LoadingSpinner />
-            ) : foods.length >= 1 ? (                
+            ) : userFoods.length >= 1 ? (                
                 <div className='bg-[#121212] py-40 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 lg:px-28 px-6'>
-                    {foods.map(food => <MyFoodCard display={food} key={food._id} />)}
+                    {userFoods.map(food => 
+                        <MyFoodCard display={food} key={food._id} />
+                    )}
                 </div>
             ) : error ? (
                 <div className="text-red-500 text-center py-10">
@@ -50,8 +33,7 @@ const MyFood = () => {
                 </div>            
             ) : (
                 <div className='bg-[#121212] h-screen flex justify-center items-center text-3xl text-gray-800'>
-                    
-                    <h2>No Food Items has been Added</h2>
+                    <h2>No Food Items have been Added</h2>
                 </div>
             )}
         </>
