@@ -65,6 +65,18 @@ export const logoutUser = createAsyncThunk(
     }
 );
 
+// Helper function to serialize user data
+const serializeUser = (user) => {
+    if (!user) return null;
+    return {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        emailVerified: user.emailVerified
+    };
+};
+
 const authSlice = createSlice({
     name: 'auth',
     initialState: {
@@ -100,7 +112,7 @@ const authSlice = createSlice({
             })
             .addCase(registerUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload;
+                state.user = serializeUser(action.payload);
                 state.isAuthenticated = true;
             })
             .addCase(registerUser.rejected, (state, action) => {
@@ -114,7 +126,7 @@ const authSlice = createSlice({
             })
             .addCase(loginUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload;
+                state.user = serializeUser(action.payload);
                 state.isAuthenticated = true;
             })
             .addCase(loginUser.rejected, (state, action) => {
@@ -123,7 +135,7 @@ const authSlice = createSlice({
             })
             // Google Sign In
             .addCase(googleSignIn.fulfilled, (state, action) => {
-                state.user = action.payload;
+                state.user = serializeUser(action.payload);
                 state.isAuthenticated = true;
             })
             // Logout

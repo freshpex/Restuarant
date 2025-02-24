@@ -1,21 +1,24 @@
-import React, { useContext } from 'react';
-
+import React from 'react';
+import { useSelector } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../AuthProvider/AuthProvider';
+import { selectIsAuthenticated } from '../redux/selectors';
+import LoadingSpinner from '../Components/LoadingSpinner';
 
-const PrivateRouter = ({children}) => {
+const PrivateRouter = ({ children }) => {
     window.scrollTo(0,0)
-   const location = useLocation()
-    const {user, isLoading} = useContext(AuthContext)
-    
-   if(isLoading){
-    return <div className=' h-screen flex justify-center items-center'><span className="loading loading-spinner loading-lg"></span>
-    </div>
-   }
-    if(user){
-        return children
+    const location = useLocation();
+    const isAuthenticated = useSelector(selectIsAuthenticated);
+    const loading = useSelector(state => state.auth.loading);
+
+    if (loading) {
+        return <LoadingSpinner />;
     }
-    return <Navigate state={location.pathname} to="/signIn"></Navigate>
+
+    if (!isAuthenticated) {
+        return <Navigate to="/signIn" state={{ from: location }} replace />;
+    }
+
+    return children;
 };
 
 export default PrivateRouter;

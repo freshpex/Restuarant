@@ -7,7 +7,9 @@ const persistConfig = {
   key: 'root',
   version: 1,
   storage,
-  whitelist: ['auth', 'food']
+  whitelist: ['auth', 'food'],
+  // Don't persist non-serializable values
+  serialize: true
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -17,7 +19,13 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        ignoredActions: [
+          FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER,
+          'auth/loginUser/fulfilled',
+          'auth/registerUser/fulfilled',
+          'auth/googleSignIn/fulfilled'
+        ],
+        ignoredPaths: ['auth.user']
       },
     }),
   devTools: process.env.NODE_ENV !== 'production',

@@ -27,6 +27,8 @@ import GlobalLoadingSpinner from './Components/GlobalLoadingSpinner';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './redux/store';
+import { getSerializableUser } from './utils/userUtils';
+import { setCredentials, clearCredentials } from './redux/slices/authSlice';
 
 function App() {
     const dispatch = useDispatch();
@@ -43,13 +45,15 @@ function App() {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
-                // User is signed in
+                const serializedUser = getSerializableUser(user);
                 user.getIdToken().then(token => {
-                    localStorage.setItem('token', token);
+                    dispatch(setCredentials({
+                        user: serializedUser,
+                        token
+                    }));
                 });
             } else {
-                // User is signed out
-                localStorage.removeItem('token');
+                dispatch(clearCredentials());
             }
             dispatch(stopGlobalLoading());
         });
