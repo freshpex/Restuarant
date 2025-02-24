@@ -2,13 +2,13 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 export const addFood = createAsyncThunk(
   'foodActions/addFood',
-  async (foodData, { rejectWithValue }) => {
+  async ({ foodData, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API}/addFood`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
         body: JSON.stringify(foodData)
@@ -25,13 +25,13 @@ export const addFood = createAsyncThunk(
 
 export const updateFood = createAsyncThunk(
   'foodActions/updateFood',
-  async ({ id, foodData }, { rejectWithValue }) => {
+  async ({ id, foodData, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API}/update/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
         body: JSON.stringify(foodData)
@@ -48,11 +48,8 @@ export const updateFood = createAsyncThunk(
 
 export const fetchUserFoods = createAsyncThunk(
   'foodActions/fetchUserFoods',
-  async (email, { rejectWithValue, getState }) => {
+  async ({ email, token }, { rejectWithValue }) => {
     try {
-      const { auth } = getState();
-      const token = auth.token;
-
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -62,18 +59,20 @@ export const fetchUserFoods = createAsyncThunk(
         {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
           },
           credentials: 'include'
         }
       );
 
       if (response.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Unauthorized: Please login again');
       }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch user foods');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch user foods');
       }
 
       return await response.json();
@@ -113,7 +112,7 @@ export const fetchTopFoods = createAsyncThunk(
 
 export const orderFood = createAsyncThunk(
   'foodActions/orderFood',
-  async (orderData, { rejectWithValue }) => {
+  async ({ orderData, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API}/purchaseFood`,
@@ -121,7 +120,7 @@ export const orderFood = createAsyncThunk(
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`
           },
           credentials: 'include',
           body: JSON.stringify(orderData)
@@ -139,13 +138,13 @@ export const orderFood = createAsyncThunk(
 
 export const fetchOrders = createAsyncThunk(
   'foodActions/fetchOrders',
-  async (email, { rejectWithValue }) => {
+  async ({ email, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API}/orders/user/${email}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
           },
           credentials: 'include'
@@ -162,14 +161,14 @@ export const fetchOrders = createAsyncThunk(
 
 export const deleteOrder = createAsyncThunk(
   'foodActions/deleteOrder',
-  async (id, { rejectWithValue }) => {
+  async ({ id, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API}/orders/${id}`,
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`
           },
           credentials: 'include'
         }
@@ -185,9 +184,13 @@ export const deleteOrder = createAsyncThunk(
 
 export const fetchTopFoodById = createAsyncThunk(
   'foodActions/fetchTopFoodById',
-  async (id, { rejectWithValue }) => {
+  async ({ id, token }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API}/topFood/${id}`);
+      const response = await fetch(`${import.meta.env.VITE_API}/topFood/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch top food');
       return await response.json();
     } catch (error) {

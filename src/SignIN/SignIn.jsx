@@ -74,8 +74,8 @@ const SignIn = () => {
                             </Typography>
                         </CardHeader>
                         <CardBody className="flex flex-col gap-4">
-                            <Input type="email" name="email" label="Email" size="lg" required />
-                            <Input type="password" name="password" label="Password" size="lg" required />
+                            <Input type="email" name="email" label="Email" size="lg" required autoComplete="email" />
+                            <Input type="password" name="password" label="Password" size="lg" required autoComplete="current-password" />
                             <div className="-ml-2.5">
                                 <Checkbox label="Remember Me" />
                             </div>

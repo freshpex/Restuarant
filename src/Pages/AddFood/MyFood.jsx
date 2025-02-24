@@ -1,29 +1,35 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { fetchUserFoods } from '../../redux/slices/foodActionsSlice';
+import toast from 'react-hot-toast';
 import Header2 from '../Header/Header2';
 import MyFoodCard from './MyFoodCard';
 import LoadingSpinner from '../../Components/LoadingSpinner';
-import { useNavigate } from 'react-router-dom';
 
 const MyFood = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { user } = useSelector(state => state.auth);
+    const { user, token, isAuthenticated } = useSelector(state => state.auth);
     const { userFoods, loading, error } = useSelector(state => state.foodActions);
 
     useEffect(() => {
+        if (!isAuthenticated) {
+            navigate('/signIn');
+            return;
+        }
+
         if (user?.email) {
-            dispatch(fetchUserFoods(user.email))
+            dispatch(fetchUserFoods({ email: user.email, token }))
                 .unwrap()
                 .catch(error => {
-                    if (error.includes('Please log in again')) {
+                    if (error.includes('unauthorized') || error.includes('token')) {
                         navigate('/signIn');
                     }
                     toast.error(error);
                 });
         }
-    }, [dispatch, user, navigate]);
+    }, [dispatch, user, token, isAuthenticated, navigate]);
 
     return (
         <>

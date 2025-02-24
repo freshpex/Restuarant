@@ -32,7 +32,13 @@ export const loginUser = createAsyncThunk(
     async ({ email, password }, { rejectWithValue }) => {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const token = await userCredential.user.getIdToken();
+            const token = await userCredential.user.getIdToken(true); // Force token refresh
+            
+            // Verify token is a valid JWT
+            if (!token || typeof token !== 'string') {
+                throw new Error('Invalid token received');
+            }
+
             localStorage.setItem('token', token);
             return {
                 user: userCredential.user,

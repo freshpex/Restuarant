@@ -4,11 +4,13 @@ import { addFood, clearSuccess, clearError } from '../../redux/slices/foodAction
 import toast from 'react-hot-toast';
 import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
+import { useNavigate } from 'react-router-dom';
 
 const AddFood = () => {
     const dispatch = useDispatch();
-    const { user } = useSelector(state => state.auth);
+    const { user, token, isAuthenticated } = useSelector(state => state.auth);
     const { loading, error, success } = useSelector(state => state.foodActions);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (success) {
@@ -20,6 +22,12 @@ const AddFood = () => {
             dispatch(clearError());
         }
     }, [success, error, dispatch]);
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            navigate('/signIn');
+        }
+    }, [isAuthenticated, navigate]);
 
     const handleAddFood = async (e) => {
         e.preventDefault();
@@ -38,7 +46,7 @@ const AddFood = () => {
             addedDate: new Date().toISOString()
         };
 
-        await dispatch(addFood(newFood));
+        await dispatch(addFood({ newFood, token }));
         if (!error) {
             form.reset();
         }
