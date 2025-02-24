@@ -48,19 +48,34 @@ export const updateFood = createAsyncThunk(
 
 export const fetchUserFoods = createAsyncThunk(
   'foodActions/fetchUserFoods',
-  async (email, { rejectWithValue }) => {
+  async (email, { rejectWithValue, getState }) => {
     try {
+      const { auth } = getState();
+      const token = auth.token;
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_API}/foods/user/${email}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
           },
           credentials: 'include'
         }
       );
 
-      if (!response.ok) throw new Error('Failed to fetch user foods');
+      if (response.status === 401) {
+        throw new Error('Please log in again');
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user foods');
+      }
+
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);

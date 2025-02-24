@@ -29,29 +29,31 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './redux/store';
 import { getSerializableUser } from './utils/userUtils';
 import { setCredentials, clearCredentials } from './redux/slices/authSlice';
+import { checkTokenValidity } from './utils/authUtils';
 
 function App() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        // Simulate initial app loading
-        const timer = setTimeout(() => {
-            dispatch(stopGlobalLoading());
-        }, 2000); // Show loading for 2 seconds
+        // Check token validity on app start
+        if (!checkTokenValidity()) {
+            dispatch(clearCredentials());
+        }
 
-        return () => clearTimeout(timer);
-    }, [dispatch]);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const serializedUser = getSerializableUser(user);
-                user.getIdToken().then(token => {
+                try {
+                    const token = await user.getIdToken(true); // Force token refresh
+                    localStorage.setItem('token', token);
                     dispatch(setCredentials({
                         user: serializedUser,
                         token
                     }));
-                });
+                } catch (error) {
+                    console.error('Token refresh failed:', error);
+                    dispatch(clearCredentials());
+                }
             } else {
                 dispatch(clearCredentials());
             }

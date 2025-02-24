@@ -4,17 +4,26 @@ import { fetchUserFoods } from '../../redux/slices/foodActionsSlice';
 import Header2 from '../Header/Header2';
 import MyFoodCard from './MyFoodCard';
 import LoadingSpinner from '../../Components/LoadingSpinner';
+import { useNavigate } from 'react-router-dom';
 
 const MyFood = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { user } = useSelector(state => state.auth);
     const { userFoods, loading, error } = useSelector(state => state.foodActions);
 
     useEffect(() => {
         if (user?.email) {
-            dispatch(fetchUserFoods(user.email));
+            dispatch(fetchUserFoods(user.email))
+                .unwrap()
+                .catch(error => {
+                    if (error.includes('Please log in again')) {
+                        navigate('/signIn');
+                    }
+                    toast.error(error);
+                });
         }
-    }, [dispatch, user]);
+    }, [dispatch, user, navigate]);
 
     return (
         <>

@@ -17,7 +17,10 @@ export const registerUser = createAsyncThunk(
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const token = await userCredential.user.getIdToken();
             localStorage.setItem('token', token);
-            return userCredential.user;
+            return {
+                user: userCredential.user,
+                token
+            };
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -31,7 +34,10 @@ export const loginUser = createAsyncThunk(
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const token = await userCredential.user.getIdToken();
             localStorage.setItem('token', token);
-            return userCredential.user;
+            return {
+                user: userCredential.user,
+                token
+            };
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -112,7 +118,8 @@ const authSlice = createSlice({
             })
             .addCase(registerUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = serializeUser(action.payload);
+                state.user = serializeUser(action.payload.user);
+                state.token = action.payload.token;
                 state.isAuthenticated = true;
             })
             .addCase(registerUser.rejected, (state, action) => {
@@ -126,7 +133,8 @@ const authSlice = createSlice({
             })
             .addCase(loginUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = serializeUser(action.payload);
+                state.user = serializeUser(action.payload.user);
+                state.token = action.payload.token;
                 state.isAuthenticated = true;
             })
             .addCase(loginUser.rejected, (state, action) => {
