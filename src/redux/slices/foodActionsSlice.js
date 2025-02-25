@@ -109,8 +109,13 @@ export const fetchTopFoods = createAsyncThunk(
 
 export const orderFood = createAsyncThunk(
   'foodActions/orderFood',
-  async ({ orderData, token }, { rejectWithValue }) => {
+  async ({ orderData }, { rejectWithValue }) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_API}/purchaseFood`,
         {
@@ -124,9 +129,12 @@ export const orderFood = createAsyncThunk(
         }
       );
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      return data;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to place order');
+      }
+
+      return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
     }

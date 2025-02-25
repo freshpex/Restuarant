@@ -39,6 +39,13 @@ const FoodOrder = () => {
         }
     }, [id, navigate, dispatch, token]);
 
+    const validateDate = (selectedDate) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selected = new Date(selectedDate);
+        return selected >= today;
+    };
+
     const handlePurchase = async (orderData) => {
         try {
             if (!token) {
@@ -47,12 +54,23 @@ const FoodOrder = () => {
                 return;
             }
 
-            await dispatch(orderFood({ orderData, token })).unwrap();
+            if (!validateDate(orderData.date)) {
+                toast.error('Please select today or a future date');
+                return;
+            }
+
+            const quantity = parseInt(orderData.quantity);
+            if (quantity <= 0 || quantity > display.foodQuantity) {
+                toast.error(`Please select a quantity between 1 and ${display.foodQuantity}`);
+                return;
+            }
+
+            await dispatch(orderFood({ orderData })).unwrap();
             toast.success('Order placed successfully!');
             navigate('/orderFood');
         } catch (error) {
             console.error('Error placing order:', error);
-            toast.error(error || 'Error placing order. Please try again.');
+            toast.error(error.message || 'Error placing order. Please try again.');
         }
     };
 
@@ -77,7 +95,7 @@ const FoodOrder = () => {
             quantity,
             foodImage, 
             foodId,
-            userEmail: email // Add this for backend validation
+            userEmail: email
         };
 
         if (quantity > 0) {
@@ -123,7 +141,14 @@ const FoodOrder = () => {
                                 </div>
                                 <div className="w-full">
                                     <label for="date" className="block mb-2 text-sm font-medium text-gray-900 ">Date</label>
-                                    <input type="date" name="date" id="date" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter description" required />
+                                    <input 
+                                        type="date" 
+                                        name="date" 
+                                        id="date" 
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" 
+                                        required 
+                                    />
                                 </div>
                                 <div className="w-full">
                                     <label for="quantity" className="block mb-2 text-sm font-medium text-gray-900 ">Quantity</label>
