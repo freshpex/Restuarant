@@ -5,21 +5,45 @@ import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const OrderFood = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { user } = useSelector(state => state.auth);
     const { orders, loading, error } = useSelector(state => state.foodActions);
+    const token = localStorage.getItem('token');
 
     useEffect(() => {
-        if (user?.email) {
-            dispatch(fetchOrders(user.email));
+        if (!token) {
+            navigate('/signIn');
+            return;
         }
-    }, [dispatch, user]);
+        
+        if (user?.email) {
+            dispatch(fetchOrders({ email: user.email, token }))
+                .unwrap()
+                .catch(err => {
+                    console.error('Error fetching orders:', err);
+                    if (err === 'Invalid or expired token') {
+                        toast.error('Your session has expired. Please sign in again.');
+                        localStorage.removeItem('token');
+                        navigate('/signIn');
+                    } else {
+                        toast.error(err || 'Failed to fetch orders');
+                    }
+                });
+        }
+    }, [dispatch, user, token, navigate]);
 
     const handleDelete = async (id) => {
+        if (!token) {
+            navigate('/signIn');
+            return;
+        }
+
         try {
-            await dispatch(deleteOrder(id)).unwrap();
+            await dispatch(deleteOrder({ id, token })).unwrap();
             toast.success('Order removed successfully');
         } catch (error) {
             toast.error('Failed to remove order');

@@ -3,6 +3,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 const getAuthHeaders = (token) => ({
   'Authorization': `Bearer ${token}`,
   'Content-Type': 'application/json',
+  'Accept': 'application/json'
 });
 
 export const addFood = createAsyncThunk(
@@ -55,18 +56,26 @@ export const fetchUserFoods = createAsyncThunk(
   'foodActions/fetchUserFoods',
   async ({ email, token }, { rejectWithValue }) => {
     try {
+      console.log(`Attempting to fetch with token: ${token && token.substring(0, 20)}...`);
+      
       const response = await fetch(
         `${import.meta.env.VITE_API}/foods/user/${email}`,
         {
           method: 'GET',
-          headers: getAuthHeaders(token),
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
           credentials: 'include'
         }
       );
 
+      console.log('Response is', response);
+      
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch user foods');
+        console.log('Auth error:', error);
+        return rejectWithValue(error.message || 'Failed to fetch user foods');
       }
 
       return await response.json();
@@ -132,16 +141,21 @@ export const orderFood = createAsyncThunk(
       const data = await response.json();
       
       // Update food quantity after successful order
-      await fetch(`${import.meta.env.VITE_API}/foods/${orderData.foodId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          quantity: -orderData.quantity // Server will subtract this from current quantity
-        })
-      });
+      try {
+        await fetch(`${import.meta.env.VITE_API}/foods/${orderData.foodId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            quantity: -orderData.quantity // Server will subtract this from current quantity
+          })
+        });
+      } catch (quantityError) {
+        console.error("Failed to update food quantity:", quantityError);
+        // Continue even if this fails, as the order was successful
+      }
 
       return data;
     } catch (error) {
@@ -154,6 +168,10 @@ export const fetchOrders = createAsyncThunk(
   'foodActions/fetchOrders',
   async ({ email, token }, { rejectWithValue }) => {
     try {
+      if (!email) {
+        throw new Error('Email is required to fetch orders');
+      }
+      
       const response = await fetch(
         `${import.meta.env.VITE_API}/orders/user/${email}`,
         {
@@ -165,7 +183,11 @@ export const fetchOrders = createAsyncThunk(
         }
       );
 
-      if (!response.ok) throw new Error('Failed to fetch orders');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch orders');
+      }
+      
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);

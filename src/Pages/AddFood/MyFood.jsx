@@ -24,9 +24,12 @@ const MyFood = () => {
             dispatch(fetchUserFoods({ email: user.email, token }))
                 .unwrap()
                 .catch(err => {
-                    if (err === 'unauthorized') {
+                    console.log('Fetch error:', err);
+                    if (err === 'Invalid or expired token') {
+                        toast.error('Your session has expired. Please sign in again.');
                         localStorage.removeItem('token');
                         navigate('/signIn');
+                        return;
                     }
                     toast.error(err || 'Failed to fetch foods');
                 });
@@ -34,10 +37,10 @@ const MyFood = () => {
     }, [dispatch, user, token, navigate]);
 
     if (loading) return <LoadingSpinner />;
-    if (error) return <div className="text-red-500 text-center">{error}</div>;
 
     return (
         <>
+            {/* <Header2 /> */}
             {userFoods.length > 0 ? (
                 <div className='bg-[#121212] py-40 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 lg:px-28 px-6'>
                     {userFoods.map(food => <MyFoodCard key={food._id} display={food} />)}
