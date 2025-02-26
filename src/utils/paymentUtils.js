@@ -2,18 +2,20 @@ import { closePaymentModal, useFlutterwave } from 'flutterwave-react-v3';
 
 // Configuration for Flutterwave payment
 export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
-  // Default callbacks
   const {
     onSuccess = () => {},
     onError = () => {},
     onClose = () => {}
   } = callbacks;
+  
+  const unitPrice = parseFloat(orderDetails.foodPrice);
+  const quantity = parseInt(orderDetails.quantity);
+  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
 
-  // You'll need to replace these with your actual Flutterwave API keys
   const config = {
     public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
     tx_ref: `tk-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    amount: parseFloat(orderDetails.foodPrice) * parseInt(orderDetails.quantity),
+    amount: parseFloat(totalPrice),
     currency: 'USD',
     payment_options: 'card,mobilemoney,ussd,banktransfer',
     customer: {
@@ -57,16 +59,18 @@ export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
 
 // Helper to create WhatsApp chat link
 export const createWhatsAppLink = (phoneNumber, orderDetails) => {
-  // Format phone number (remove any non-digit characters)
   const formattedPhone = phoneNumber.replace(/\D/g, '');
   
-  // Create message text
+  const unitPrice = parseFloat(orderDetails.foodPrice);
+  const quantity = parseInt(orderDetails.quantity);
+  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
+  
   const message = encodeURIComponent(
     `Hello! I'd like to order:
     - Food: ${orderDetails.foodName}
-    - Quantity: ${orderDetails.quantity}
+    - Quantity: ${quantity}
     - Price: $${orderDetails.foodPrice} each
-    - Total: $${parseFloat(orderDetails.foodPrice) * parseInt(orderDetails.quantity)}
+    - Total: $${totalPrice}
     - Order Date: ${orderDetails.date}
     
     My name is ${orderDetails.buyerName}.

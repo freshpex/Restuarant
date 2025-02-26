@@ -80,13 +80,16 @@ const OrderFood = () => {
     const handlePayOnline = () => {
         if (!currentOrder || !user) return;
         
-        // Set payment loading state to true
         setIsPaymentLoading(true);
+        
+        const unitPrice = parseFloat(currentOrder.foodPrice);
+        const quantity = parseInt(currentOrder.quantity);
+        const totalPrice = currentOrder.totalPrice || (unitPrice * quantity).toFixed(2);
         
         const config = {
             public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-            tx_ref: Date.now().toString(),
-            amount: parseFloat(currentOrder.foodPrice) * parseInt(currentOrder.quantity),
+            tx_ref: `tk-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            amount: parseFloat(totalPrice),
             currency: 'USD',
             payment_options: 'card,mobilemoney,ussd,banktransfer',
             customer: {
@@ -96,7 +99,7 @@ const OrderFood = () => {
             },
             customizations: {
                 title: "Tim's Kitchen Payment",
-                description: `Payment for ${currentOrder.foodName} x${currentOrder.quantity}`,
+                description: `Payment for ${currentOrder.foodName} x ${currentOrder.quantity}`,
                 logo: "/logo.png",
             },
         };

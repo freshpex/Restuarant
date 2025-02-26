@@ -17,7 +17,7 @@ const Hero = () => {
         {/* <Header /> */}
         <div className=' w-full h-screen relative'>
             
-            <img className='w-full h-full bg-center bg-cover object-cover'  src="https://tastyc.bslthemes.com/wp-content/uploads/2021/04/home-slide-1.jpg" alt="" />
+            <img className='w-full h-full bg-center bg-cover object-cover'  src="https://th.bing.com/th/id/OIP.1G-SyFmm0ggk1Ca_O_sO9AHaE8?w=260&h=180&c=7&r=0&o=5&dpr=1.2&pid=1.7" alt="" />
             
             <div className='   absolute w-full top-0 left-0 h-full'>
 

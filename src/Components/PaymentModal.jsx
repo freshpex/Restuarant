@@ -6,7 +6,7 @@ const PaymentModal = ({
   isOpen, 
   onClose, 
   onWhatsAppChat, 
-  onPayOnline,
+  onPayOnline, 
   orderDetails,
   isPaymentLoading
 }) => {
@@ -21,7 +21,12 @@ const PaymentModal = ({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !orderDetails) return null;
+
+  // Calculate the total price correctly
+  const unitPrice = parseFloat(orderDetails.foodPrice);
+  const quantity = parseInt(orderDetails.quantity);
+  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
@@ -43,13 +48,19 @@ const PaymentModal = ({
             Choose how you would like to proceed with your order:
           </p>
           
-          {orderDetails && (
-            <div className="bg-gray-100 p-3 rounded-lg mb-4">
-              <p className="font-medium text-gray-800">Order Summary:</p>
-              <p className="text-sm text-gray-600">{orderDetails.foodName} x{orderDetails.quantity}</p>
-              <p className="text-sm text-gray-600">Total: ${parseFloat(orderDetails.foodPrice) * parseInt(orderDetails.quantity)}</p>
+          <div className="bg-gray-100 p-3 rounded-lg mb-4">
+            <p className="font-medium text-gray-800">Order Summary:</p>
+            <div className="mt-2 space-y-1">
+              <div className="flex justify-between">
+                <p className="text-sm text-gray-600">{orderDetails.foodName}</p>
+                <p className="text-sm text-gray-600">${orderDetails.foodPrice} × {quantity}</p>
+              </div>
+              <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between">
+                <p className="font-medium text-gray-800">Total:</p>
+                <p className="font-bold text-gray-800">${totalPrice}</p>
+              </div>
             </div>
-          )}
+          </div>
         </div>
         
         <div className="flex flex-col gap-3">
