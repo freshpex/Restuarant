@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 const Blog = () => {
     return (
         <>
-        <Header2/>
+        {/* <Header2/> */}
         <Helmet>
             <title>Tim's Kitchen | Blog</title>
         </Helmet>

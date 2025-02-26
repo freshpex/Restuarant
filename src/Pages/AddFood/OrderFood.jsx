@@ -34,7 +34,7 @@ const OrderFood = () => {
             <Helmet>
                 <title>Tim's Kitchen | Ordered-Food</title>
             </Helmet>
-            <Header2 />
+            {/* <Header2 /> */}
             <h2 className='text-3xl pt-44 text-center text-white bg-[#121212]'>
                 My Ordered Food
             </h2>

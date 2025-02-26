@@ -38,7 +38,7 @@ const SeeFood = () => {
 
     return (
         <>
-            <Header2 />
+            {/* <Header2 /> */}
             <Helmet>
                 <title>Tim's Kitchen | See-Food </title>
             </Helmet>

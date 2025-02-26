@@ -3,7 +3,6 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 const getAuthHeaders = (token) => ({
   'Authorization': `Bearer ${token}`,
   'Content-Type': 'application/json',
-  'Accept': 'application/json'
 });
 
 export const addFood = createAsyncThunk(
@@ -59,20 +58,18 @@ export const fetchUserFoods = createAsyncThunk(
       const response = await fetch(
         `${import.meta.env.VITE_API}/foods/user/${email}`,
         {
+          method: 'GET',
           headers: getAuthHeaders(token),
           credentials: 'include'
         }
       );
 
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        throw new Error('unauthorized');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch user foods');
       }
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch user foods');
-      
-      return data;
+      return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -109,13 +106,8 @@ export const fetchTopFoods = createAsyncThunk(
 
 export const orderFood = createAsyncThunk(
   'foodActions/orderFood',
-  async ({ orderData }, { rejectWithValue }) => {
+  async ({ orderData, token }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const response = await fetch(
         `${import.meta.env.VITE_API}/purchaseFood`,
         {
@@ -125,7 +117,10 @@ export const orderFood = createAsyncThunk(
             'Authorization': `Bearer ${token}`
           },
           credentials: 'include',
-          body: JSON.stringify(orderData)
+          body: JSON.stringify({
+            ...orderData,
+            quantity: parseInt(orderData.quantity)
+          })
         }
       );
 
@@ -134,7 +129,21 @@ export const orderFood = createAsyncThunk(
         throw new Error(errorData.message || 'Failed to place order');
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      // Update food quantity after successful order
+      await fetch(`${import.meta.env.VITE_API}/foods/${orderData.foodId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          quantity: -orderData.quantity // Server will subtract this from current quantity
+        })
+      });
+
+      return data;
     } catch (error) {
       return rejectWithValue(error.message);
     }

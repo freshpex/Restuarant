@@ -15,23 +15,29 @@ const MyFood = () => {
     const token = localStorage.getItem('token');
 
     useEffect(() => {
-        if (user?.email && token) {
+        if (!token) {
+            navigate('/signIn');
+            return;
+        }
+
+        if (user?.email) {
             dispatch(fetchUserFoods({ email: user.email, token }))
                 .unwrap()
-                .catch(error => {
-                    if (error === 'unauthorized') {
+                .catch(err => {
+                    if (err === 'unauthorized') {
                         localStorage.removeItem('token');
+                        navigate('/signIn');
                     }
-                    toast.error(error);
+                    toast.error(err || 'Failed to fetch foods');
                 });
         }
-    }, [dispatch, user, token]);
+    }, [dispatch, user, token, navigate]);
 
     if (loading) return <LoadingSpinner />;
+    if (error) return <div className="text-red-500 text-center">{error}</div>;
 
     return (
         <>
-            <Header2 />
             {userFoods.length > 0 ? (
                 <div className='bg-[#121212] py-40 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 lg:px-28 px-6'>
                     {userFoods.map(food => <MyFoodCard key={food._id} display={food} />)}

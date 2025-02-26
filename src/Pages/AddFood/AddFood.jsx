@@ -39,7 +39,7 @@ const AddFood = () => {
         <Helmet>
             <title>Chef | Add-Food</title>
         </Helmet>
-        <Header2 />
+        {/* <Header2 /> */}
         <div className=' bg-[#121212] lg:px-20 px-6   w-full  py-44 flex flex-col justify-center items-center'>
             
      <section className=" w-full lg:w-[38%] rounded-lg px-4 py-4 mx-auto lg:pb-10 bg-[#F4F3F0]">

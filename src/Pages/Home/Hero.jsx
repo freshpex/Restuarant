@@ -14,7 +14,7 @@ const Hero = () => {
         <Helmet>
             <title>Tim's Kitchen | Home</title>
         </Helmet>
-        <Header />
+        {/* <Header /> */}
         <div className=' w-full h-screen relative'>
             
             <img className='w-full h-full bg-center bg-cover object-cover'  src="https://tastyc.bslthemes.com/wp-content/uploads/2021/04/home-slide-1.jpg" alt="" />

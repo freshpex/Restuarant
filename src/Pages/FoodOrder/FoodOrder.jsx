@@ -65,7 +65,7 @@ const FoodOrder = () => {
                 return;
             }
 
-            await dispatch(orderFood({ orderData })).unwrap();
+            await dispatch(orderFood({ orderData, token })).unwrap();
             toast.success('Order placed successfully!');
             navigate('/orderFood');
         } catch (error) {

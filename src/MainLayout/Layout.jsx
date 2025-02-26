@@ -9,7 +9,7 @@ const Layout = () => {
     return (
         <div>
             <RouteChangeHandler />
-            {/* <Header2 /> */}
+            <Header2 />
             <Outlet />
             <Footer />
         </div>
