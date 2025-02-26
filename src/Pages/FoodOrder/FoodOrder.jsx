@@ -67,7 +67,8 @@ const FoodOrder = () => {
 
             await dispatch(orderFood({ orderData, token })).unwrap();
             toast.success('Order placed successfully!');
-            navigate('/orderFood');
+            
+            navigate('/orderFood', { state: { newOrder: true } });
         } catch (error) {
             console.error('Error placing order:', error);
             toast.error(error.message || 'Error placing order. Please try again.');
@@ -123,6 +124,12 @@ const FoodOrder = () => {
                         <form className=' w-full' onSubmit={handleSubmit} >
                             <div className="grid gap-4 sm:grid-cols-2 sm:gap-6"></div>
                                 
+                            <figure>
+                                    <img 
+                                        className='lg:w-[350px] lg:h-[244px]'
+                                        src={display.foodImage}
+                                    />
+                                </figure>
                                 <div className="w-full">
                                     <label for="name" className="block mb-2 text-sm font-medium text-gray-900 ">Buyer Name</label>
                                     <input defaultValue={user.displayName} type="text" name="name" id="name" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter brand name" readOnly/>
