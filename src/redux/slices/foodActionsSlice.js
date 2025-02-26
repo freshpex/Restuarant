@@ -1,30 +1,44 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
 
-const getAuthHeaders = (token) => ({
-  'Authorization': `Bearer ${token}`,
-  'Content-Type': 'application/json',
-  'Accept': 'application/json'
-});
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Add food action with file upload support
 export const addFood = createAsyncThunk(
   'foodActions/addFood',
-  async ({ foodData, token }, { rejectWithValue }) => {
+  async ({ foodData, token, imageFile }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API}/addFood`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify(foodData)
-      });
+      let url = `${API_URL}/addFood`;
+      let response;
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      return data;
+      if (imageFile) {
+        // If we have a file, use FormData
+        const formData = new FormData();
+        formData.append('foodImage', imageFile);
+        
+        // Add all other food data fields
+        Object.keys(foodData).forEach(key => {
+          formData.append(key, foodData[key]);
+        });
+        
+        response = await axios.post(url, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        response = await axios.post(url, foodData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.error || 'Failed to add food');
     }
   }
 );
@@ -56,8 +70,6 @@ export const fetchUserFoods = createAsyncThunk(
   'foodActions/fetchUserFoods',
   async ({ email, token }, { rejectWithValue }) => {
     try {
-      console.log(`Attempting to fetch with token: ${token && token.substring(0, 20)}...`);
-      
       const response = await fetch(
         `${import.meta.env.VITE_API}/foods/user/${email}`,
         {
@@ -69,8 +81,6 @@ export const fetchUserFoods = createAsyncThunk(
           credentials: 'include'
         }
       );
-
-      console.log('Response is', response);
       
       if (!response.ok) {
         const error = await response.json();

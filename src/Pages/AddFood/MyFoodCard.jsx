@@ -10,8 +10,6 @@ import {
   } from "@material-tailwind/react";
 import { Link } from 'react-router-dom';
 const MyFoodCard = ({display}) => {
-
-    console.log(display)
     return (
         <>
         

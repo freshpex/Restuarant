@@ -3,36 +3,85 @@ import { auth } from '../../Firebase/firebase.config';
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
-    signOut,
+    signOut, 
+    updateProfile,
+    sendPasswordResetEmail,
     signInWithPopup,
     GoogleAuthProvider
 } from 'firebase/auth';
+import axios from 'axios';
 
 const provider = new GoogleAuthProvider();
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Register user with profile image upload
 export const registerUser = createAsyncThunk(
     'auth/registerUser',
-    async ({ email, password }, { rejectWithValue }) => {
+    async ({ userData, profileImage }, { rejectWithValue }) => {
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            // Create the user account
+            const userCredential = await createUserWithEmailAndPassword(
+                auth,
+                userData.email,
+                userData.password
+            );
+            
+            // Upload profile image if provided
+            let photoURL = userData.photoURL;
+            
+            if (profileImage) {
+                // Create form data for profile image
+                const formData = new FormData();
+                formData.append('profileImage', profileImage);
+                
+                // Upload to backend
+                const uploadResponse = await axios.post(
+                    `${API_URL}/upload-profile-image`,
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    }
+                );
+                
+                // Get the uploaded image URL
+                photoURL = uploadResponse.data.imageUrl;
+            }
+            
+            // Update user profile with name and photo
+            await updateProfile(userCredential.user, {
+                displayName: userData.displayName,
+                photoURL: photoURL
+            });
+            
+            // Get the token for the user
             const token = await userCredential.user.getIdToken();
-            localStorage.setItem('token', token);
+            
             return {
-                user: userCredential.user,
+                user: {
+                    uid: userCredential.user.uid,
+                    email: userCredential.user.email,
+                    displayName: userData.displayName,
+                    photoURL: photoURL
+                },
                 token
             };
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(
+                error.message || 'Could not register user'
+            );
         }
     }
 );
 
+// Existing auth thunks
 export const loginUser = createAsyncThunk(
     'auth/loginUser',
     async ({ email, password }, { rejectWithValue }) => {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const token = await userCredential.user.getIdToken(true); // Force token refresh
+            const token = await userCredential.user.getIdToken(true);
             
             // Verify token is a valid JWT
             if (!token || typeof token !== 'string') {
@@ -41,11 +90,18 @@ export const loginUser = createAsyncThunk(
 
             localStorage.setItem('token', token);
             return {
-                user: userCredential.user,
+                user: {
+                    uid: userCredential.user.uid,
+                    email: userCredential.user.email,
+                    displayName: userCredential.user.displayName,
+                    photoURL: userCredential.user.photoURL
+                },
                 token
             };
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(
+                error.message || 'Invalid email or password'
+            );
         }
     }
 );
@@ -72,7 +128,23 @@ export const logoutUser = createAsyncThunk(
             localStorage.removeItem('token');
             return null;
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(
+                error.message || 'Could not log out'
+            );
+        }
+    }
+);
+
+export const resetPassword = createAsyncThunk(
+    'auth/resetPassword',
+    async (email, { rejectWithValue }) => {
+        try {
+            await sendPasswordResetEmail(auth, email);
+            return { message: 'Password reset email sent' };
+        } catch (error) {
+            return rejectWithValue(
+                error.message || 'Could not send reset email'
+            );
         }
     }
 );
@@ -124,9 +196,10 @@ const authSlice = createSlice({
             })
             .addCase(registerUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = serializeUser(action.payload.user);
+                state.user = action.payload.user;
                 state.token = action.payload.token;
                 state.isAuthenticated = true;
+                localStorage.setItem('token', action.payload.token);
             })
             .addCase(registerUser.rejected, (state, action) => {
                 state.loading = false;
@@ -139,7 +212,7 @@ const authSlice = createSlice({
             })
             .addCase(loginUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = serializeUser(action.payload.user);
+                state.user = action.payload.user;
                 state.token = action.payload.token;
                 state.isAuthenticated = true;
             })
@@ -153,9 +226,30 @@ const authSlice = createSlice({
                 state.isAuthenticated = true;
             })
             // Logout
+            .addCase(logoutUser.pending, (state) => {
+                state.loading = true;
+            })
             .addCase(logoutUser.fulfilled, (state) => {
+                state.loading = false;
                 state.user = null;
+                state.token = null;
                 state.isAuthenticated = false;
+            })
+            .addCase(logoutUser.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            // Reset Password
+            .addCase(resetPassword.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(resetPassword.fulfilled, (state) => {
+                state.loading = false;
+            })
+            .addCase(resetPassword.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     }
 });
