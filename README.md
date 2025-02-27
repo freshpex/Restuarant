@@ -20,6 +20,11 @@
   <img src="screenshots/menu.png" alt="Menu Page" width="45%">
 </div>
 
+<div align="center">
+  <img src="screenshots/homem.png" alt="Home Page" width="45%">
+  <img src="screenshots/menum.png" alt="Menu Page" width="45%">
+</div>
+
 ## 🍽️ About The Project
 
 Tim's Kitchen is a modern food ordering platform where customers can browse, order, and pay for delicious food items. Chefs can also add and manage their food offerings. The platform includes features like real-time payment processing, WhatsApp integration for order customization, and user account management.
