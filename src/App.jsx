@@ -30,6 +30,8 @@ import { store, persistor } from './redux/store';
 import { getSerializableUser } from './utils/userUtils';
 import { setCredentials, clearCredentials } from './redux/slices/authSlice';
 import { checkTokenValidity } from './utils/authUtils';
+import AdminRoute from './Components/AdminRoute';
+import Unauthorized from './Pages/Unauthorized';
 
 function App() {
     const dispatch = useDispatch();
@@ -103,7 +105,7 @@ function App() {
                 },
                 {
                     path: "/addFood",
-                    element: <PrivateRouter><AddFood /></PrivateRouter>
+                    element: <AdminRoute><AddFood /></AdminRoute>
                 },
                 {
                     path: "/orderFood",
@@ -128,6 +130,10 @@ function App() {
                 {
                     path: "/signIn",
                     element: <SignIn />
+                },
+                {
+                    path: "/unauthorized",
+                    element: <Unauthorized />
                 }
             ]
         }

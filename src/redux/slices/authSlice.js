@@ -19,7 +19,6 @@ export const registerUser = createAsyncThunk(
     'auth/registerUser',
     async ({ userData, profileImage }, { rejectWithValue }) => {
         try {
-            // Create the user account
             const userCredential = await createUserWithEmailAndPassword(
                 auth,
                 userData.email,
@@ -30,11 +29,9 @@ export const registerUser = createAsyncThunk(
             let photoURL = userData.photoURL;
             
             if (profileImage) {
-                // Create form data for profile image
                 const formData = new FormData();
                 formData.append('profileImage', profileImage);
                 
-                // Upload to backend
                 const uploadResponse = await axios.post(
                     `${API_URL}/upload-profile-image`,
                     formData,
@@ -45,17 +42,14 @@ export const registerUser = createAsyncThunk(
                     }
                 );
                 
-                // Get the uploaded image URL
                 photoURL = uploadResponse.data.imageUrl;
             }
             
-            // Update user profile with name and photo
             await updateProfile(userCredential.user, {
                 displayName: userData.displayName,
                 photoURL: photoURL
             });
             
-            // Get the token for the user
             const token = await userCredential.user.getIdToken();
             
             return {
@@ -83,7 +77,6 @@ export const loginUser = createAsyncThunk(
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const token = await userCredential.user.getIdToken(true);
             
-            // Verify token is a valid JWT
             if (!token || typeof token !== 'string') {
                 throw new Error('Invalid token received');
             }
@@ -145,6 +138,37 @@ export const resetPassword = createAsyncThunk(
             return rejectWithValue(
                 error.message || 'Could not send reset email'
             );
+        }
+    }
+);
+
+export const fetchUserProfile = createAsyncThunk(
+    'auth/fetchUserProfile',
+    async (_, { getState, rejectWithValue }) => {
+        try {
+            const { token } = getState().auth;
+            
+            if (!token) {
+                return rejectWithValue('No authentication token');
+            }
+
+            const response = await fetch(`${import.meta.env.VITE_API}/user/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                return rejectWithValue(error.message || 'Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            return data.user;
+        } catch (error) {
+            return rejectWithValue(error.message);
         }
     }
 );
@@ -248,6 +272,20 @@ const authSlice = createSlice({
                 state.loading = false;
             })
             .addCase(resetPassword.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            
+            .addCase(fetchUserProfile.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchUserProfile.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = action.payload;
+                // Make sure role is included from the payload
+            })
+            .addCase(fetchUserProfile.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             });

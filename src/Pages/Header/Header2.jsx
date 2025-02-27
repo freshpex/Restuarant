@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { logoutUser } from '../../redux/slices/authSlice';
-import { selectCurrentUser, selectIsAuthenticated } from '../../redux/selectors';
+import { selectCurrentUser, selectIsAuthenticated, selectIsAdmin } from '../../redux/selectors';
 import { FaTimes, FaStream } from "react-icons/fa";
 import { toast } from 'react-toastify';
 import Logo from "../../assets/Logo.png";
@@ -12,6 +12,7 @@ const Header2 = () => {
     const dispatch = useDispatch();
     const user = useSelector(selectCurrentUser);
     const isAuthenticated = useSelector(selectIsAuthenticated);
+    const isAdmin = useSelector(selectIsAdmin);
     const navigate = useNavigate();
     
     const [nav, setNav] = useState(false);
@@ -202,8 +203,10 @@ const Header2 = () => {
                                 {isAuthenticated && <ul className=" py-3 space-y-3">
                                     <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood">My Added Food Items</Link>
                                     </li>
-                                    <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood">Add a Food Item</Link>
-                                    </li>
+                                    {isAdmin && (
+                                        <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood">Add a Food Item</Link>
+                                        </li>
+                                    )}
                                     <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/orderFood">My Ordered Food Items</Link>
                                     </li>
                                 </ul> }
@@ -293,8 +296,10 @@ const Header2 = () => {
                     {isAuthenticated && <ul className=" py-1 space-y-3">
                         <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood">My Added Food Items</Link>
                         </li>
-                        <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood">Add a Food Item</Link>
-                        </li>
+                        {isAdmin && (
+                            <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood">Add a Food Item</Link>
+                            </li>
+                        )}
                         <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/orderFood">My Ordered Food Items</Link>
                         </li>
                     </ul> }
