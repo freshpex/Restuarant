@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { loginUser, googleSignIn, clearError } from '../redux/slices/authSlice';
+import { loginUser, googleSignIn, clearError, fetchUserProfile } from '../redux/slices/authSlice';
 import toast from 'react-hot-toast';
 import {
   Card,
@@ -20,7 +20,7 @@ const SignIn = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const location = useLocation();
-    const { loading, error, isAuthenticated } = useSelector(state => state.auth);
+    const { loading, error, isAuthenticated, user } = useSelector(state => state.auth);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -32,6 +32,12 @@ const SignIn = () => {
             dispatch(clearError());
         }
     }, [isAuthenticated, error, navigate, location, dispatch]);
+
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            dispatch(fetchUserProfile());
+        }
+    }, [isAuthenticated, user, dispatch]);
 
     const handleGoogle = async () => {
         try {

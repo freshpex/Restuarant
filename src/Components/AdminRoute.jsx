@@ -1,10 +1,12 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
-import { selectIsAdmin, selectIsAuthenticated } from '../redux/selectors';
+import { selectIsAdmin, selectIsAuthenticated, selectCurrentUser } from '../redux/selectors';
 
 const AdminRoute = ({ children }) => {
     const isAuthenticated = useSelector(selectIsAuthenticated);
+    const UserLoggedIN = useSelector(selectCurrentUser);
+    console.log("The user logged is", UserLoggedIN);
     const isAdmin = useSelector(selectIsAdmin);
     const location = useLocation();
 

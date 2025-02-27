@@ -32,6 +32,9 @@ import { setCredentials, clearCredentials } from './redux/slices/authSlice';
 import { checkTokenValidity } from './utils/authUtils';
 import AdminRoute from './Components/AdminRoute';
 import Unauthorized from './Pages/Unauthorized';
+import AdminDashboard from './Pages/Admin/AdminDashboard';
+import UserManagement from './Pages/Admin/UserManagement';
+import RoleDebugger from './Components/RoleDebugger';
 
 function App() {
     const dispatch = useDispatch();
@@ -136,6 +139,23 @@ function App() {
                     element: <Unauthorized />
                 }
             ]
+        },
+        {
+            path: '/admin',
+            element: <AdminRoute><AdminDashboard /></AdminRoute>,
+            children: [
+                {
+                    index: true,
+                    element: <div className="p-6">
+                        <h2 className="text-xl font-bold">Admin Dashboard Home</h2>
+                        <p className="mt-2 text-gray-600">Welcome to the admin dashboard.</p>
+                    </div>
+                },
+                {
+                    path: 'users',
+                    element: <UserManagement />
+                },
+            ]
         }
     ]);
 
@@ -145,6 +165,7 @@ function App() {
                 <GlobalLoadingSpinner />
                 <RouterProvider router={router} />
                 <Toaster />
+                {process.env.NODE_ENV !== 'production' && <RoleDebugger />}
             </PersistGate>
         </Provider>
     );

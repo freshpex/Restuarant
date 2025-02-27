@@ -196,9 +196,14 @@ const Header2 = () => {
                                     </div>
                                     <h2 className=" pt-3 pb-2 text-md text-center font-semibold  text-gray-800 dark:text-gray-400">Name : {user.displayName}</h2>
                                     <h2 className=" text-md text-center font-semibold pb-4  text-gray-800 dark:text-gray-400">Email : {user.email}</h2>
-                                    {user.email === "adminsafin@gmail.com"  && <button className="  text-lg border-2 border-gray-100 hover:border-2 hover:bg-indigo-700 hover:border-indigo-700 mb-3 text-indigo-700 hover:text-white  rounded-md py-2 px-4">
+                                    {user.email === "adminsafin@gmail.com"  && <button className="  text-lg border-2 border-gray-100 hover:border-2 hover:bg-yellow-700 hover:border-yellow-700 mb-3 text-yellow-700 hover:text-white  rounded-md py-2 px-4">
                                         {user.email === "adminsafin@gmail.com" && <NavLink to="/dashboard">Dashboard</NavLink>}
                                     </button> }
+                                    {isAdmin && (
+                                        <button className="text-lg border-2 border-gray-100 hover:border-2 hover:bg-yellow-700 hover:border-yellow-700 mb-3 text-yellow-700 hover:text-white rounded-md py-2 px-4 w-full">
+                                            <NavLink to="/admin">Admin Dashboard</NavLink>
+                                        </button>
+                                    )}
                                 </div>
                                 {isAuthenticated && <ul className=" py-3 space-y-3">
                                     <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood">My Added Food Items</Link>
@@ -274,9 +279,14 @@ const Header2 = () => {
                                 <div>
                                     <h2 className=" text-sm text-center font-semibold text-gray-800 dark:text-gray-400 pb-2 pt-4 ">Name : {user.displayName}</h2>
                                     <h2 className=" text-sm  text-center font-semibold  text-gray-800 dark:text-gray-400 pb-4">Email : {user.email}</h2>
-                                    {user.email === "adminsafin@gmail.com"  && <button className="  text-lg border-2 border-gray-100 hover:border-2 hover:bg-indigo-700 hover:border-indigo-700 mb-3 text-indigo-700 hover:text-white  rounded-md py-2 px-4">
+                                    {user.email === "adminsafin@gmail.com"  && <button className="  text-lg border-2 border-gray-100 hover:border-2 hover:bg-yellow-700 hover:border-yellow-700 mb-3 text-yellow-700 hover:text-white  rounded-md py-2 px-4">
                                         {user.email === "adminsafin@gmail.com" && <NavLink to="/dashboard">Dashboard</NavLink>}
                                     </button> }
+                                    {isAdmin && (
+                                        <button className="text-lg border-2 border-gray-100 hover:border-2 hover:bg-yellow-700 hover:border-yellow-700 mb-3 text-yellow-700 hover:text-white rounded-md py-2 px-4 w-full">
+                                            <NavLink to="/admin">Admin Dashboard</NavLink>
+                                        </button>
+                                    )}
                                 </div>
                             </>
                         }

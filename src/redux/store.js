@@ -5,10 +5,11 @@ import rootReducer from './rootReducer';
 
 const persistConfig = {
   key: 'root',
-  version: 1,
+version: 1,
+version: 1,
   storage,
   whitelist: ['auth', 'food'],
-  // Don't persist non-serializable values
+// Don't persist non-serializable values
   serialize: true
 };
 

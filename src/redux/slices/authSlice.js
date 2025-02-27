@@ -146,18 +146,17 @@ export const fetchUserProfile = createAsyncThunk(
     'auth/fetchUserProfile',
     async (_, { getState, rejectWithValue }) => {
         try {
-            const { token } = getState().auth;
+            const { token, user } = getState().auth;
             
-            if (!token) {
-                return rejectWithValue('No authentication token');
+            if (!token || !user) {
+                return rejectWithValue('Authentication required');
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API}/user/profile`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/user/profile`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                }
             });
 
             if (!response.ok) {
@@ -166,8 +165,14 @@ export const fetchUserProfile = createAsyncThunk(
             }
 
             const data = await response.json();
-            return data.user;
+            
+            
+            return {
+                ...user,
+                role: data.user.role
+            };
         } catch (error) {
+            console.error('Error fetching user profile:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -282,8 +287,11 @@ const authSlice = createSlice({
             })
             .addCase(fetchUserProfile.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload;
-                // Make sure role is included from the payload
+                
+                state.user = {
+                    ...state.user,
+                    role: action.payload.role
+                };
             })
             .addCase(fetchUserProfile.rejected, (state, action) => {
                 state.loading = false;
