@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import { fetchFoodById } from '../redux/slices/foodSlice';
-import Header2 from '../Pages/Header/Header2';
 import { Helmet } from 'react-helmet';
 import LoadingSpinner from '../Components/LoadingSpinner';
 import {
