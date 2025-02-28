@@ -42,8 +42,9 @@ const SignIn = () => {
     const handleGoogle = async () => {
         try {
             await dispatch(googleSignIn()).unwrap();
+            toast.success("Logged in with Google successfully");
         } catch (error) {
-            toast.error(error);
+            toast.error(error || "Google sign-in failed");
         }
     };
 
@@ -57,6 +58,14 @@ const SignIn = () => {
                 email: form.email.value,
                 password: form.password.value
             })).unwrap();
+            
+            
+            try {
+                await dispatch(fetchUserProfile()).unwrap();
+            } catch (profileError) {
+                console.error("Error fetching profile:", profileError);
+            }
+            
             toast.success("Logged in successfully", { id: toastId });
         } catch (error) {
             toast.error("Invalid credentials");

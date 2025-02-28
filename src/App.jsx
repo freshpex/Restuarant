@@ -40,7 +40,6 @@ function App() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        // Check token validity on app start
         if (!checkTokenValidity()) {
             dispatch(clearCredentials());
         }
@@ -55,6 +54,8 @@ function App() {
                         user: serializedUser,
                         token
                     }));
+                    
+                    dispatch(fetchUserProfile());
                 } catch (error) {
                     console.error('Token refresh failed:', error);
                     dispatch(clearCredentials());

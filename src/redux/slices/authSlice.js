@@ -25,7 +25,6 @@ export const registerUser = createAsyncThunk(
                 userData.password
             );
             
-            // Upload profile image if provided
             let photoURL = userData.photoURL;
             
             if (profileImage) {
@@ -101,13 +100,102 @@ export const loginUser = createAsyncThunk(
 
 export const googleSignIn = createAsyncThunk(
     'auth/googleSignIn',
-    async (_, { rejectWithValue }) => {
+    async (_, { rejectWithValue, dispatch }) => {
         try {
             const result = await signInWithPopup(auth, provider);
             const token = await result.user.getIdToken();
             localStorage.setItem('token', token);
-            return result.user;
+            
+            const user = {
+                uid: result.user.uid,
+                email: result.user.email,
+                displayName: result.user.displayName,
+                photoURL: result.user.photoURL,
+                emailVerified: result.user.emailVerified
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/user/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName
+                    })
+                });
+                
+                if (response.ok) {
+                    dispatch(fetchUserProfile());
+                }
+            } catch (syncError) {
+                console.error("Error syncing user to database:", syncError);
+            }
+            
+            return { user, token };
         } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const fetchUserProfile = createAsyncThunk(
+    'auth/fetchUserProfile',
+    async (_, { getState, rejectWithValue }) => {
+        try {
+            const { token, user } = getState().auth;
+            
+            if (!token || !user) {
+                return rejectWithValue('Authentication required');
+            }
+
+            const response = await fetch(`${API_URL}/user/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    const syncResponse = await fetch(`${API_URL}/user/sync`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            uid: user.uid,
+                            email: user.email,
+                            displayName: user.displayName
+                        })
+                    });
+                    
+                    if (syncResponse.ok) {
+                        const retryResponse = await fetch(`${API_URL}/user/profile`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (retryResponse.ok) {
+                            return await retryResponse.json();
+                        }
+                    }
+                }
+                
+                const error = await response.json();
+                return rejectWithValue(error.message || 'Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            return data.user;
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -142,45 +230,8 @@ export const resetPassword = createAsyncThunk(
     }
 );
 
-export const fetchUserProfile = createAsyncThunk(
-    'auth/fetchUserProfile',
-    async (_, { getState, rejectWithValue }) => {
-        try {
-            const { token, user } = getState().auth;
-            
-            if (!token || !user) {
-                return rejectWithValue('Authentication required');
-            }
-
-            const response = await fetch(`${API_URL}/user/profile`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                return rejectWithValue(error.message || 'Failed to fetch profile');
-            }
-
-            const data = await response.json();
-            
-            
-            return {
-                ...user,
-                role: data.user.role
-            };
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
 // Helper function to serialize user data
 const serializeUser = (user) => {
-    console.log('serializeUser:', user);
     if (!user) return null;
     return {
         uid: user.uid,
@@ -252,7 +303,8 @@ const authSlice = createSlice({
             })
             // Google Sign In
             .addCase(googleSignIn.fulfilled, (state, action) => {
-                state.user = serializeUser(action.payload);
+                state.user = action.payload.user;
+                state.token = action.payload.token;
                 state.isAuthenticated = true;
             })
             // Logout
@@ -281,22 +333,16 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
-            
-            .addCase(fetchUserProfile.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
+            // Fetch User Profile
             .addCase(fetchUserProfile.fulfilled, (state, action) => {
                 state.loading = false;
-                
-                state.user = {
-                    ...state.user,
-                    role: action.payload.role
-                };
-            })
-            .addCase(fetchUserProfile.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
+                if (action.payload) {
+                    state.user = {
+                        ...state.user,
+                        role: action.payload.role || 'member',
+                        name: action.payload.name || state.user.displayName
+                    };
+                }
             });
     }
 });
