@@ -35,6 +35,10 @@ import Unauthorized from './Pages/Unauthorized';
 import AdminDashboard from './Pages/Admin/AdminDashboard';
 import UserManagement from './Pages/Admin/UserManagement';
 import RoleDebugger from './Components/RoleDebugger';
+import Dashboard from './Pages/Admin/Dashboard';
+import FoodManagement from './Pages/Admin/FoodManagement';
+import OrderManagement from './Pages/Admin/OrderManagement';
+import Analytics from './Pages/Admin/Analytics';
 
 function App() {
     const dispatch = useDispatch();
@@ -147,14 +151,23 @@ function App() {
             children: [
                 {
                     index: true,
-                    element: <div className="p-6">
-                        <h2 className="text-xl font-bold">Admin Dashboard Home</h2>
-                        <p className="mt-2 text-gray-600">Welcome to the admin dashboard.</p>
-                    </div>
+                    element: <Dashboard />
                 },
                 {
                     path: 'users',
                     element: <UserManagement />
+                },
+                {
+                    path: 'foods',
+                    element: <FoodManagement />
+                },
+                {
+                    path: 'orders',
+                    element: <OrderManagement />
+                },
+                {
+                    path: 'analytics',
+                    element: <Analytics />
                 },
             ]
         }
@@ -166,7 +179,7 @@ function App() {
                 <GlobalLoadingSpinner />
                 <RouterProvider router={router} />
                 <Toaster />
-                {process.env.NODE_ENV !== 'production' && <RoleDebugger />}
+                {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
             </PersistGate>
         </Provider>
     );
