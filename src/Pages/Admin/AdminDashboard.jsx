@@ -44,7 +44,7 @@ const AdminDashboard = () => {
           min-h-screen transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}>
-          <div className="p-4 hidden md:block">
+          <div className="p-4 md:block">
             <h2 className="text-2xl font-bold">Admin Panel</h2>
             <p className="text-gray-400 text-sm">Tim's Kitchen Management</p>
           </div>

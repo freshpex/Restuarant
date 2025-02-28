@@ -26,7 +26,7 @@ const OrderManagement = () => {
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   
   const token = useSelector(selectToken);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchOrders();
@@ -227,7 +227,7 @@ const OrderManagement = () => {
                         #{order._id.substring(order._id.length - 6).toUpperCase()}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{order.userName || 'N/A'}</div>
+                        <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
                         <div className="text-sm text-gray-500">{order.userEmail}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

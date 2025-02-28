@@ -38,7 +38,7 @@ const Analytics = () => {
   const [topFoods, setTopFoods] = useState([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState({});
   const token = useSelector(selectToken);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchStats();
@@ -331,7 +331,7 @@ const Analytics = () => {
                             #{order._id.substring(order._id.length - 6).toUpperCase()}
                           </td>
                           <td className="px-4 py-2 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{order.userName || 'N/A'}</div>
+                            <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
                             <div className="text-xs text-gray-500">{order.userEmail}</div>
                           </td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">

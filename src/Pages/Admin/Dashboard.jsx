@@ -175,11 +175,11 @@ const Dashboard = () => {
                       stats.recentOrders.map((order) => (
                         <tr key={order._id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            #{order._id.substring(order._id.length - 6).toUpperCase()}
+                            {order._id.substring(order._id.length - 6).toUpperCase()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
-                              {order.userName || 'N/A'}
+                              {order.buyerName || 'N/A'}
                             </div>
                             <div className="text-sm text-gray-500">{order.userEmail}</div>
                           </td>
