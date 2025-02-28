@@ -1,9 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
-// Add food action with file upload support
 export const addFood = createAsyncThunk(
   'foodActions/addFood',
   async ({ foodData, token, imageFile }, { rejectWithValue }) => {
@@ -12,11 +11,9 @@ export const addFood = createAsyncThunk(
       let response;
 
       if (imageFile) {
-        // If we have a file, use FormData
         const formData = new FormData();
         formData.append('foodImage', imageFile);
         
-        // Add all other food data fields
         Object.keys(foodData).forEach(key => {
           formData.append(key, foodData[key]);
         });
@@ -47,7 +44,7 @@ export const updateFood = createAsyncThunk(
   'foodActions/updateFood',
   async ({ id, foodData, token }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API}/update/${id}`, {
+      const response = await fetch(`${API_URL}/update/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +68,7 @@ export const fetchUserFoods = createAsyncThunk(
   async ({ email, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API}/foods/user/${email}`,
+        `${API_URL}/foods/user/${email}`,
         {
           method: 'GET',
           headers: {
@@ -107,7 +104,7 @@ export const fetchTopFoods = createAsyncThunk(
     while (retries < MAX_RETRIES) {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API}/topSellingFoods`
+          `${API_URL}/topSellingFoods`
         );
 
         if (!response.ok) throw new Error('Failed to fetch top foods');
@@ -128,7 +125,7 @@ export const orderFood = createAsyncThunk(
   async ({ orderData, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API}/purchaseFood`,
+        `${API_URL}/purchaseFood`,
         {
           method: 'POST',
           headers: {
@@ -159,12 +156,11 @@ export const orderFood = createAsyncThunk(
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            quantity: -orderData.quantity // Server will subtract this from current quantity
+            quantity: -orderData.quantity
           })
         });
       } catch (quantityError) {
         console.error("Failed to update food quantity:", quantityError);
-        // Continue even if this fails, as the order was successful
       }
 
       return data;
@@ -183,7 +179,7 @@ export const fetchOrders = createAsyncThunk(
       }
       
       const response = await fetch(
-        `${import.meta.env.VITE_API}/orders/user/${email}`,
+        `${API_URL}/orders/user/${email}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -210,7 +206,7 @@ export const deleteOrder = createAsyncThunk(
   async ({ id, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API}/orders/${id}`,
+        `${API_URL}/orders/${id}`,
         {
           method: 'DELETE',
           headers: {
@@ -233,7 +229,7 @@ export const fetchTopFoodById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API}/topFood/${id}`,
+        `${API_URL}/topFood/${id}`,
         {
           credentials: 'include'
         }
@@ -256,7 +252,7 @@ export const fetchFoodForUpdate = createAsyncThunk(
   async ({ id, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API}/update/${id}`,
+        `${API_URL}/update/${id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

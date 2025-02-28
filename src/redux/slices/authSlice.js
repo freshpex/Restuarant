@@ -12,7 +12,7 @@ import {
 import axios from 'axios';
 
 const provider = new GoogleAuthProvider();
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Register user with profile image upload
 export const registerUser = createAsyncThunk(
@@ -152,7 +152,7 @@ export const fetchUserProfile = createAsyncThunk(
                 return rejectWithValue('Authentication required');
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/user/profile`, {
+            const response = await fetch(`${API_URL}/user/profile`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -180,6 +180,7 @@ export const fetchUserProfile = createAsyncThunk(
 
 // Helper function to serialize user data
 const serializeUser = (user) => {
+    console.log('serializeUser:', user);
     if (!user) return null;
     return {
         uid: user.uid,
