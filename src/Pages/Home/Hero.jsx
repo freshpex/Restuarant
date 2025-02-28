@@ -6,7 +6,7 @@ import Team from "../Team/Team";
 import {Helmet} from "react-helmet";
 import Testimonial from "../Testimonial/Testimonial";
 import { Link } from "react-router-dom";
-import TopSelling from "../../TopSelling/TopSelling";
+import TopSelling from "../TopSelling/TopSelling";
 
 const Hero = () => {
     return (
