@@ -199,7 +199,7 @@ const FoodManagement = () => {
                             <FaEye />
                           </Link>
                           <Link 
-                            to={`/admin/foods/edit/${food._id}`}
+                            to={`/update/${food._id}`}
                             className="text-indigo-600 hover:text-indigo-900"
                             title="Edit"
                           >
