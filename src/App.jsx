@@ -28,7 +28,7 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './redux/store';
 import { getSerializableUser } from './utils/userUtils';
-import { setCredentials, clearCredentials } from './redux/slices/authSlice';
+import { setCredentials, clearCredentials, fetchUserProfile } from './redux/slices/authSlice';
 import { checkTokenValidity } from './utils/authUtils';
 import AdminRoute from './Components/AdminRoute';
 import Unauthorized from './Pages/Unauthorized';

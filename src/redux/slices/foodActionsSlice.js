@@ -6,14 +6,16 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const addFood = createAsyncThunk(
   'foodActions/addFood',
   async ({ foodData, token, imageFile }, { rejectWithValue }) => {
-    try {
+    try {      
       let url = `${API_URL}/addFood`;
       let response;
 
       if (imageFile) {
+        // If we have a file, use FormData
         const formData = new FormData();
         formData.append('foodImage', imageFile);
         
+        // Add all other food data fields
         Object.keys(foodData).forEach(key => {
           formData.append(key, foodData[key]);
         });
@@ -35,6 +37,8 @@ export const addFood = createAsyncThunk(
 
       return response.data;
     } catch (error) {
+      console.error('Error adding food:', error);
+      console.error('Response:', error.response?.data);
       return rejectWithValue(error.response?.data?.error || 'Failed to add food');
     }
   }
@@ -81,7 +85,6 @@ export const fetchUserFoods = createAsyncThunk(
       
       if (!response.ok) {
         const error = await response.json();
-        console.log('Auth error:', error);
         return rejectWithValue(error.message || 'Failed to fetch user foods');
       }
 

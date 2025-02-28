@@ -26,7 +26,6 @@ const Header = () => {
 
     const handleShow = () => {
         setAvatar((prev) => !prev);
-        console.log(!avatar)
     };
     const handleClick = () => {
         setNav((prev) => !prev);

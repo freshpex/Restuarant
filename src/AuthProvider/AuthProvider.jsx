@@ -69,8 +69,6 @@ const AuthProvider = ({children}) => {
             const loggedUser = {email : userEmail}
             setLoading(false)
             
-            console.log("Auth state changed")
-            
             if(currentUser){
                 axios.post(`${import.meta.env.VITE_API}/jwt`, loggedUser, {
                     withCredentials: true

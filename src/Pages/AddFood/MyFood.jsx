@@ -24,7 +24,6 @@ const MyFood = () => {
             dispatch(fetchUserFoods({ email: user.email, token }))
                 .unwrap()
                 .catch(err => {
-                    console.log('Fetch error:', err);
                     if (err === 'Invalid or expired token') {
                         toast.error('Your session has expired. Please sign in again.');
                         localStorage.removeItem('token');
