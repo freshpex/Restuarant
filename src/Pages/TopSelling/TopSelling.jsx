@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchTopFoods } from '../redux/slices/foodActionsSlice';
-import { selectTopFoods } from '../redux/selectors';
+import { fetchTopFoods } from '../../redux/slices/foodActionsSlice';
+import { selectTopFoods } from '../../redux/selectors';
 import { Link } from 'react-router-dom';
 import TopSellingFood from './TopSellingFood';
-import LoadingSpinner from '../Components/LoadingSpinner';
+import LoadingSpinner from '../../Components/LoadingSpinner';
 
 const TopSelling = () => {
     const dispatch = useDispatch();

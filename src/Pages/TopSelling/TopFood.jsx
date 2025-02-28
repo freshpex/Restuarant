@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
-import { fetchFoodById } from '../redux/slices/foodSlice';
+import { fetchFoodById } from '../../redux/slices/foodSlice';
 import { Helmet } from 'react-helmet';
-import LoadingSpinner from '../Components/LoadingSpinner';
+import LoadingSpinner from '../../Components/LoadingSpinner';
 import {
     Card,
     CardHeader,
