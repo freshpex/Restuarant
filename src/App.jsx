@@ -39,6 +39,7 @@ import Dashboard from './Pages/Admin/Dashboard';
 import FoodManagement from './Pages/Admin/FoodManagement';
 import OrderManagement from './Pages/Admin/OrderManagement';
 import Analytics from './Pages/Admin/Analytics';
+import TermsAndConditions from './Pages/Terms/TermsAndConditions';
 
 function App() {
     const dispatch = useDispatch();
@@ -142,6 +143,10 @@ function App() {
                 {
                     path: "/unauthorized",
                     element: <Unauthorized />
+                },
+                {
+                    path: "/termsandcondition",
+                    element: <TermsAndConditions />
                 }
             ]
         },
