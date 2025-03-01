@@ -8,6 +8,7 @@ import { createWhatsAppLink } from '../../utils/paymentUtils';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { formatPrice, capitalizeWords } from '../../utils/formatUtils';
 
 const OrderFood = () => {
     const dispatch = useDispatch();
@@ -177,6 +178,18 @@ const OrderFood = () => {
                                     <h2 className="">Food Owner: {data.buyerName}</h2>
                                     <h2 className="">Purchase Date: {data.date}</h2>
                                     <h2 className="">Quantity: {data.quantity}</h2>
+                                    <h2 className="">Delivery to: {capitalizeWords(data.deliveryLocation || 'Not specified')}</h2>
+                                    <h2 className="text-sm text-gray-600">Address: {data.fullAddress || 'Not provided'}</h2>
+                                    <div className="flex justify-between">
+                                        <span>Items: {formatPrice(data.itemsSubtotal || (data.foodPrice * data.quantity))}</span>
+                                        <span>Delivery: {formatPrice(data.deliveryFee || 0)}</span>
+                                    </div>
+                                    <h3 className="mt-1">
+                                        {data.paymentStatus === 'paid' 
+                                            ? <span className="text-green-600 font-medium">✓ Payment Completed</span>
+                                            : <span className="text-yellow-600 font-medium">⚠ Payment Pending</span>
+                                        }
+                                    </h3>
                                 </div>
                                 
                                 <div className="card-actions justify-end mt-5 flex">

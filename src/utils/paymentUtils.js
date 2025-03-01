@@ -63,13 +63,21 @@ export const createWhatsAppLink = (phoneNumber, orderDetails) => {
   
   const unitPrice = parseFloat(orderDetails.foodPrice);
   const quantity = parseInt(orderDetails.quantity);
-  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
+  const itemsSubtotal = orderDetails.itemsSubtotal || (unitPrice * quantity).toFixed(2);
+  const deliveryFee = orderDetails.deliveryFee || 0;
+  const totalPrice = orderDetails.totalPrice || (parseFloat(itemsSubtotal) + parseFloat(deliveryFee)).toFixed(2);
+  
+  const deliveryLocation = orderDetails.deliveryLocation ? 
+    orderDetails.deliveryLocation.charAt(0).toUpperCase() + orderDetails.deliveryLocation.slice(1) 
+    : 'Not specified';
   
   const message = encodeURIComponent(
     `Hello! I'd like to order:
     - Food: ${orderDetails.foodName}
     - Quantity: ${quantity}
     - Price: ₦${orderDetails.foodPrice} each
+    - Items Subtotal: ₦${itemsSubtotal}
+    - Delivery Fee (to ${deliveryLocation}): ₦${deliveryFee}
     - Total: ₦${totalPrice}
     - Order Date: ${orderDetails.date}
     
@@ -77,7 +85,6 @@ export const createWhatsAppLink = (phoneNumber, orderDetails) => {
     Please confirm if this order is available.`
   );
   
-  // Return WhatsApp web link
   return `https://wa.me/${formattedPhone}?text=${message}`;
 };
 

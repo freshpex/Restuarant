@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { FaWhatsapp, FaCreditCard, FaSpinner } from 'react-icons/fa';
 import { IoMdClose } from 'react-icons/io';
+import { formatPrice, capitalizeWords } from '../utils/formatUtils';
 
 const PaymentModal = ({ 
   isOpen, 
@@ -50,7 +51,6 @@ const PaymentModal = ({
       onClick={handleBackdropClick}
     >
       <div className="relative bg-white rounded-lg p-6 w-11/12 max-w-md mx-auto shadow-2xl">
-        {/* Close button - Enlarged and more visible */}
         <button 
           type="button" 
           onClick={onClose}
@@ -81,18 +81,33 @@ const PaymentModal = ({
             <div className="mt-2 space-y-1">
               <div className="flex justify-between">
                 <p className="text-sm text-gray-600">{orderDetails.foodName}</p>
-                <p className="text-sm text-gray-600">₦{orderDetails.foodPrice} × {quantity}</p>
+                <p className="text-sm text-gray-600">
+                  {formatPrice(orderDetails.foodPrice, false)} × {quantity}
+                </p>
               </div>
+              <div className="flex justify-between">
+                <p className="text-sm text-gray-600">
+                  Delivery to {capitalizeWords(orderDetails.deliveryLocation || 'Not specified')}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {formatPrice(orderDetails.deliveryFee || 0)}
+                </p>
+              </div>
+              {orderDetails.fullAddress && (
+                <div className="text-sm text-gray-600 border-t border-gray-200 pt-1 mt-1">
+                  <p className="font-medium">Delivery Address:</p>
+                  <p>{orderDetails.fullAddress}</p>
+                </div>
+              )}
               <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between">
                 <p className="font-medium text-gray-800">Total:</p>
-                <p className="font-bold text-gray-800">₦{totalPrice}</p>
+                <p className="font-bold text-gray-800">{formatPrice(totalPrice)}</p>
               </div>
             </div>
           </div>
         </div>
         
         <div className="flex flex-col gap-3">
-          {/* WhatsApp button - Never disabled */}
           <button
             onClick={onWhatsAppChat}
             className="bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-all"
@@ -151,6 +166,14 @@ const PaymentModal = ({
           </div>
         )}
         
+        {orderDetails.paymentStatus && (
+          <p className={`text-sm ${orderDetails.paymentStatus === 'paid' ? 'text-green-600' : 'text-yellow-600'} mt-2 text-center font-medium`}>
+            {orderDetails.paymentStatus === 'paid' 
+              ? '✓ Payment Completed' 
+              : '⚠ Payment Pending'}
+          </p>
+        )}
+
         <p className="text-xs text-gray-500 text-center mt-4">
           You can chat with our chef for customization or pay online to confirm your order immediately.
         </p>

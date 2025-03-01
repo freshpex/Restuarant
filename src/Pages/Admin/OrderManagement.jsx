@@ -5,6 +5,7 @@ import { FaSpinner, FaSearch, FaFilter } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import moment from 'moment';
+import { formatPrice, capitalizeWords } from '../../utils/formatUtils';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -20,10 +21,12 @@ const OrderManagement = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -85,13 +88,43 @@ const OrderManagement = () => {
     }
   };
 
-  // Filter orders based on search term, status, and date range
+  const updatePaymentStatus = async (orderId, paymentStatus) => {
+    try {
+      setUpdatingPaymentId(orderId);
+      const response = await fetch(`${API_URL}/admin/orders/${orderId}/payment-status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ paymentStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update payment status');
+      }
+
+      toast.success(`Payment status updated to ${paymentStatus}`);
+      
+      // Update local state
+      setOrders(orders.map(order => 
+        order._id === orderId ? { ...order, paymentStatus } : order
+      ));
+    } catch (error) {
+      toast.error(error.message || 'Error updating payment status');
+    } finally {
+      setUpdatingPaymentId(null);
+    }
+  };
+
+  // Filter orders based on search term, status, payment status, and date range
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         order._id?.toString().includes(searchTerm);
                         
     const matchesStatus = statusFilter ? order.status === statusFilter : true;
+    const matchesPaymentStatus = paymentStatusFilter ? order.paymentStatus === paymentStatusFilter : true;
     
     let matchesDate = true;
     if (dateRange.start || dateRange.end) {
@@ -106,7 +139,7 @@ const OrderManagement = () => {
       }
     }
     
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
   });
 
   // Pagination logic
@@ -121,6 +154,7 @@ const OrderManagement = () => {
   const resetFilters = () => {
     setSearchTerm('');
     setStatusFilter('');
+    setPaymentStatusFilter('');
     setDateRange({ start: '', end: '' });
     setCurrentPage(1);
   };
@@ -171,6 +205,18 @@ const OrderManagement = () => {
             </div>
 
             <div>
+              <select
+                className="w-full border rounded-lg px-4 py-2 bg-white"
+                value={paymentStatusFilter}
+                onChange={(e) => setPaymentStatusFilter(e.target.value)}
+              >
+                <option value="">All Payment Statuses</option>
+                <option value="paid">Paid</option>
+                <option value="unpaid">Unpaid</option>
+              </select>
+            </div>
+
+            <div>
               <input
                 type="date"
                 placeholder="Start Date"
@@ -209,6 +255,8 @@ const OrderManagement = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Info</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -216,7 +264,7 @@ const OrderManagement = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentItems.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                       No orders found
                     </td>
                   </tr>
@@ -233,8 +281,31 @@ const OrderManagement = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {moment(order.createdAt).format('MMM DD, YYYY hh:mm A')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      ₦{Number(order.totalPrice).toFixed(2)}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatPrice(order.totalPrice)}</div>
+                        <div className="text-xs text-gray-500">
+                          Items: {formatPrice(order.itemsSubtotal || (order.foodPrice * order.quantity))}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Delivery: {formatPrice(order.deliveryFee || 0)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span 
+                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}
+                        >
+                          {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {capitalizeWords(order.deliveryLocation || 'Not specified')}
+                        </div>
+                        <div className="text-xs text-gray-500 max-w-xs truncate" title={order.fullAddress}>
+                          {order.fullAddress || 'No address provided'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[order.status] || 'bg-gray-100'}`}>
@@ -248,17 +319,28 @@ const OrderManagement = () => {
                             <span className="text-sm text-gray-500">Updating...</span>
                           </div>
                         ) : (
-                          <select
-                            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
-                            value={order.status}
-                            onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="ready">Ready</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                          </select>
+                          <>
+                            <select
+                              className="border border-gray-300 rounded px-2 py-1 text-sm bg-white mr-2"
+                              value={order.paymentStatus || 'unpaid'}
+                              onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
+                              disabled={updatingPaymentId === order._id}
+                            >
+                              <option value="unpaid">Unpaid</option>
+                              <option value="paid">Paid</option>
+                            </select>
+                            <select
+                              className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                              value={order.status}
+                              onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="preparing">Preparing</option>
+                              <option value="ready">Ready</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </>
                         )}
                       </td>
                     </tr>
