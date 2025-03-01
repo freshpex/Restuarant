@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchFoods, setCurrentPage } from '../../redux/slices/foodSlice';
-import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import AllFoodCard from './AllFoodCard';
 import {AiOutlineRight,AiOutlineLeft} from "react-icons/ai";
@@ -90,8 +89,6 @@ const Food = () => {
             )}
         </div>
 
-        
-        {/* <h2 className='text-white bg-black text-center pb-3'>Current page {current}</h2> */}
         <div className=' bg-[#121212] flex justify-center items-center pb-20 text-center text-white'>
         
             <button className='px-3 mx-2 rounded-md border py-2  bg-[#121212] text-white' onClick={handlePrev}><AiOutlineLeft /></button>

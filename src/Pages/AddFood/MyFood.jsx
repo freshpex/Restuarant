@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserFoods } from '../../redux/slices/foodActionsSlice';
-import Header2 from '../Header/Header2';
 import MyFoodCard from './MyFoodCard';
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -39,7 +38,7 @@ const MyFood = () => {
 
     return (
         <>
-            {/* <Header2 /> */}
+        {loading && <div className="text-yellow-500 text-center py-10"><LoadingSpinner /></div>}
             {userFoods.length > 0 ? (
                 <div className='bg-[#121212] py-40 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 lg:px-28 px-6'>
                     {userFoods.map(food => <MyFoodCard key={food._id} display={food} />)}

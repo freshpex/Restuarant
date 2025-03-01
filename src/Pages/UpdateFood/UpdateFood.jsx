@@ -57,15 +57,13 @@ const UpdateFood = () => {
         dispatch(updateFood({ id, foodData: updatedFood, token }));
     };
 
-    if (loading) return <LoadingSpinner />;
-    if (!foodForUpdate) return <div className="text-center py-10 text-white bg-[#121212]">Loading food details...</div>;
-
     return (
         <>
             <Helmet>
                 <title>Tim's Kitchen | Update-Food</title>
             </Helmet>
-            {/* <Header2 /> */}
+            {loading && <div className="text-yellow-500 text-center py-10"><LoadingSpinner /></div>}
+            {!foodForUpdate && !error && (
             <div className='bg-[#121212] lg:px-20 px-6 w-full py-44 flex flex-col justify-center items-center'>
                 <section className="w-full lg:w-[38%] rounded-lg px-4 py-4 mx-auto lg:pb-10 bg-[#F4F3F0]">
                     <div className="py-8 px-4 mx-auto w-full lg:py-2">
@@ -123,6 +121,7 @@ const UpdateFood = () => {
                     </div>
                 </section>
             </div>
+            )}
         </>
     );
 };

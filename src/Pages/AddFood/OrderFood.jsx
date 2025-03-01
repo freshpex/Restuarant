@@ -107,7 +107,7 @@ const OrderFood = () => {
         const handleFlutterPayment = useFlutterwave(config);
         
         setTimeout(() => {
-            const paymentModal = handleFlutterPayment({
+            handleFlutterPayment({
                 callback: (response) => {
                     setIsPaymentLoading(false);
                     if (response.status === "successful") {
@@ -126,7 +126,6 @@ const OrderFood = () => {
         }, 500);
     };
 
-    if (loading) return <LoadingSpinner />;
     if (error) return <div className="text-red-500 text-center">{error}</div>;
 
     return (
@@ -134,7 +133,7 @@ const OrderFood = () => {
             <Helmet>
                 <title>Tim's Kitchen | Ordered-Food</title>
             </Helmet>
-            
+            {loading && <div className="text-yellow-500 text-center py-10"><LoadingSpinner /></div>}
             {/* Payment/Chat Modal with payment loading state */}
             <PaymentModal
                 isOpen={showPaymentModal}

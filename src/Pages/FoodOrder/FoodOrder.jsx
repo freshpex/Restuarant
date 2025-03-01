@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchFoodById } from '../../redux/slices/foodSlice';
 import { orderFood } from '../../redux/slices/foodActionsSlice';
-import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -127,16 +126,15 @@ const FoodOrder = () => {
         handlePurchase(addProduct);
     };
 
-    if (foodLoading || orderLoading) return <LoadingSpinner />;
-    if (error) return <div className="text-red-500 text-center py-10">{error}</div>;
-    if (!display) return <div className="text-center py-10">Loading food details...</div>;
-
     return (
         <>
             <Helmet>
                 <title>Tim's Kitchen | Food-Order</title>
             </Helmet>
-            <Header2 />
+            {(foodLoading || orderLoading) && <LoadingSpinner />}
+            {error && <div className="text-red-500 text-center py-10">{error}</div>}
+            {!display && <div className="text-center py-10">Loading food details...</div>}
+            {!foodLoading && !orderLoading && !error && display && (
             <div className='bg-[#121212] lg:px-28 px-4 w-full py-32 flex flex-col justify-center items-center'>
                 <section className="w-full lg:w-[33%] rounded-lg px-4 py-4 mt-20 mx-auto lg:pb-10 bg-[#F4F3F0]">
                     <div className="py-8 px-4 mx-auto w-full lg:py-2">
@@ -243,6 +241,7 @@ const FoodOrder = () => {
                     </div>
                 </section>
             </div>
+            )}
         </>
     );
 };
