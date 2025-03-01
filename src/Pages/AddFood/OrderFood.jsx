@@ -115,15 +115,17 @@ const OrderFood = () => {
                     } else {
                         toast.error('Payment was not completed.');
                     }
+                    
                     setShowPaymentModal(false);
                 },
                 onClose: () => {
+                    console.log("Payment modal closed by user");
                     setIsPaymentLoading(false);
                     toast.info('Payment cancelled');
                     setShowPaymentModal(false);
                 },
             });
-        }, 500);
+        }, 100);
     };
 
     if (error) return <div className="text-red-500 text-center">{error}</div>;
@@ -134,10 +136,15 @@ const OrderFood = () => {
                 <title>Tim's Kitchen | Ordered-Food</title>
             </Helmet>
             {loading && <div className="text-yellow-500 text-center py-10"><LoadingSpinner /></div>}
-            {/* Payment/Chat Modal with payment loading state */}
+
             <PaymentModal
                 isOpen={showPaymentModal}
-                onClose={() => !isPaymentLoading && setShowPaymentModal(false)}
+                onClose={() => {
+                    if (!isPaymentLoading) {
+                        console.log("Closing payment modal");
+                        setShowPaymentModal(false);
+                    }
+                }}
                 onWhatsAppChat={handleWhatsAppChat}
                 onPayOnline={handlePayOnline}
                 chefPhone={chefPhone}

@@ -34,12 +34,11 @@ const PaymentModal = ({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">Complete Your Order</h2>
           <button 
+            type="button" 
             onClick={onClose}
-            className="text-gray-600 hover:text-gray-900"
-            disabled={isPaymentLoading}
-            aria-label="Close modal"
+            className={`absolute top-3 right-3 text-gray-400 hover:text-gray-500 ${isPaymentLoading ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            <IoMdClose size={24} />
+            <IoMdClose />
           </button>
         </div>
         
@@ -75,18 +74,18 @@ const PaymentModal = ({
           
           <button
             onClick={onPayOnline}
-            className={`bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-all ${isPaymentLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             disabled={isPaymentLoading}
+            className={`py-2 px-4 flex justify-center items-center w-full text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg mb-3 ${isPaymentLoading ? 'cursor-not-allowed opacity-70' : ''}`}
           >
             {isPaymentLoading ? (
               <>
-                <FaSpinner size={20} className="animate-spin mr-2" />
-                Initializing Payment...
+                <FaSpinner className="animate-spin mr-2" />
+                Processing...
               </>
             ) : (
               <>
-                <FaCreditCard size={20} className="mr-2" />
-                Pay Online Now
+                <FaCreditCard className="mr-2" />
+                Pay Online
               </>
             )}
           </button>
