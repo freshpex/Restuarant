@@ -234,7 +234,7 @@ const OrderManagement = () => {
                         {moment(order.createdAt).format('MMM DD, YYYY hh:mm A')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        ${Number(order.totalPrice).toFixed(2)}
+                      ₦{Number(order.totalPrice).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[order.status] || 'bg-gray-100'}`}>

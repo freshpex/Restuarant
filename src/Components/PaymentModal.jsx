@@ -53,11 +53,11 @@ const PaymentModal = ({
             <div className="mt-2 space-y-1">
               <div className="flex justify-between">
                 <p className="text-sm text-gray-600">{orderDetails.foodName}</p>
-                <p className="text-sm text-gray-600">${orderDetails.foodPrice} × {quantity}</p>
+                <p className="text-sm text-gray-600">₦{orderDetails.foodPrice} × {quantity}</p>
               </div>
               <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between">
                 <p className="font-medium text-gray-800">Total:</p>
-                <p className="font-bold text-gray-800">${totalPrice}</p>
+                <p className="font-bold text-gray-800">₦{totalPrice}</p>
               </div>
             </div>
           </div>
@@ -86,7 +86,7 @@ const PaymentModal = ({
             ) : (
               <>
                 <FaCreditCard size={20} className="mr-2" />
-                Pay Online with Flutterwave
+                Pay Online Now
               </>
             )}
           </button>

@@ -184,7 +184,7 @@ const FoodManagement = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">${food.foodPrice}</div>
+                        <div className="text-sm text-gray-900">₦{food.foodPrice}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">{food.orderCount || 0}</div>

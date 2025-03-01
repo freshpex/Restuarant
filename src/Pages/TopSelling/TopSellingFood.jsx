@@ -42,7 +42,7 @@ import { Link } from "react-router-dom";
               {data.foodName}
             </Typography>
             <Typography variant="h5" color="blue-gray" className="font-semibold">
-              $ {data.foodPrice}
+            ₦ {data.foodPrice}
             </Typography>
             
            

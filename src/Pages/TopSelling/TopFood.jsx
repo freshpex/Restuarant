@@ -65,7 +65,7 @@ const TopFood = () => {
                             Country : {display.foodOrigin}
                         </Typography>
                         <Typography variant="h6" color="gray" className="mb-2">
-                            Price : $ {display.foodPrice}
+                            Price : ₦ {display.foodPrice}
                         </Typography>
                         <Typography variant="h6" color="gray" className="mb-2">
                             Made By : {display.chefName}

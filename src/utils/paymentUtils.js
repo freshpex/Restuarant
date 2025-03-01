@@ -16,7 +16,7 @@ export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
     public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
     tx_ref: `tk-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     amount: parseFloat(totalPrice),
-    currency: 'USD',
+    currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd,banktransfer',
     customer: {
       email: user.email,
@@ -69,8 +69,8 @@ export const createWhatsAppLink = (phoneNumber, orderDetails) => {
     `Hello! I'd like to order:
     - Food: ${orderDetails.foodName}
     - Quantity: ${quantity}
-    - Price: $${orderDetails.foodPrice} each
-    - Total: $${totalPrice}
+    - Price: ₦${orderDetails.foodPrice} each
+    - Total: ₦${totalPrice}
     - Order Date: ${orderDetails.date}
     
     My name is ${orderDetails.buyerName}.

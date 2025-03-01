@@ -24,7 +24,7 @@ const OrderFood = () => {
     
     const isNewOrder = location.state?.newOrder;
     
-    const chefPhone = "+2347069039485";
+    const chefPhone = "+2349041801170";
 
     useEffect(() => {
         if (!token) {
@@ -90,7 +90,7 @@ const OrderFood = () => {
             public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
             tx_ref: `tk-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             amount: parseFloat(totalPrice),
-            currency: 'USD',
+            currency: 'NGN',
             payment_options: 'card,mobilemoney,ussd,banktransfer',
             customer: {
                 email: user.email,
@@ -107,7 +107,7 @@ const OrderFood = () => {
         const handleFlutterPayment = useFlutterwave(config);
         
         setTimeout(() => {
-            handleFlutterPayment({
+            const paymentModal = handleFlutterPayment({
                 callback: (response) => {
                     setIsPaymentLoading(false);
                     if (response.status === "successful") {
@@ -115,7 +115,6 @@ const OrderFood = () => {
                     } else {
                         toast.error('Payment was not completed.');
                     }
-                    closePaymentModal();
                     setShowPaymentModal(false);
                 },
                 onClose: () => {
@@ -165,7 +164,7 @@ const OrderFood = () => {
                             <div className="card-body">
                                 <div className="flex justify-between items-center">
                                     <h2 className="card-title">{data.foodName}</h2>
-                                    <h2 className="card-title">$ {data.foodPrice}</h2>
+                                    <h2 className="card-title">₦ {data.foodPrice}</h2>
                                 </div>
                                 
                                 <div className="flex flex-col gap-2">
