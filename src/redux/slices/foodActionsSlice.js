@@ -11,11 +11,9 @@ export const addFood = createAsyncThunk(
       let response;
 
       if (imageFile) {
-        // If we have a file, use FormData
         const formData = new FormData();
         formData.append('foodImage', imageFile);
         
-        // Add all other food data fields
         Object.keys(foodData).forEach(key => {
           formData.append(key, foodData[key]);
         });
@@ -48,42 +46,40 @@ export const updateFood = createAsyncThunk(
   'foodActions/updateFood',
   async ({ id, foodData, token, imageFile }, { rejectWithValue }) => {
     try {
+      let response;
+
       if (imageFile) {
         const formData = new FormData();
         formData.append('foodImage', imageFile);
+        Object.keys(foodData).forEach(key => {
+          formData.append(key, foodData[key]);
+        });
         
-        const uploadResponse = await fetch(`${API_URL}/upload-food-image`, {
-          method: 'POST',
+        response = await fetch(`${API_URL}/update/${id}`, {
+          method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`
           },
           body: formData
         });
-        
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          return rejectWithValue(errorData.message || 'Failed to upload image');
-        }
-        
-        const uploadData = await uploadResponse.json();
-        foodData.foodImage = uploadData.imageUrl;
+      } else {
+        response = await fetch(`${API_URL}/update/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(foodData)
+        });
       }
-      
-      const response = await fetch(`${API_URL}/update/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(foodData)
-      });
       
       if (!response.ok) {
         const errorData = await response.json();
         return rejectWithValue(errorData.message || errorData.error || 'Failed to update food');
       }
       
-      return { id, ...foodData };
+      const data = await response.json();
+      return { id, ...foodData, foodImage: data.imageUrl || foodData.foodImage };
     } catch (error) {
       return rejectWithValue(error.message || 'Error updating food');
     }
