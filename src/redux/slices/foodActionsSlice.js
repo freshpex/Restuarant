@@ -296,6 +296,34 @@ export const fetchFoodForUpdate = createAsyncThunk(
   }
 );
 
+export const updatePaymentStatus = createAsyncThunk(
+  'foodActions/updatePaymentStatus',
+  async ({ orderId, paymentStatus, transactionRef, token }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/orders/${orderId}/payment`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          paymentStatus,
+          transactionRef
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || 'Failed to update payment status');
+      }
+
+      return { orderId, paymentStatus, transactionRef };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Error updating payment status');
+    }
+  }
+);
+
 const foodActionsSlice = createSlice({
   name: 'foodActions',
   initialState: {
@@ -393,11 +421,9 @@ const foodActionsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // Delete Order
       .addCase(deleteOrder.fulfilled, (state, action) => {
         state.orders = state.orders.filter(order => order._id !== action.payload);
       })
-      // Fetch Top Food By Id
       .addCase(fetchTopFoodById.pending, (state) => {
         state.loading = true;
       })
@@ -409,7 +435,6 @@ const foodActionsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // Fetch Food For Update
       .addCase(fetchFoodForUpdate.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -419,6 +444,23 @@ const foodActionsSlice = createSlice({
         state.foodForUpdate = action.payload;
       })
       .addCase(fetchFoodForUpdate.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updatePaymentStatus.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updatePaymentStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.orders.length > 0) {
+          state.orders = state.orders.map(order => 
+            order._id === action.payload.orderId 
+              ? { ...order, paymentStatus: action.payload.paymentStatus } 
+              : order
+          );
+        }
+      })
+      .addCase(updatePaymentStatus.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

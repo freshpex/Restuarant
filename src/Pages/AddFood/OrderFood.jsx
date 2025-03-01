@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchOrders, deleteOrder } from '../../redux/slices/foodActionsSlice';
+import { fetchOrders, deleteOrder, updatePaymentStatus } from '../../redux/slices/foodActionsSlice';
 import { Helmet } from 'react-helmet';
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import PaymentModal from '../../Components/PaymentModal';
@@ -18,7 +18,6 @@ const OrderFood = () => {
     const { orders, loading, error } = useSelector(state => state.foodActions);
     const token = localStorage.getItem('token');
     
-    // Add payment loading state
     const [isPaymentLoading, setIsPaymentLoading] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [currentOrder, setCurrentOrder] = useState(null);
@@ -77,7 +76,7 @@ const OrderFood = () => {
         setShowPaymentModal(false);
     };
     
-    // Updated handler for online payment with loading state
+    
     const handlePayOnline = () => {
         if (!currentOrder || !user) return;
         
@@ -109,26 +108,43 @@ const OrderFood = () => {
         
         setTimeout(() => {
             handleFlutterPayment({
-                callback: (response) => {
+                callback: async (response) => {
                     setIsPaymentLoading(false);
-                    if (response.status === "successful") {
-                        toast.success('Payment successful! Your order is being processed.');
+                    
+                    if (response.status === "successful" || response.status === "completed") {
+                        try {
+                            await dispatch(updatePaymentStatus({
+                                orderId: currentOrder._id,
+                                paymentStatus: 'paid',
+                                transactionRef: response.transaction_id,
+                                token
+                            })).unwrap();
+                            
+                            toast.success('Payment successful! Your order is being processed.');
+                            
+                            setCurrentOrder(prev => ({
+                                ...prev,
+                                paymentStatus: 'paid'
+                            }));
+                            
+                            dispatch(fetchOrders({ email: user.email, token }));
+                        } catch (error) {
+                            console.error('Error updating payment status:', error);
+                            toast.error('Payment was recorded but there was an issue updating your order.');
+                        }
                     } else {
-                        toast.error('Payment was not completed.');
+                        toast.error('Payment was not completed successfully.');
                     }
+                    
                     closePaymentModal();
                     setShowPaymentModal(false);
                 },
                 onclose: () => {
-                    console.log("Payment modal closed");
-                    toast({
-                      title: "Payment Cancelled",
-                      description: "You have cancelled the payment",
-                      status: "warning",
-                      duration: 5000,
-                      isClosable: true,
-                    });
-                  },
+                    setIsPaymentLoading(false);
+                    closePaymentModal();
+                    toast.info('Payment cancelled');
+                    setShowPaymentModal(false);
+                }
             });
         }, 500);
     };
@@ -142,79 +158,86 @@ const OrderFood = () => {
                 <title>Tim's Kitchen | Ordered-Food</title>
             </Helmet>
             
-            {/* Payment/Chat Modal with payment loading state */}
-            <PaymentModal
-                isOpen={showPaymentModal}
-                onClose={() => setShowPaymentModal(false)}
-                onWhatsAppChat={handleWhatsAppChat}
-                onPayOnline={handlePayOnline}
-                chefPhone={chefPhone}
-                orderDetails={currentOrder}
-                isPaymentLoading={isPaymentLoading}
-            />
+            {loading && <LoadingSpinner />}
+            {error && <div className="text-red-500 text-center">{error}</div>}
             
-            <h2 className='text-3xl pt-44 text-center text-white bg-[#121212]'>
-                My Ordered Food
-            </h2>
-            
-            {orders.length > 0 ? (
-                <div className='bg-[#121212] lg:px-28 px-6 pt-10 pb-44 flex flex-col gap-8 justify-center items-center'>
-                    {orders.map(data => (
-                        <div className="card sm:card-side w-full lg:w-[800px] bg-base-100" key={data._id}>
-                            <figure>
-                                <img 
-                                    className='lg:w-[350px] lg:h-[244px]'
-                                    src={data.foodImage}
-                                    alt={data.foodName}
-                                />
-                            </figure>
-                            <div className="card-body">
-                                <div className="flex justify-between items-center">
-                                    <h2 className="card-title">{data.foodName}</h2>
-                                    <h2 className="card-title">₦ {data.foodPrice}</h2>
-                                </div>
-                                
-                                <div className="flex flex-col gap-2">
-                                    <h2 className="">Food Owner: {data.buyerName}</h2>
-                                    <h2 className="">Purchase Date: {data.date}</h2>
-                                    <h2 className="">Quantity: {data.quantity}</h2>
-                                    <h2 className="">Delivery to: {capitalizeWords(data.deliveryLocation || 'Not specified')}</h2>
-                                    <h2 className="text-sm text-gray-600">Address: {data.fullAddress || 'Not provided'}</h2>
-                                    <div className="flex justify-between">
-                                        <span>Items: {formatPrice(data.itemsSubtotal || (data.foodPrice * data.quantity))}</span>
-                                        <span>Delivery: {formatPrice(data.deliveryFee || 0)}</span>
+            {!loading && !error && (
+                <>
+                {/* Payment/Chat Modal with payment loading state */}
+                <PaymentModal
+                    isOpen={showPaymentModal}
+                    onClose={() => setShowPaymentModal(false)}
+                    onWhatsAppChat={handleWhatsAppChat}
+                    onPayOnline={handlePayOnline}
+                    chefPhone={chefPhone}
+                    orderDetails={currentOrder}
+                    isPaymentLoading={isPaymentLoading}
+                />
+                
+                <h2 className='text-3xl pt-44 text-center text-white bg-[#121212]'>
+                    My Ordered Food
+                </h2>
+                
+                {orders.length > 0 ? (
+                    <div className='bg-[#121212] lg:px-28 px-6 pt-10 pb-44 flex flex-col gap-8 justify-center items-center'>
+                        {orders.map(data => (
+                            <div className="card sm:card-side w-full lg:w-[800px] bg-base-100" key={data._id}>
+                                <figure>
+                                    <img 
+                                        className='lg:w-[350px] lg:h-[244px]'
+                                        src={data.foodImage}
+                                        alt={data.foodName}
+                                    />
+                                </figure>
+                                <div className="card-body">
+                                    <div className="flex justify-between items-center">
+                                        <h2 className="card-title">{data.foodName}</h2>
+                                        <h2 className="card-title">₦ {data.foodPrice}</h2>
                                     </div>
-                                    <h3 className="mt-1">
-                                        {data.paymentStatus === 'paid' 
-                                            ? <span className="text-green-600 font-medium">✓ Payment Completed</span>
-                                            : <span className="text-yellow-600 font-medium">⚠ Payment Pending</span>
-                                        }
-                                    </h3>
-                                </div>
-                                
-                                <div className="card-actions justify-end mt-5 flex">
-                                    <button 
-                                        onClick={() => {
-                                            setCurrentOrder(data);
-                                            setShowPaymentModal(true);
-                                        }} 
-                                        className="px-4 py-2 rounded-md text-white bg-green-600 tracking-wider mr-2">
-                                        Payment Options
-                                    </button>
-                                    <button 
-                                        onClick={() => handleDelete(data._id)} 
-                                        className="px-4 py-2 rounded-md text-white bg-black tracking-wider">
-                                        Remove
-                                    </button>
+                                    
+                                    <div className="flex flex-col gap-2">
+                                        <h2 className="">Food Owner: {data.buyerName}</h2>
+                                        <h2 className="">Purchase Date: {data.date}</h2>
+                                        <h2 className="">Quantity: {data.quantity}</h2>
+                                        <h2 className="">Delivery to: {capitalizeWords(data.deliveryLocation || 'Not specified')}</h2>
+                                        <h2 className="text-sm text-gray-600">Address: {data.fullAddress || 'Not provided'}</h2>
+                                        <div className="flex justify-between">
+                                            <span>Items: {formatPrice(data.itemsSubtotal || (data.foodPrice * data.quantity))}</span>
+                                            <span>Delivery: {formatPrice(data.deliveryFee || 0)}</span>
+                                        </div>
+                                        <h3 className="mt-1">
+                                            {data.paymentStatus === 'paid' 
+                                                ? <span className="text-green-600 font-medium">✓ Payment Completed</span>
+                                                : <span className="text-yellow-600 font-medium">⚠ Payment Pending</span>
+                                            }
+                                        </h3>
+                                    </div>
+                                    
+                                    <div className="card-actions justify-end mt-5 flex">
+                                        <button 
+                                            onClick={() => {
+                                                setCurrentOrder(data);
+                                                setShowPaymentModal(true);
+                                            }} 
+                                            className="px-4 py-2 rounded-md text-white bg-green-600 tracking-wider mr-2">
+                                            Payment Options
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(data._id)} 
+                                            className="px-4 py-2 rounded-md text-white bg-black tracking-wider">
+                                            Remove
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className='h-[80vh] bg-[#121212] flex items-center justify-center'>
-                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-7236766-5875081.png?f=webp" alt="Empty cart" />
-                </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className='h-[80vh] bg-[#121212] flex items-center justify-center'>
+                        <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-7236766-5875081.png?f=webp" alt="Empty cart" />
+                    </div>
+                )}
+                </>
             )}
         </>
     );
