@@ -68,23 +68,12 @@ const OrderFood = () => {
         }
     };
     
-    const handlePaymentSuccess = async (orderData, paymentResponse) => {
-        try {
-            toast.success('Payment successful! Your order has been placed.');
-            setShowPaymentModal(false);
-        } catch (error) {
-            console.error('Error updating order status:', error);
-            toast.error('Payment recorded but there was an issue updating your order status.');
-        }
-    };
-    
     const handleWhatsAppChat = () => {
         if (!currentOrder) return;
         
         const whatsappLink = createWhatsAppLink(chefPhone, currentOrder);
         window.open(whatsappLink, '_blank');
         setShowPaymentModal(false);
-        toast.success('WhatsApp chat initiated. Please confirm your order with the chef.');
     };
     
     // Updated handler for online payment with loading state
@@ -122,23 +111,28 @@ const OrderFood = () => {
                 callback: (response) => {
                     setIsPaymentLoading(false);
                     if (response.status === "successful") {
-                        handlePaymentSuccess(currentOrder, response);
+                        toast.success('Payment successful! Your order is being processed.');
                     } else {
                         toast.error('Payment was not completed.');
                     }
-                    
+                    closePaymentModal();
                     setShowPaymentModal(false);
                 },
-                onClose: () => {
-                    console.log("Payment modal closed by user");
-                    setIsPaymentLoading(false);
-                    toast.info('Payment cancelled');
-                    setShowPaymentModal(false);
-                },
+                onclose: () => {
+                    console.log("Payment modal closed");
+                    toast({
+                      title: "Payment Cancelled",
+                      description: "You have cancelled the payment",
+                      status: "warning",
+                      duration: 5000,
+                      isClosable: true,
+                    });
+                  },
             });
-        }, 100);
+        }, 500);
     };
 
+    if (loading) return <LoadingSpinner />;
     if (error) return <div className="text-red-500 text-center">{error}</div>;
 
     return (
@@ -146,19 +140,11 @@ const OrderFood = () => {
             <Helmet>
                 <title>Tim's Kitchen | Ordered-Food</title>
             </Helmet>
-            {loading && <div className="text-yellow-500 text-center py-10"><LoadingSpinner /></div>}
-
+            
+            {/* Payment/Chat Modal with payment loading state */}
             <PaymentModal
                 isOpen={showPaymentModal}
-                onClose={() => {
-                    if (isPaymentLoading) {
-                        if (window.confirm('Payment is in progress. Closing now may result in a failed transaction. Are you sure?')) {
-                            setShowPaymentModal(false);
-                        }
-                    } else {
-                        setShowPaymentModal(false);
-                    }
-                }}
+                onClose={() => setShowPaymentModal(false)}
                 onWhatsAppChat={handleWhatsAppChat}
                 onPayOnline={handlePayOnline}
                 chefPhone={chefPhone}

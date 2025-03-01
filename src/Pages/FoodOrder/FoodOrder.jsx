@@ -131,7 +131,7 @@ const FoodOrder = () => {
             <Helmet>
                 <title>Tim's Kitchen | Food-Order</title>
             </Helmet>
-            {(foodLoading || orderLoading) && <LoadingSpinner />}
+            {(foodLoading || orderLoading) && <div> <LoadingSpinner /> </div>}
             {error && <div className="text-red-500 text-center py-10">{error}</div>}
             {!display && <div className="text-center py-10">Loading food details...</div>}
             {!foodLoading && !orderLoading && !error && display && (
