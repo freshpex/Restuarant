@@ -10,16 +10,32 @@ const PaymentModal = ({
   orderDetails,
   isPaymentLoading
 }) => {
+  // Handle ESC key to close modal
   useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && !isPaymentLoading) {
+        onClose();
+      }
+    };
+
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleEscKey);
     } else {
       document.body.style.overflow = 'auto';
     }
+    
     return () => {
       document.body.style.overflow = 'auto';
+      document.removeEventListener('keydown', handleEscKey);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose, isPaymentLoading]);
+  
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget && !isPaymentLoading) {
+      onClose();
+    }
+  };
 
   if (!isOpen || !orderDetails) return null;
 
@@ -29,17 +45,30 @@ const PaymentModal = ({
   const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-      <div className="bg-white rounded-lg p-6 w-11/12 max-w-md mx-auto shadow-2xl">
-        <div className="flex justify-between items-center mb-4">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+      onClick={handleBackdropClick}
+    >
+      <div className="relative bg-white rounded-lg p-6 w-11/12 max-w-md mx-auto shadow-2xl">
+        {/* Close button - Enlarged and more visible */}
+        <button 
+          type="button" 
+          onClick={onClose}
+          disabled={isPaymentLoading}
+          className={`absolute top-2 right-2 p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 
+          ${isPaymentLoading ? 'opacity-30 cursor-not-allowed' : 'opacity-100'}`}
+          aria-label="Close modal"
+        >
+          <IoMdClose size={24} />
+        </button>
+        
+        <div className="mt-2 mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Complete Your Order</h2>
-          <button 
-            type="button" 
-            onClick={onClose}
-            className={`absolute top-3 right-3 text-gray-400 hover:text-gray-500 ${isPaymentLoading ? 'cursor-not-allowed opacity-50' : ''}`}
-          >
-            <IoMdClose />
-          </button>
+          {isPaymentLoading && (
+            <p className="text-sm text-yellow-600 mt-1">
+              Payment in progress, please don't close this window
+            </p>
+          )}
         </div>
         
         <div className="border-t border-b border-gray-200 py-4 my-4">
@@ -63,24 +92,28 @@ const PaymentModal = ({
         </div>
         
         <div className="flex flex-col gap-3">
+          {/* WhatsApp button - Never disabled */}
           <button
             onClick={onWhatsAppChat}
             className="bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-all"
-            disabled={isPaymentLoading}
           >
             <FaWhatsapp size={20} className="mr-2" />
             Chat with Chef on WhatsApp
           </button>
           
+          {/* Pay online button - Disabled during payment */}
           <button
             onClick={onPayOnline}
             disabled={isPaymentLoading}
-            className={`py-2 px-4 flex justify-center items-center w-full text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg mb-3 ${isPaymentLoading ? 'cursor-not-allowed opacity-70' : ''}`}
+            className={`py-3 px-4 flex justify-center items-center w-full text-white rounded-lg transition-all 
+              ${isPaymentLoading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-yellow-600 hover:bg-yellow-700'}`}
           >
             {isPaymentLoading ? (
               <>
                 <FaSpinner className="animate-spin mr-2" />
-                Processing...
+                Processing Payment...
               </>
             ) : (
               <>
@@ -88,6 +121,22 @@ const PaymentModal = ({
                 Pay Online
               </>
             )}
+          </button>
+          
+          {/* Cancel button */}
+          <button
+            onClick={() => {
+              if (isPaymentLoading) {
+                if (window.confirm('Payment is in progress. Cancelling now may result in a failed transaction. Are you sure you want to cancel?')) {
+                  onClose();
+                }
+              } else {
+                onClose();
+              }
+            }}
+            className="py-2 px-4 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg mt-2"
+          >
+            {isPaymentLoading ? 'Cancel Payment' : 'Cancel Order'}
           </button>
         </div>
         

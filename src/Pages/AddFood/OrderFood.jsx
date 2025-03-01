@@ -68,12 +68,23 @@ const OrderFood = () => {
         }
     };
     
+    const handlePaymentSuccess = async (orderData, paymentResponse) => {
+        try {
+            toast.success('Payment successful! Your order has been placed.');
+            setShowPaymentModal(false);
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            toast.error('Payment recorded but there was an issue updating your order status.');
+        }
+    };
+    
     const handleWhatsAppChat = () => {
         if (!currentOrder) return;
         
         const whatsappLink = createWhatsAppLink(chefPhone, currentOrder);
         window.open(whatsappLink, '_blank');
         setShowPaymentModal(false);
+        toast.success('WhatsApp chat initiated. Please confirm your order with the chef.');
     };
     
     // Updated handler for online payment with loading state
@@ -111,7 +122,7 @@ const OrderFood = () => {
                 callback: (response) => {
                     setIsPaymentLoading(false);
                     if (response.status === "successful") {
-                        toast.success('Payment successful! Your order is being processed.');
+                        handlePaymentSuccess(currentOrder, response);
                     } else {
                         toast.error('Payment was not completed.');
                     }
@@ -140,8 +151,11 @@ const OrderFood = () => {
             <PaymentModal
                 isOpen={showPaymentModal}
                 onClose={() => {
-                    if (!isPaymentLoading) {
-                        console.log("Closing payment modal");
+                    if (isPaymentLoading) {
+                        if (window.confirm('Payment is in progress. Closing now may result in a failed transaction. Are you sure?')) {
+                            setShowPaymentModal(false);
+                        }
+                    } else {
                         setShowPaymentModal(false);
                     }
                 }}
