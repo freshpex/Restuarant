@@ -117,7 +117,7 @@ const AddFood = () => {
                                 </div>
 
                                 <div className="w-full">
-                                    <label htmlFor="food" className="block mb-2 text-sm font-medium text-gray-900">Food Name</label>
+                                    <label htmlFor="food" className="block mb-2 text-sm font-medium text-gray-900">Food Name*</label>
                                     <input 
                                         type="text" 
                                         name="food" 
@@ -130,7 +130,7 @@ const AddFood = () => {
                                 </div>
                                 
                                 <div className="w-full">
-                                    <label htmlFor="price" className="block mb-2 text-sm font-medium text-gray-900">Price</label>
+                                    <label htmlFor="price" className="block mb-2 text-sm font-medium text-gray-900">Price*</label>
                                     <input 
                                         type="number" 
                                         name="price" 
@@ -149,8 +149,7 @@ const AddFood = () => {
                                         name="description" 
                                         id="description" 
                                         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter description" 
-                                        required 
+                                        placeholder="Enter description (optional)" 
                                         disabled={isSubmitting}
                                     />
                                 </div>
@@ -162,13 +161,11 @@ const AddFood = () => {
                                         name="category" 
                                         id="category" 
                                         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter food category" 
-                                        required 
+                                        placeholder="Enter food category (optional)" 
                                         disabled={isSubmitting}
                                     />
                                 </div>
 
-                                {/* Image input with toggle between URL and file upload */}
                                 <div className="w-full sm:col-span-2">
                                     <div className="flex justify-between items-center mb-2">
                                         <label className="text-sm font-medium text-gray-900">Food Image</label>
@@ -224,14 +221,13 @@ const AddFood = () => {
                                         name="origin" 
                                         id="origin" 
                                         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter food origin" 
-                                        required 
+                                        placeholder="Enter food origin (optional)" 
                                         disabled={isSubmitting}
                                     />
                                 </div>
                                 
                                 <div className="sm:col-span-2">
-                                    <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900">Food Quantity</label>
+                                    <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900">Food Quantity*</label>
                                     <input 
                                         type='number' 
                                         name='quantity'

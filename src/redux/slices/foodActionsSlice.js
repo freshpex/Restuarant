@@ -46,23 +46,46 @@ export const addFood = createAsyncThunk(
 
 export const updateFood = createAsyncThunk(
   'foodActions/updateFood',
-  async ({ id, foodData, token }, { rejectWithValue }) => {
+  async ({ id, foodData, token, imageFile }, { rejectWithValue }) => {
     try {
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('foodImage', imageFile);
+        
+        const uploadResponse = await fetch(`${API_URL}/upload-food-image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          return rejectWithValue(errorData.message || 'Failed to upload image');
+        }
+        
+        const uploadData = await uploadResponse.json();
+        foodData.foodImage = uploadData.imageUrl;
+      }
+      
       const response = await fetch(`${API_URL}/update/${id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(foodData)
       });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      return data;
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || errorData.error || 'Failed to update food');
+      }
+      
+      return { id, ...foodData };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Error updating food');
     }
   }
 );
