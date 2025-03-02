@@ -8,6 +8,9 @@ const OrderSuccess = () => {
   const { orderId, orderReference, isPaid, contactPhone, isProcessing } = location.state || {};
   const [processing, setProcessing] = useState(isProcessing || false);
   
+  const displayReference = orderReference || orderId;
+  const trackingReference = orderReference || orderId;
+
   useEffect(() => {
     if (processing) {
       const timer = setTimeout(() => {
@@ -17,6 +20,17 @@ const OrderSuccess = () => {
       return () => clearTimeout(timer);
     }
   }, [processing]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Order Success - References:', { 
+        orderId, 
+        orderReference,
+        displayReference,
+        trackingReference
+      });
+    }
+  }, [orderId, orderReference]);
   
   if (!orderId) {
     return <Navigate to="/" replace />;
@@ -26,9 +40,6 @@ const OrderSuccess = () => {
   estimatedDelivery.setMinutes(estimatedDelivery.getMinutes() + 45);
   const deliveryTimeString = estimatedDelivery.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
-  const displayReference = orderReference || orderId;
-  const trackingReference = orderReference || orderId;
-
   return (
     <>
       <Helmet>

@@ -269,7 +269,12 @@ const Checkout = () => {
           subtotal: totalAmount,
           total: grandTotal,
           paymentStatus: 'processing',
-          paymentMethod: 'online'
+          paymentMethod: 'online',
+          buyerName: user?.displayName || '',
+          email: user?.email || '',
+          userEmail: user?.email || '',
+          phone: phoneNumber.trim(),
+          date: new Date().toISOString().split('T')[0]
         };
         
         const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
@@ -281,14 +286,17 @@ const Checkout = () => {
           body: JSON.stringify(orderData)
         });
         
-        if (!response.ok) throw new Error('Failed to create order');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create order');
+        }
         
         const data = await response.json();
         
         // Now proceed with payment using the real orderId
         initiatePayment(data.orderId, data.orderReference);
       } catch (error) {
-        toast.error('Failed to initialize order');
+        toast.error(error.message || 'Failed to initialize order');
         setProcessingPayment(false);
       }
     };

@@ -33,35 +33,42 @@ const OrderTracking = () => {
     setError(null);
     
     try {
-      if (trackingId.startsWith('temp-') && import.meta.env.DEV) {
-        setLoading(false);
-        setError("This is a temporary order ID. In development mode, you'll need to use a real order ID from your database.");
-        toast.error("Tracking temporary orders requires server setup. Please check your database for real order IDs.", {
-          duration: 6000
-        });
-        return;
+      try {
+        const pingResponse = await fetch(`${import.meta.env.VITE_API_URL}/ping`);
+        if (!pingResponse.ok) {
+          console.warn('API ping failed, server may be down');
+        } else {
+          console.log('API ping successful');
+        }
+      } catch (pingError) {
+        console.error('API ping error, server may be unreachable:', pingError);
       }
       
+      // Log what we're tracking to help with debugging
+      console.log(`Tracking order with ID: ${trackingId.trim()}`);
+      console.log(`Full tracking URL: ${import.meta.env.VITE_API_URL}/order/track?reference=${encodeURIComponent(trackingId.trim())}`);
+      
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/order/track?reference=${trackingId.trim()}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
+        `${import.meta.env.VITE_API_URL}/order/track?reference=${encodeURIComponent(trackingId.trim())}`
       );
       
+      // Add detailed logging for the response
+      console.log('Track order response status:', response.status);
+      
       if (!response.ok) {
-        if (response.status === 404) {
-          if (trackingId.startsWith('temp-')) {
-            throw new Error("Your order is still being processed. Please try again in a few moments.");
-          }
-          throw new Error('Order not found. Please check your order ID or reference number.');
+        let errorMessage = 'Failed to retrieve order information';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = `${errorMessage} (${response.status}: ${response.statusText})`;
         }
-        throw new Error('Failed to retrieve order information');
+        
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
+      console.log('Track order response data:', data);
       
       if (!data.success) {
         throw new Error(data.error || 'Order not found');
@@ -74,6 +81,7 @@ const OrderTracking = () => {
       }
       
     } catch (error) {
+      console.error('Order tracking error:', error);
       setError(error.message);
       toast.error(error.message);
     } finally {
