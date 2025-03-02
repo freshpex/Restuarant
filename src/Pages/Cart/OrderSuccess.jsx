@@ -5,7 +5,7 @@ import { FaCheckCircle, FaShoppingBag, FaClock, FaMotorcycle, FaUtensils, FaSpin
 
 const OrderSuccess = () => {
   const location = useLocation();
-  const { orderId, isPaid, contactPhone, isProcessing } = location.state || {};
+  const { orderId, orderReference, isPaid, contactPhone, isProcessing } = location.state || {};
   const [processing, setProcessing] = useState(isProcessing || false);
   
   useEffect(() => {
@@ -26,6 +26,9 @@ const OrderSuccess = () => {
   estimatedDelivery.setMinutes(estimatedDelivery.getMinutes() + 45);
   const deliveryTimeString = estimatedDelivery.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
+  const displayReference = orderReference || orderId;
+  const trackingReference = orderReference || orderId;
+
   return (
     <>
       <Helmet>
@@ -52,7 +55,12 @@ const OrderSuccess = () => {
                 
                 {/* Order details */}
                 <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                  <p className="text-sm text-gray-700 mb-1">Order Reference: <span className="font-medium">{orderId}</span></p>
+                  <p className="text-sm text-gray-700 mb-1">
+                    Order Reference: <span className="font-medium">{displayReference}</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Save this reference number to track your order status
+                  </p>
                   <p className="text-sm text-gray-700 mb-1">
                     Contact Phone: {contactPhone ? (
                       <span className="font-medium text-gray-900">{contactPhone}</span>
@@ -131,7 +139,7 @@ const OrderSuccess = () => {
               </Link>
               {!processing ? (
                 <Link 
-                  to={`/track-order/${orderId}`}
+                  to={`/track-order/${trackingReference}`}
                   className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium"
                 >
                   Track This Order

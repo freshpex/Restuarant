@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
-import { FaEdit, FaTrash, FaEye, FaPlus, FaSearch, FaSpinner } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaEye, FaPlus, FaSearch, FaSpinner, FaEllipsisV } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,7 @@ const FoodManagement = () => {
   const [deleting, setDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [activeActionMenu, setActiveActionMenu] = useState(null);
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -94,6 +95,11 @@ const FoodManagement = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  // Toggle action menu for mobile view
+  const toggleActionMenu = (id) => {
+    setActiveActionMenu(activeActionMenu === id ? null : id);
+  };
+
   return (
     <>
       <Helmet>
@@ -144,135 +150,218 @@ const FoodManagement = () => {
             {error}
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentItems.length === 0 ? (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {currentItems.length === 0 ? (
+                <div className="bg-white p-4 text-center text-gray-500 rounded-lg shadow">
+                  No food items found
+                </div>
+              ) : (
+                currentItems.map((food) => (
+                  <div key={food._id} className="bg-white p-4 rounded-lg shadow-md">
+                    <div className="flex items-center">
+                      <img 
+                        src={food.foodImage}
+                        alt={food.foodName}
+                        className="h-16 w-16 object-cover rounded mr-4"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{food.foodName}</h3>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-sm text-gray-600">₦{food.foodPrice}</span>
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            {food.foodCategory}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Orders: {food.orderCount || 0}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between mt-4 pt-3 border-t border-gray-200">
+                      <Link 
+                        to={`/seeFood/${food._id}`}
+                        className="flex-1 flex justify-center items-center py-2 text-blue-600 hover:bg-blue-50 rounded"
+                      >
+                        <FaEye className="mr-2" /> View
+                      </Link>
+                      <Link 
+                        to={`/update/${food._id}`}
+                        className="flex-1 flex justify-center items-center py-2 text-indigo-600 hover:bg-indigo-50 rounded"
+                      >
+                        <FaEdit className="mr-2" /> Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(food._id)}
+                        disabled={deleting}
+                        className="flex-1 flex justify-center items-center py-2 text-red-600 hover:bg-red-50 rounded"
+                      >
+                        <FaTrash className="mr-2" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+              
+              {/* Mobile pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-4 space-x-1">
+                  <button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === 1 ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Prev
+                  </button>
+                  <span className="flex items-center px-3 py-2 bg-yellow-600 text-white rounded">
+                    {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === totalPages ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                      No food items found
-                    </td>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ) : (
-                  currentItems.map((food) => (
-                    <tr key={food._id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="h-12 w-12">
-                          <img 
-                            src={food.foodImage} 
-                            alt={food.foodName}
-                            className="h-12 w-12 object-cover rounded"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{food.foodName}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          {food.foodCategory}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">₦{food.foodPrice}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{food.orderCount || 0}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <Link 
-                            to={`/seeFood/${food._id}`}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="View"
-                          >
-                            <FaEye />
-                          </Link>
-                          <Link 
-                            to={`/update/${food._id}`}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Edit"
-                          >
-                            <FaEdit />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(food._id)}
-                            disabled={deleting}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentItems.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                        No food items found
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-6 py-3 bg-white flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
-                      <span className="font-medium">
-                        {Math.min(indexOfLastItem, filteredFoods.length)}
-                      </span>{' '}
-                      of <span className="font-medium">{filteredFoods.length}</span> results
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                      <button
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                          currentPage === 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        Previous
-                      </button>
-                      {[...Array(totalPages)].map((_, i) => (
+                  ) : (
+                    currentItems.map((food) => (
+                      <tr key={food._id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="h-12 w-12">
+                            <img 
+                              src={food.foodImage} 
+                              alt={food.foodName}
+                              className="h-12 w-12 object-cover rounded"
+                            />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">{food.foodName}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            {food.foodCategory}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">₦{food.foodPrice}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">{food.orderCount || 0}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <Link 
+                              to={`/seeFood/${food._id}`}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="View"
+                            >
+                              <FaEye />
+                            </Link>
+                            <Link 
+                              to={`/update/${food._id}`}
+                              className="text-indigo-600 hover:text-indigo-900"
+                              title="Edit"
+                            >
+                              <FaEdit />
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(food._id)}
+                              disabled={deleting}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="px-6 py-3 bg-white flex items-center justify-between border-t border-gray-200 sm:px-6">
+                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
+                        <span className="font-medium">
+                          {Math.min(indexOfLastItem, filteredFoods.length)}
+                        </span>{' '}
+                        of <span className="font-medium">{filteredFoods.length}</span> results
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                         <button
-                          key={i}
-                          onClick={() => paginate(i + 1)}
-                          className={`relative inline-flex items-center px-4 py-2 border ${
-                            currentPage === i + 1
-                              ? 'bg-yellow-600 text-white border-yellow-600'
-                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                          } text-sm font-medium`}
+                          onClick={() => paginate(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                            currentPage === 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
+                          }`}
                         >
-                          {i + 1}
+                          Previous
                         </button>
-                      ))}
-                      <button
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                          currentPage === totalPages ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        Next
-                      </button>
-                    </nav>
+                        {[...Array(totalPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => paginate(i + 1)}
+                            className={`relative inline-flex items-center px-4 py-2 border ${
+                              currentPage === i + 1
+                                ? 'bg-yellow-600 text-white border-yellow-600'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                            } text-sm font-medium`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => paginate(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                            currentPage === totalPages ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          Next
+                        </button>
+                      </nav>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </>

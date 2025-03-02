@@ -252,46 +252,119 @@ const Checkout = () => {
     
     setProcessingPayment(true);
     
-    const config = {
-      public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-      tx_ref: `tk-cart-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-      amount: parseFloat(grandTotal),
-      currency: 'NGN',
-      payment_options: 'card,mobilemoney,ussd,banktransfer',
-      customer: {
-        email: user?.email || '',
-        phone_number: phoneNumber.trim(),
-        name: user?.displayName || '',
-      },
-      customizations: {
-        title: "Tim's Kitchen Cart Checkout",
-        description: `Payment for ${cartItems.length} items`,
-        logo: "/logo.png",
-      },
+    const createOrderFirst = async () => {
+      try {
+        const orderData = {
+          items: cartItems.map(item => ({
+            foodId: item._id,
+            foodName: item.foodName,
+            quantity: item.quantity,
+            price: item.foodPrice,
+            totalPrice: item.totalPrice,
+            foodImage: item.foodImage
+          })),
+          deliveryLocation,
+          deliveryFee,
+          fullAddress,
+          subtotal: totalAmount,
+          total: grandTotal,
+          paymentStatus: 'processing',
+          paymentMethod: 'online'
+        };
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) throw new Error('Failed to create order');
+        
+        const data = await response.json();
+        
+        // Now proceed with payment using the real orderId
+        initiatePayment(data.orderId, data.orderReference);
+      } catch (error) {
+        toast.error('Failed to initialize order');
+        setProcessingPayment(false);
+      }
     };
     
-    const handleFlutterPayment = useFlutterwave(config);
-    
-    handleFlutterPayment({
-      callback: (response) => {
-        closePaymentModal();
-        
-        console.log("Payment response:", response);
-        
-        setTimeout(() => {
+    const initiatePayment = (orderId, orderReference) => {
+      const config = {
+        public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
+        tx_ref: orderReference, // Use our order reference
+        amount: parseFloat(grandTotal),
+        currency: 'NGN',
+        payment_options: 'card,mobilemoney,ussd,banktransfer',
+        customer: {
+          email: user?.email || '',
+          phone_number: phoneNumber.trim(),
+          name: user?.displayName || '',
+        },
+        customizations: {
+          title: "Tim's Kitchen Cart Checkout",
+          description: `Payment for ${cartItems.length} items`,
+          logo: "/logo.png",
+        },
+        meta: {
+          orderId: orderId,
+          orderReference: orderReference
+        }
+      };
+      
+      const handleFlutterPayment = useFlutterwave(config);
+      
+      handleFlutterPayment({
+        callback: (response) => {
+          closePaymentModal();
+          
           if (response.status === "successful" || response.status === "completed") {
-            handlePaymentSuccess(response);
+            updateOrderPaymentStatus(orderId, response.transaction_id);
+            
+            dispatch(clearCart());
+            navigate('/order-success', { 
+              state: { 
+                orderId: orderId,
+                orderReference: orderReference,
+                isPaid: true,
+                contactPhone: phoneNumber.trim()
+              }
+            });
           } else {
             toast.error('Payment was not completed successfully.');
             setProcessingPayment(false);
           }
-        }, 100);
-      },
-      onClose: () => {
-        setProcessingPayment(false);
-        toast.info('Payment cancelled');
-      },
-    });
+        },
+        onClose: () => {
+          setProcessingPayment(false);
+          toast.info('Payment cancelled');
+        },
+      });
+    };
+    
+    const updateOrderPaymentStatus = async (orderId, transactionId) => {
+      try {
+        await fetch(`${import.meta.env.VITE_API_URL}/orders/${orderId}/payment`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            paymentStatus: 'paid',
+            transactionRef: transactionId
+          })
+        });
+      } catch (error) {
+        console.error('Failed to update payment status:', error);
+      }
+    };
+    
+    createOrderFirst();
   };
   
   const handlePlaceOrder = () => {
