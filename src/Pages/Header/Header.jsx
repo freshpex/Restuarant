@@ -110,6 +110,34 @@ const Header = () => {
                             Blog
                         </NavLink>
                     </li>
+                    <li>
+                        <NavLink
+                            to="/event"
+                            className={({ isActive }) =>
+                                `block py-2 pr-4 pl-3 duration-200 ${
+                                    isActive
+                                        ? "text-yellow-700  underline-offset-4"
+                                        : "text-gray-700 dark:text-gray-600"
+                                } border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-yellow-800 lg:p-0`
+                            }
+                        >
+                            Events
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink
+                            to="/contact"
+                            className={({ isActive }) =>
+                                `block py-2 pr-4 pl-3 duration-200 ${
+                                    isActive
+                                        ? "text-yellow-700  underline-offset-4"
+                                        : "text-gray-700 dark:text-gray-600"
+                                } border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-yellow-800 lg:p-0`
+                            }
+                        >
+                            Contact
+                        </NavLink>
+                    </li>
                 </ul>
                 <div className=" hidden gap-5  items-center lg:flex">
                     {isAuthenticated && user?.email ? (
@@ -236,6 +264,12 @@ const Header = () => {
                     </li>
                     <li onClick={handleClick} className="py-2 text-base">
                         <Link to="/blog">Blog</Link>
+                    </li>
+                    <li onClick={handleClick} className="py-2 text-base">
+                        <Link to="/event">Events</Link>
+                    </li>
+                    <li onClick={handleClick} className="py-2 text-base">
+                        <Link to="/contact">Contact</Link>
                     </li>
                     {user && <ul className=" py-1 space-y-3">
                         <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood">My Added Food Items</Link>

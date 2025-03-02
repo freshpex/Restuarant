@@ -43,6 +43,8 @@ import TermsAndConditions from './Pages/Terms/TermsAndConditions';
 import Cart from './Pages/Cart/Cart';
 import Checkout from './Pages/Cart/Checkout';
 import OrderSuccess from './Pages/Cart/OrderSuccess';
+import Contact from "./Pages/Contact/Contact";
+import Events from "./Pages/Events/Events";
 
 function App() {
     const dispatch = useDispatch();
@@ -150,6 +152,14 @@ function App() {
                 {
                     path: "/termsandcondition",
                     element: <TermsAndConditions />
+                },
+                {
+                    path: "/contact",
+                    element: <Contact />
+                },
+                {
+                    path: "/event",
+                    element: <Events />
                 },
                 {
                     path: "/cart",
