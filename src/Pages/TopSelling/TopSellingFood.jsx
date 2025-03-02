@@ -84,18 +84,3 @@ import { Link } from "react-router-dom";
       </Card>
     );
   }
-
-
-
-
-// import React from 'react';
-
-// const TopSellingFood = ({data}) => {
-//     return (
-//         <div>
-            
-//         </div>
-//     );
-// };
-
-// export default TopSellingFood;

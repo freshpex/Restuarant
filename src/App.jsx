@@ -40,6 +40,9 @@ import FoodManagement from './Pages/Admin/FoodManagement';
 import OrderManagement from './Pages/Admin/OrderManagement';
 import Analytics from './Pages/Admin/Analytics';
 import TermsAndConditions from './Pages/Terms/TermsAndConditions';
+import Cart from './Pages/Cart/Cart';
+import Checkout from './Pages/Cart/Checkout';
+import OrderSuccess from './Pages/Cart/OrderSuccess';
 
 function App() {
     const dispatch = useDispatch();
@@ -147,6 +150,18 @@ function App() {
                 {
                     path: "/termsandcondition",
                     element: <TermsAndConditions />
+                },
+                {
+                    path: "/cart",
+                    element: <Cart />
+                },
+                {
+                    path: "/checkout",
+                    element: <Checkout />
+                },
+                {
+                    path: "/order-success",
+                    element: <OrderSuccess />
                 }
             ]
         },

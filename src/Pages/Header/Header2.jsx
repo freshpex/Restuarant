@@ -7,6 +7,7 @@ import { FaTimes, FaStream } from "react-icons/fa";
 import { toast } from 'react-toastify';
 import Logo from "../../assets/Logo.png";
 import { BsMoonStars, BsSun } from "react-icons/bs";
+import CartIcon from '../../Components/CartIcon';
 
 const Header2 = () => {
     const dispatch = useDispatch();
@@ -161,8 +162,8 @@ const Header2 = () => {
                         </NavLink>
                     </li>
                 </ul>
-                <div className=" hidden gap-5  items-center lg:flex">
-                    
+                <div className="hidden gap-5 items-center lg:flex">
+                    <CartIcon />
                     {isAuthenticated && user?.email ? (
                         <>
                             <div className="avatar">
@@ -236,6 +237,7 @@ const Header2 = () => {
                 </div>
 
                 <div className=" lg:hidden flex items-center gap-4">
+                    <CartIcon />
                     <div className=" flex lg:hidden ">
                         {isAuthenticated && user?.email? (
                             ""
