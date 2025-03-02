@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
-import { FaSpinner, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaSpinner, FaSearch, FaFilter, FaChevronDown, FaPhoneAlt, FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import moment from 'moment';
@@ -27,6 +27,7 @@ const OrderManagement = () => {
   const [itemsPerPage] = useState(10);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
+  const [expandedOrder, setExpandedOrder] = useState(null);
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -159,6 +160,11 @@ const OrderManagement = () => {
     setCurrentPage(1);
   };
 
+  // Toggle order details on mobile
+  const toggleOrderDetails = (orderId) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId);
+  };
+
   return (
     <>
       <Helmet>
@@ -175,7 +181,7 @@ const OrderManagement = () => {
           </button>
         </div>
 
-        {/* Search and Filters */}
+        {/* Search and Filters - make them stacked on mobile */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
@@ -216,7 +222,7 @@ const OrderManagement = () => {
               </select>
             </div>
 
-            <div>
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
                 placeholder="Start Date"
@@ -224,9 +230,6 @@ const OrderManagement = () => {
                 value={dateRange.start}
                 onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
               />
-            </div>
-
-            <div>
               <input
                 type="date"
                 placeholder="End Date"
@@ -247,160 +250,348 @@ const OrderManagement = () => {
             {error}
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Info</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
-                      No orders found
-                    </td>
-                  </tr>
-                ) : (
-                  currentItems.map((order) => (
-                    <tr key={order._id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        #{order._id.substring(order._id.length - 6).toUpperCase()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
-                        <div className="text-sm text-gray-500">{order.userEmail}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {moment(order.createdAt).format('MMM DD, YYYY hh:mm A')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formatPrice(order.totalPrice)}</div>
-                        <div className="text-xs text-gray-500">
-                          Items: {formatPrice(order.itemsSubtotal || (order.foodPrice * order.quantity))}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Delivery: {formatPrice(order.deliveryFee || 0)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span 
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {currentItems.length === 0 ? (
+                <div className="bg-white p-4 text-center text-gray-500 rounded-lg shadow">
+                  No orders found
+                </div>
+              ) : (
+                currentItems.map((order) => (
+                  <div key={order._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    {/* Order header */}
+                    <div 
+                      className="p-4 flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleOrderDetails(order._id)}
+                    >
+                      <div>
+                        <p className="font-medium">#{order._id.substring(order._id.length - 6).toUpperCase()}</p>
+                        <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${statusColors[order.status]}`}>
+                          {capitalizeWords(order.status)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {capitalizeWords(order.deliveryLocation || 'Not specified')}
-                        </div>
-                        <div className="text-xs text-gray-500 max-w-xs truncate" title={order.fullAddress}>
-                          {order.fullAddress || 'No address provided'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[order.status] || 'bg-gray-100'}`}>
-                          {order.status}
+                        <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full 
+                          ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {capitalizeWords(order.paymentStatus)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {updatingOrderId === order._id ? (
-                          <div className="flex items-center">
-                            <FaSpinner className="animate-spin text-yellow-600 mr-2" />
-                            <span className="text-sm text-gray-500">Updating...</span>
+                        <FaChevronDown className={`text-gray-400 transition-transform ${expandedOrder === order._id ? 'transform rotate-180' : ''}`} />
+                      </div>
+                    </div>
+                    
+                    {/* Order details (expandable) */}
+                    {expandedOrder === order._id && (
+                      <div className="px-4 pb-4 border-t border-gray-100">
+                        {/* Customer info */}
+                        <div className="py-3">
+                          <h3 className="font-medium text-gray-700">Customer</h3>
+                          <p className="text-sm">{order.buyerName || 'N/A'}</p>
+                          <p className="text-sm text-gray-500">{order.userEmail}</p>
+                        </div>
+                        
+                        {/* Order items */}
+                        {Array.isArray(order.items) && order.items.length > 0 ? (
+                          <div className="py-3">
+                            <h3 className="font-medium text-gray-700 mb-2">Items</h3>
+                            <div className="space-y-2">
+                              {order.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center">
+                                  <div className="flex items-center">
+                                    {item.foodImage && (
+                                      <img 
+                                        src={item.foodImage} 
+                                        alt={item.foodName} 
+                                        className="w-8 h-8 rounded object-cover mr-2"
+                                      />
+                                    )}
+                                    <span className="text-sm">{item.foodName} x {item.quantity}</span>
+                                  </div>
+                                  <span className="text-sm font-medium">{formatPrice(item.totalPrice)}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ) : (
-                          <>
-                            <select
-                              className="border border-gray-300 rounded px-2 py-1 text-sm bg-white mr-2"
-                              value={order.paymentStatus || 'unpaid'}
-                              onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
-                              disabled={updatingPaymentId === order._id}
-                            >
-                              <option value="unpaid">Unpaid</option>
-                              <option value="paid">Paid</option>
-                            </select>
-                            <select
-                              className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
-                              value={order.status}
-                              onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="preparing">Preparing</option>
-                              <option value="ready">Ready</option>
-                              <option value="delivered">Delivered</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          </>
+                          <div className="py-3">
+                            <h3 className="font-medium text-gray-700 mb-2">Item</h3>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">{order.foodName} x {order.quantity}</span>
+                              <span className="text-sm font-medium">{formatPrice(order.totalPrice)}</span>
+                            </div>
+                          </div>
                         )}
+                        
+                        {/* Delivery information */}
+                        <div className="py-3">
+                          <h3 className="font-medium text-gray-700 mb-1">Delivery Info</h3>
+                          <div className="flex items-start space-x-2">
+                            <FaMapMarkerAlt className="text-gray-400 mt-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm">{capitalizeWords(order.deliveryLocation || 'Not specified')}</p>
+                              <p className="text-xs text-gray-500">{order.fullAddress || 'No address provided'}</p>
+                            </div>
+                          </div>
+                          {order.phone && (
+                            <div className="flex items-center space-x-2 mt-1">
+                              <FaPhoneAlt className="text-gray-400 flex-shrink-0" />
+                              <p className="text-sm">{order.phone}</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Price details */}
+                        <div className="py-3 border-t border-gray-100">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Items Subtotal:</span>
+                            <span>{formatPrice(order.itemsSubtotal || (order.foodPrice * order.quantity) || order.totalPrice)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Delivery Fee:</span>
+                            <span>{formatPrice(order.deliveryFee || 0)}</span>
+                          </div>
+                          <div className="flex justify-between font-medium mt-2">
+                            <span>Total:</span>
+                            <span>{formatPrice(order.total || order.totalPrice)}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Action buttons with better touch targets */}
+                        <div className="pt-3 border-t border-gray-100">
+                          <h3 className="font-medium text-gray-700 mb-2">Update Order</h3>
+                          
+                          {updatingPaymentId === order._id ? (
+                            <div className="flex items-center justify-center py-2">
+                              <FaSpinner className="animate-spin text-yellow-600 mr-2" />
+                              <span className="text-sm">Updating payment...</span>
+                            </div>
+                          ) : (
+                            <div className="mb-3">
+                              <label className="block text-sm text-gray-600 mb-1">Payment Status:</label>
+                              <select
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
+                                value={order.paymentStatus || 'unpaid'}
+                                onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
+                              >
+                                <option value="unpaid">Unpaid</option>
+                                <option value="paid">Paid</option>
+                              </select>
+                            </div>
+                          )}
+                          
+                          {updatingOrderId === order._id ? (
+                            <div className="flex items-center justify-center py-2">
+                              <FaSpinner className="animate-spin text-yellow-600 mr-2" />
+                              <span className="text-sm">Updating status...</span>
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-sm text-gray-600 mb-1">Order Status:</label>
+                              <select
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
+                                value={order.status}
+                                onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="preparing">Preparing</option>
+                                <option value="ready">Ready</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+              
+              {/* Mobile pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-4 space-x-1">
+                  <button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === 1 ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Prev
+                  </button>
+                  <span className="flex items-center px-3 py-2 bg-yellow-600 text-white rounded">
+                    {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === totalPages ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Desktop Table View - keep the existing table */}
+            <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Info</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentItems.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                        No orders found
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-6 py-3 bg-white flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
-                      <span className="font-medium">
-                        {Math.min(indexOfLastItem, filteredOrders.length)}
-                      </span>{' '}
-                      of <span className="font-medium">{filteredOrders.length}</span> results
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                      <button
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                          currentPage === 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        Previous
-                      </button>
-                      {[...Array(totalPages)].map((_, i) => (
+                  ) : (
+                    currentItems.map((order) => (
+                      <tr key={order._id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          #{order._id.substring(order._id.length - 6).toUpperCase()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
+                          <div className="text-sm text-gray-500">{order.userEmail}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {moment(order.createdAt).format('MMM DD, YYYY hh:mm A')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{formatPrice(order.totalPrice)}</div>
+                          <div className="text-xs text-gray-500">
+                            Items: {formatPrice(order.itemsSubtotal || (order.foodPrice * order.quantity))}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Delivery: {formatPrice(order.deliveryFee || 0)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span 
+                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
+                            {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            {capitalizeWords(order.deliveryLocation || 'Not specified')}
+                          </div>
+                          <div className="text-xs text-gray-500 max-w-xs truncate" title={order.fullAddress}>
+                            {order.fullAddress || 'No address provided'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[order.status] || 'bg-gray-100'}`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {updatingOrderId === order._id ? (
+                            <div className="flex items-center">
+                              <FaSpinner className="animate-spin text-yellow-600 mr-2" />
+                              <span className="text-sm text-gray-500">Updating...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <select
+                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white mr-2"
+                                value={order.paymentStatus || 'unpaid'}
+                                onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
+                                disabled={updatingPaymentId === order._id}
+                              >
+                                <option value="unpaid">Unpaid</option>
+                                <option value="paid">Paid</option>
+                              </select>
+                              <select
+                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                                value={order.status}
+                                onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="preparing">Preparing</option>
+                                <option value="ready">Ready</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="px-6 py-3 bg-white flex items-center justify-between border-t border-gray-200 sm:px-6">
+                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
+                        <span className="font-medium">
+                          {Math.min(indexOfLastItem, filteredOrders.length)}
+                        </span>{' '}
+                        of <span className="font-medium">{filteredOrders.length}</span> results
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                         <button
-                          key={i}
-                          onClick={() => paginate(i + 1)}
-                          className={`relative inline-flex items-center px-4 py-2 border ${
-                            currentPage === i + 1
-                              ? 'bg-yellow-600 text-white border-yellow-600'
-                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                          } text-sm font-medium`}
+                          onClick={() => paginate(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                            currentPage === 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
+                          }`}
                         >
-                          {i + 1}
+                          Previous
                         </button>
-                      ))}
-                      <button
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                          currentPage === totalPages ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        Next
-                      </button>
-                    </nav>
+                        {[...Array(totalPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => paginate(i + 1)}
+                            className={`relative inline-flex items-center px-4 py-2 border ${
+                              currentPage === i + 1
+                                ? 'bg-yellow-600 text-white border-yellow-600'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                            } text-sm font-medium`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => paginate(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                            currentPage === totalPages ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          Next
+                        </button>
+                      </nav>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </>
