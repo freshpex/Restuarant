@@ -21,16 +21,13 @@ const Header2 = () => {
     const [toggle, setToggle] = useState(false);
     const [show, setShow] = useState(false);
     
-    // Add refs for menu elements
     const mobileNavRef = useRef(null);
     const mobileNavButtonRef = useRef(null);
     const avatarMenuRef = useRef(null);
     const avatarButtonRef = useRef(null);
 
-    // Handle click outside mobile menu to close it
     useEffect(() => {
         const handleOutsideClick = (event) => {
-            // Close mobile navigation when clicking outside
             if (nav && mobileNavRef.current && !mobileNavRef.current.contains(event.target) && 
                 mobileNavButtonRef.current && !mobileNavButtonRef.current.contains(event.target)) {
                 setNav(false);
@@ -160,22 +157,20 @@ const Header2 = () => {
                             </NavLink>
                         </li>
                     )}
-                    {isAuthenticated && (
-                        <li>
-                            <NavLink
-                                to="/blogs"
-                                className={({ isActive }) =>
-                                    `block py-2 pr-4 pl-3 duration-200 ${
-                                        isActive
-                                            ? "text-blue-800 underline underline-offset-4"
-                                            : "text-gray-700 dark:text-gray-600"
-                                    } border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-blue-800 lg:p-0`
-                                }
-                            >
-                                Blog
-                            </NavLink>
-                        </li>
-                    )}
+                    <li>
+                        <NavLink
+                            to="/track-order"
+                            className={({ isActive }) =>
+                                `block py-2 pr-4 pl-3 duration-200 ${
+                                    isActive
+                                        ? "text-yellow-700 underline-offset-4"
+                                        : "text-gray-700 dark:text-gray-600"
+                                } border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-yellow-800 lg:p-0`
+                            }
+                        >
+                            Track Order
+                        </NavLink>
+                    </li>
                     <li>
                         <NavLink
                             to="/contact"
@@ -341,6 +336,9 @@ const Header2 = () => {
                         </li>
                         <li onClick={() => setNav(false)} className="py-2 text-base">
                             <Link to="/event">Events</Link>
+                        </li>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/track-order">Track Order</Link>
                         </li>
                         <li onClick={() => setNav(false)} className="py-2 text-base">
                             <Link to="/contact">Contacts</Link>

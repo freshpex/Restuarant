@@ -9,12 +9,10 @@ const OrderSuccess = () => {
   const [processing, setProcessing] = useState(isProcessing || false);
   
   useEffect(() => {
-    // If we're in processing state, show the success page anyway
-    // In a real app, you'd want to check the order status here
     if (processing) {
       const timer = setTimeout(() => {
         setProcessing(false);
-      }, 2000); // Simulate processing completion after 2 seconds
+      }, 2000);
       
       return () => clearTimeout(timer);
     }
@@ -24,9 +22,8 @@ const OrderSuccess = () => {
     return <Navigate to="/" replace />;
   }
   
-  // Calculate estimated delivery time (current time + 45 minutes)
   const estimatedDelivery = new Date();
-  estimatedDelivery.setMinutes(estimatedDelivery.getMinutes() + 45); // 30 min prep + 15 min delivery
+  estimatedDelivery.setMinutes(estimatedDelivery.getMinutes() + 45);
   const deliveryTimeString = estimatedDelivery.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
   return (
@@ -132,6 +129,22 @@ const OrderSuccess = () => {
               >
                 View My Orders
               </Link>
+              {!processing ? (
+                <Link 
+                  to={`/track-order/${orderId}`}
+                  className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium"
+                >
+                  Track This Order
+                </Link>
+              ) : (
+                <button
+                  disabled
+                  className="py-2 px-4 bg-gray-400 text-white rounded-md font-medium cursor-not-allowed"
+                  title="Order is still processing"
+                >
+                  Order Processing...
+                </button>
+              )}
               <Link 
                 to="/" 
                 className="py-2 px-4 border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50"

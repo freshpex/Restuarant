@@ -45,6 +45,7 @@ import Checkout from './Pages/Cart/Checkout';
 import OrderSuccess from './Pages/Cart/OrderSuccess';
 import Contact from "./Pages/Contact/Contact";
 import Events from "./Pages/Events/Events";
+import OrderTracking from './Pages/OrderTracking/OrderTracking';
 
 function App() {
     const dispatch = useDispatch();
@@ -172,6 +173,14 @@ function App() {
                 {
                     path: "/order-success",
                     element: <OrderSuccess />
+                },
+                {
+                    path: "/track-order",
+                    element: <OrderTracking />
+                },
+                {
+                    path: "/track-order/:orderId",
+                    element: <OrderTracking />
                 }
             ]
         },
