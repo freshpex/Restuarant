@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { registerUser, clearError } from '../redux/slices/authSlice';
@@ -12,12 +12,16 @@ const Registration = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { loading, error, isAuthenticated } = useSelector(state => state.auth);
+    const formRef = useRef(null);
     
-    // New state for image upload
     const [profileImage, setProfileImage] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState('');
-    const [isUsingUrl, setIsUsingUrl] = useState(true);
+    const [imagePreview, setImagePreview] = useState('');
+    const [isUsingUrl, setIsUsingUrl] = useState(false); // Default to not using URL for simplicity
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [nameError, setNameError] = useState('');
+    const [phoneError, setPhoneError] = useState('');
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -29,48 +33,130 @@ const Registration = () => {
         }
     }, [isAuthenticated, error, navigate, dispatch]);
 
+    // Define the validateForm function that was missing
+    const validateForm = () => {
+        const form = formRef.current;
+        let isValid = true;
+        
+        // Validate name
+        if (!form.name.value.trim()) {
+            setNameError('Name is required');
+            isValid = false;
+        } else {
+            setNameError('');
+        }
+        
+        // Validate email
+        if (!form.email.value.trim()) {
+            setEmailError('Email is required');
+            isValid = false;
+        } else {
+            setEmailError('');
+        }
+        
+        // Validate password
+        if (!form.password.value) {
+            setPasswordError('Password is required');
+            isValid = false;
+        } else if (form.password.value.length < 6) {
+            setPasswordError('Password must be at least 6 characters');
+            isValid = false;
+        } else {
+            setPasswordError('');
+        }
+
+        // Validate phone (if provided)
+        if (form.phone.value && !/^\+?[0-9\s\-()]{7,15}$/.test(form.phone.value.trim())) {
+            setPhoneError('Please enter a valid phone number');
+            isValid = false;
+        } else {
+            setPhoneError('');
+        }
+        
+        return isValid;
+    };
+
     // Handle image file selection
     const handleImageChange = (e) => {
         const file = e.target.files[0];
+        
         if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size should be less than 5MB');
+                return;
+            }
+            
+            if (!file.type.match('image.*')) {
+                toast.error('Please select an image file');
+                return;
+            }
+            
             setProfileImage(file);
-            setPreviewUrl(URL.createObjectURL(file));
-            setIsUsingUrl(false);
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
-    // Handle switching between URL and file upload
     const handleToggleUploadMethod = () => {
         setIsUsingUrl(!isUsingUrl);
-        if (!isUsingUrl) {
-            setProfileImage(null);
-            setPreviewUrl('');
-        }
+        setProfileImage(null);
+        setImagePreview('');
     };
 
     const handleRegister = async (e) => {
         e.preventDefault();
-        const form = e.target;
+        
+        // Reset error states
+        setPasswordError('');
+        setEmailError('');
+        setNameError('');
+        setPhoneError('');
+        
+        // Validate form
+        if (!validateForm()) {
+            return;
+        }
+        
+        const form = formRef.current;
+        
+        // Prepare user data
+        const userData = {
+            displayName: form.name.value.trim(),
+            email: form.email.value.trim(),
+            password: form.password.value,
+            photoURL: isUsingUrl && form.photo?.value ? form.photo.value : null,
+            phone: form.phone.value.trim() || null // Add phone to userData
+        };
         
         setIsSubmitting(true);
         
         try {
-            const userData = {
-                displayName: form.name.value,
-                email: form.email.value,
-                password: form.password.value,
-                photoURL: isUsingUrl ? form.photo.value : null
-            };
-
             await dispatch(registerUser({ 
-                userData, 
-                profileImage: isUsingUrl ? null : profileImage 
+                userData,
+                profileImage: profileImage || null
             })).unwrap();
             
-            toast.success('Registration successful');
             navigate('/');
+            toast.success(`Welcome to Tim's Kitchen, ${userData.displayName}!`);
         } catch (error) {
-            toast.error(error || 'Registration failed');
+            console.error('Registration error:', error);
+            
+            if (typeof error === 'string') {
+                if (error.includes('email-already-in-use')) {
+                    setEmailError('Email is already in use');
+                } else if (error.includes('weak-password')) {
+                    setPasswordError('Password is too weak');
+                } else {
+                    toast.error(error || 'Registration failed');
+                }
+            } else {
+                toast.error('Registration failed. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -96,6 +182,7 @@ const Registration = () => {
                                     Register Your Account
                                 </h1>
                                 <form
+                                    ref={formRef}
                                     onSubmit={handleRegister}
                                     className="space-y-4 md:space-y-6"
                                 >
@@ -104,24 +191,47 @@ const Registration = () => {
                                             htmlFor="name"
                                             className="block mb-2 text-base font-medium text-gray-900"
                                         >
-                                            Name
+                                            Name*
                                         </label>
                                         <input
                                             type="text"
                                             name="name"
                                             id="name"
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                            className={`bg-gray-50 border ${nameError ? 'border-red-500' : 'border-gray-300'} text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5`}
                                             placeholder="Type your name"
                                             required
                                             disabled={isSubmitting}
                                         />
+                                        {nameError && <p className="mt-1 text-sm text-red-500">{nameError}</p>}
                                     </div>
                                     
-                                    {/* Profile Photo - Toggle between URL and file upload */}
+                                    <div>
+                                        <label
+                                            htmlFor="phone"
+                                            className="block mb-2 text-base font-medium text-gray-900"
+                                        >
+                                            Phone Number (Required)
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            name="phone"
+                                            id="phone"
+                                            className={`bg-gray-50 border ${phoneError ? 'border-red-500' : 'border-gray-300'} text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5`}
+                                            placeholder="+234 904 123 4567"
+                                            disabled={isSubmitting}
+                                            required
+                                        />
+                                        {phoneError && <p className="mt-1 text-sm text-red-500">{phoneError}</p>}
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Your phone number may be used for order updates or delivery coordination
+                                        </p>
+                                    </div>
+                                    
+                                    {/* Profile Photo - Optional */}
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
                                             <label className="text-base font-medium text-gray-900">
-                                                Profile Photo
+                                                Profile Photo (Optional)
                                             </label>
                                             <button
                                                 type="button"
@@ -138,13 +248,22 @@ const Registration = () => {
                                                 type="text"
                                                 name="photo"
                                                 id="photo"
-                                                className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                                placeholder="Photo URL"
-                                                required={isUsingUrl}
+                                                className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                                placeholder="Photo URL (optional)"
                                                 disabled={isSubmitting}
                                             />
                                         ) : (
                                             <div className="space-y-2">
+                                                {imagePreview ? (
+                                                    <div className="mb-2 flex justify-center">
+                                                        <img
+                                                            src={imagePreview}
+                                                            alt="Profile preview"
+                                                            className="h-32 w-32 object-cover rounded-full border-4 border-gray-300"
+                                                        />
+                                                    </div>
+                                                ) : null}
+                                                
                                                 <input
                                                     type="file"
                                                     name="profileImage"
@@ -152,18 +271,11 @@ const Registration = () => {
                                                     accept="image/*"
                                                     onChange={handleImageChange}
                                                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                                    required={!isUsingUrl}
                                                     disabled={isSubmitting}
                                                 />
-                                                {previewUrl && (
-                                                    <div className="mt-2 flex justify-center">
-                                                        <img
-                                                            src={previewUrl}
-                                                            alt="Profile preview"
-                                                            className="h-32 w-32 object-cover rounded-full border-4 border-gray-300"
-                                                        />
-                                                    </div>
-                                                )}
+                                                <p className="text-xs text-gray-500">
+                                                    Optional. JPG, PNG, or GIF up to 5MB.
+                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -173,44 +285,48 @@ const Registration = () => {
                                             htmlFor="email"
                                             className="block mb-2 text-base font-medium text-gray-900"
                                         >
-                                            Email
+                                            Email*
                                         </label>
                                         <input
                                             type="email"
                                             name="email"
                                             id="email"
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                            className={`bg-gray-50 border ${emailError ? 'border-red-500' : 'border-gray-300'} text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5`}
                                             placeholder="name@company.com"
                                             required
                                             disabled={isSubmitting}
                                         />
+                                        {emailError && <p className="mt-1 text-sm text-red-500">{emailError}</p>}
                                     </div>
+                                    
                                     <div>
                                         <label
                                             htmlFor="password"
                                             className="block mb-2 text-base font-medium text-gray-900"
                                         >
-                                            Password
+                                            Password*
                                         </label>
                                         <input
                                             type="password"
                                             name="password"
                                             id="password"
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                            placeholder="Password"
+                                            className={`bg-gray-50 border ${passwordError ? 'border-red-500' : 'border-gray-300'} text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5`}
+                                            placeholder="Password (min. 6 characters)"
                                             required
                                             disabled={isSubmitting}
                                         />
+                                        {passwordError && <p className="mt-1 text-sm text-red-500">{passwordError}</p>}
                                     </div>
 
                                     {error && <h2 className="text-red-600">{error}</h2>}
+                                    
                                     <div className="flex items-start">
                                         <div className="flex items-center h-5">
                                             <input
                                                 id="terms"
                                                 aria-describedby="terms"
                                                 type="checkbox"
-                                                className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800"
+                                                className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300"
                                                 required
                                                 disabled={isSubmitting}
                                             />
@@ -228,7 +344,6 @@ const Registration = () => {
                                         </div>
                                     </div>
                                     
-                                    {/* Submit button with loading spinner */}
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
@@ -244,7 +359,7 @@ const Registration = () => {
                                         )}
                                     </button>
                                     
-                                    {isSubmitting && !isUsingUrl && (
+                                    {isSubmitting && profileImage && (
                                         <div className="mt-2">
                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                 <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '100%'}}></div>

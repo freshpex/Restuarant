@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { logoutUser } from '../../redux/slices/authSlice';
@@ -20,6 +20,35 @@ const Header2 = () => {
     const [avatar, setAvatar] = useState(false);
     const [toggle, setToggle] = useState(false);
     const [show, setShow] = useState(false);
+    
+    // Add refs for menu elements
+    const mobileNavRef = useRef(null);
+    const mobileNavButtonRef = useRef(null);
+    const avatarMenuRef = useRef(null);
+    const avatarButtonRef = useRef(null);
+
+    // Handle click outside mobile menu to close it
+    useEffect(() => {
+        const handleOutsideClick = (event) => {
+            // Close mobile navigation when clicking outside
+            if (nav && mobileNavRef.current && !mobileNavRef.current.contains(event.target) && 
+                mobileNavButtonRef.current && !mobileNavButtonRef.current.contains(event.target)) {
+                setNav(false);
+            }
+            
+            // Close avatar dropdown when clicking outside
+            if (avatar && avatarMenuRef.current && !avatarMenuRef.current.contains(event.target) &&
+                avatarButtonRef.current && !avatarButtonRef.current.contains(event.target)) {
+                setAvatar(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+        };
+    }, [nav, avatar]);
 
     const handleToggle = () => {
         setToggle(!toggle);
@@ -168,6 +197,7 @@ const Header2 = () => {
                         <>
                             <div className="avatar">
                                 <div
+                                    ref={avatarButtonRef}
                                     onClick={handleShow}
                                     className="w-10  cursor-pointer ring-2 ring-yellow-400 rounded-full"
                                 >
@@ -179,6 +209,7 @@ const Header2 = () => {
                                 </div>
                             </div>
                             <div
+                                ref={avatarMenuRef}
                                 className={`${avatar ? "rounded-md flex flex-col gap-2 py-6 bg-gray-100 dark:bg-slate-800 w-80 px-4 absolute right-36 top-20" : "hidden" }`
                                 }
                             >
@@ -250,6 +281,7 @@ const Header2 = () => {
                         )}
                     </div>
                     <div
+                        ref={mobileNavButtonRef}
                         onClick={handleClick}
                         className="lg:hidden pt-1 z-10 text-lg dark:text-gray-500 text-gray-700"
                     >
@@ -257,7 +289,8 @@ const Header2 = () => {
                     </div>
                 </div>
                 
-                <ul
+                <div
+                    ref={mobileNavRef}
                     className={
                         !nav
                             ? "hidden"
@@ -293,28 +326,36 @@ const Header2 = () => {
                             </>
                         }
                     </div>
-                    <li onClick={handleClick} className="py-2 text-base">
-                        <Link to="/">Home</Link>
-                    </li>
-                    <li onClick={handleClick} className="py-2 text-base">
-                        <Link to="/aboutUs">About</Link>
-                    </li>
-                    <li onClick={handleClick} className="py-2 text-base">
-                        <Link to="/food">All Food</Link>
-                    </li>
-                    <li onClick={handleClick} className="py-2 text-base">
-                        <Link to="/blog">Blog</Link>
-                    </li>
-                    {isAuthenticated && <ul className=" py-1 space-y-3">
-                        <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood">My Added Food Items</Link>
+                    <ul>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/">Home</Link>
                         </li>
-                        {isAdmin && (
-                            <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood">Add a Food Item</Link>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/aboutUs">About</Link>
+                        </li>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/food">All Food</Link>
+                        </li>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/blog">Blog</Link>
+                        </li>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/event">Events</Link>
+                        </li>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/contact">Contacts</Link>
+                        </li>
+                        {isAuthenticated && <ul className=" py-1 space-y-3">
+                            <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood">My Added Food Items</Link>
                             </li>
-                        )}
-                        <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/orderFood">My Ordered Food Items</Link>
-                        </li>
-                    </ul> }
+                            {isAdmin && (
+                                <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood">Add a Food Item</Link>
+                                </li>
+                            )}
+                            <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/orderFood">My Ordered Food Items</Link>
+                            </li>
+                        </ul> }
+                    </ul>
                     
                     <div className=" flex flex-col pt-4 gap-5 items-center">
                         {isAuthenticated && user?.email ? <button
@@ -338,7 +379,7 @@ const Header2 = () => {
                             </NavLink>
                         )}
                     </div>
-                </ul>
+                </div>
             </div>
         </div>
     );

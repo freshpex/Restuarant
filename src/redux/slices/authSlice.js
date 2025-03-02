@@ -25,23 +25,30 @@ export const registerUser = createAsyncThunk(
                 userData.password
             );
             
-            let photoURL = userData.photoURL;
+            let photoURL = userData.photoURL || null;
             
             if (profileImage) {
-                const formData = new FormData();
-                formData.append('profileImage', profileImage);
-                
-                const uploadResponse = await axios.post(
-                    `${API_URL}/upload-profile-image`,
-                    formData,
-                    {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                        },
+                try {
+                    const formData = new FormData();
+                    formData.append('profileImage', profileImage);
+                    
+                    const uploadResponse = await axios.post(
+                        `${API_URL}/upload-profile-image`,
+                        formData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
+                    
+                    if (uploadResponse.data.success) {
+                        photoURL = uploadResponse.data.imageUrl;
                     }
-                );
-                
-                photoURL = uploadResponse.data.imageUrl;
+                } catch (uploadError) {
+                    console.warn('Profile image upload failed, but continuing registration:', uploadError);
+                    photoURL = 'https://via.placeholder.com/150?text=User';
+                }
             }
             
             await updateProfile(userCredential.user, {
@@ -51,12 +58,34 @@ export const registerUser = createAsyncThunk(
             
             const token = await userCredential.user.getIdToken();
             
+            try {
+                await axios.post(
+                    `${API_URL}/user/sync`,
+                    {
+                        uid: userCredential.user.uid,
+                        email: userCredential.user.email,
+                        displayName: userData.displayName,
+                        photoURL: photoURL,
+                        phone: userData.phone
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+            } catch (syncError) {
+                console.warn('User sync failed but registration will proceed:', syncError);
+            }
+            
             return {
                 user: {
                     uid: userCredential.user.uid,
                     email: userCredential.user.email,
                     displayName: userData.displayName,
-                    photoURL: photoURL
+                    photoURL: photoURL,
+                    phone: userData.phone
                 },
                 token
             };
@@ -152,6 +181,7 @@ export const fetchUserProfile = createAsyncThunk(
                 return rejectWithValue('Authentication required');
             }
 
+            // Use the correct endpoint path: /user/profile
             const response = await fetch(`${API_URL}/user/profile`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -333,7 +363,6 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
-            // Fetch User Profile
             .addCase(fetchUserProfile.fulfilled, (state, action) => {
                 state.loading = false;
                 if (action.payload) {

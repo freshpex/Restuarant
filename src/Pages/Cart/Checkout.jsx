@@ -18,6 +18,8 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
+  const [phoneError, setPhoneError] = useState('');
   
   const { 
     cartItems, 
@@ -37,18 +39,35 @@ const Checkout = () => {
     navigate('/cart');
   };
   
+  const validatePhoneNumber = (phone) => {
+    const phoneRegex = /^\+?[0-9\s\-()]{7,15}$/;
+    return phoneRegex.test(phone);
+  };
+  
   const processOrder = async (transactionDetails = null) => {
     setLoading(true);
     
+    if (!phoneNumber.trim()) {
+      setPhoneError('Phone number is required');
+      setLoading(false);
+      return;
+    }
+    
+    if (!validatePhoneNumber(phoneNumber.trim())) {
+      setPhoneError('Please enter a valid phone number');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      // Prepare the order data
       const orderData = {
         items: cartItems.map(item => ({
           foodId: item._id,
           foodName: item.foodName,
           quantity: item.quantity,
           price: item.foodPrice,
-          totalPrice: item.totalPrice
+          totalPrice: item.totalPrice,
+          foodImage: item.foodImage
         })),
         deliveryLocation,
         deliveryFee,
@@ -61,10 +80,10 @@ const Checkout = () => {
         buyerName: user?.displayName || '',
         email: user?.email || '',
         userEmail: user?.email || '',
+        phone: phoneNumber.trim(),
         date: new Date().toISOString().split('T')[0]
       };
       
-      // Call backend API to create order
       const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
         method: 'POST',
         headers: {
@@ -81,14 +100,13 @@ const Checkout = () => {
       
       const data = await response.json();
       
-      // Clear the cart on successful order
       dispatch(clearCart());
       
-      // Navigate to success page
       navigate('/order-success', { 
         state: { 
           orderId: data.orderId,
-          isPaid: !!transactionDetails
+          isPaid: !!transactionDetails,
+          contactPhone: phoneNumber.trim()
         }
       });
       
@@ -102,6 +120,18 @@ const Checkout = () => {
   };
   
   const handlePayWithWhatsApp = () => {
+    
+    if (!phoneNumber.trim()) {
+      setPhoneError('Phone number is required');
+      return;
+    }
+    
+    if (!validatePhoneNumber(phoneNumber.trim())) {
+      setPhoneError('Please enter a valid phone number');
+      return;
+    }
+    
+    // Continue with WhatsApp order
     const items = cartItems.map(item => `- ${item.foodName} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
     
     const message = encodeURIComponent(
@@ -110,16 +140,27 @@ const Checkout = () => {
       `Delivery to ${deliveryLocation} (${fullAddress}): ₦${deliveryFee}\n` +
       `Total: ₦${grandTotal}\n\n` +
       `My name is ${user.displayName}.\n` +
+      `My contact number: ${phoneNumber}\n` + 
       `Please confirm if these items are available.`
     );
     
     window.open(`https://wa.me/+2349041801170?text=${message}`, '_blank');
     
-    // Process the order as unpaid
     processOrder();
   };
   
   const handlePayOnline = () => {
+    // Validate phone number first
+    if (!phoneNumber.trim()) {
+      setPhoneError('Phone number is required');
+      return;
+    }
+    
+    if (!validatePhoneNumber(phoneNumber.trim())) {
+      setPhoneError('Please enter a valid phone number');
+      return;
+    }
+    
     setProcessingPayment(true);
     
     const config = {
@@ -130,7 +171,7 @@ const Checkout = () => {
       payment_options: 'card,mobilemoney,ussd,banktransfer',
       customer: {
         email: user?.email || '',
-        phone_number: '',
+        phone_number: phoneNumber.trim(), // Include phone in Flutterwave config
         name: user?.displayName || '',
       },
       customizations: {
@@ -165,6 +206,20 @@ const Checkout = () => {
   };
   
   const handlePlaceOrder = () => {
+    // Validate phone number first
+    if (!phoneNumber.trim()) {
+      setPhoneError('Phone number is required');
+      // Scroll to the phone input
+      document.getElementById('phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    if (!validatePhoneNumber(phoneNumber.trim())) {
+      setPhoneError('Please enter a valid phone number');
+      document.getElementById('phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
     if (paymentMethod === 'online') {
       handlePayOnline();
     } else if (paymentMethod === 'whatsapp') {
@@ -192,9 +247,11 @@ const Checkout = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Order details section */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-6">Order Details</h2>
               <div className="divide-y divide-gray-200">
+                {/* Cart items */}
                 {cartItems.map((item) => (
                   <div key={item._id} className="py-4 flex items-center">
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
@@ -220,8 +277,33 @@ const Checkout = () => {
               </div>
               
               <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Information</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="mb-4">
+                    <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-700">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={phoneNumber}
+                      onChange={(e) => {
+                        setPhoneNumber(e.target.value);
+                        setPhoneError('');
+                      }}
+                      className={`bg-white border ${phoneError ? 'border-red-500' : phoneNumber.trim() ? 'border-green-500' : 'border-gray-300'} text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5`}
+                      placeholder="e.g., +234 904 123 4567"
+                      required
+                    />
+                    {phoneError && (
+                      <p className="mt-1 text-sm text-red-500">{phoneError}</p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      <strong>Required</strong> for delivery coordination. The delivery personnel will call this number.
+                    </p>
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-700">Delivery Location:</p>
@@ -242,7 +324,7 @@ const Checkout = () => {
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div 
+                  <div
                     className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'online' ? 'border-yellow-600 bg-yellow-50' : 'border-gray-200'}`}
                     onClick={() => setPaymentMethod('online')}
                   >
@@ -261,7 +343,7 @@ const Checkout = () => {
                       </label>
                     </div>
                   </div>
-                  <div 
+                  <div
                     className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'whatsapp' ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}
                     onClick={() => setPaymentMethod('whatsapp')}
                   >
@@ -301,6 +383,7 @@ const Checkout = () => {
                     <p className="text-base font-bold text-gray-900">{formatPrice(grandTotal)}</p>
                   </div>
                 </div>
+                
                 <button
                   onClick={handlePlaceOrder}
                   disabled={loading || processingPayment}

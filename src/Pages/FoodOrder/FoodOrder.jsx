@@ -30,6 +30,8 @@ const FoodOrder = () => {
     const [display, setDisplay] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [totalPrice, setTotalPrice] = useState(0);
+    const [phone, setPhone] = useState('');
+    const [phoneError, setPhoneError] = useState('');
     const { id } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -75,6 +77,11 @@ const FoodOrder = () => {
         return selected >= today;
     };
 
+    const validatePhone = (phoneNumber) => {
+        const phoneRegex = /^\+?[0-9\s\-()]{7,15}$/;
+        return phoneRegex.test(phoneNumber);
+    };
+
     const handleQuantityChange = (e) => {
         const newQuantity = parseInt(e.target.value);
         if (newQuantity >= 1 && newQuantity <= parseInt(display.foodQuantity)) {
@@ -89,6 +96,18 @@ const FoodOrder = () => {
 
     const handlePurchase = async (orderData) => {
         try {
+            if (!phone.trim()) {
+                showToast('Phone number is required', 'error');
+                setPhoneError('Phone number is required');
+                return;
+            }
+            
+            if (!validatePhone(phone.trim())) {
+                showToast('Please enter a valid phone number', 'error');
+                setPhoneError('Please enter a valid phone number');
+                return;
+            }
+
             if (!token) {
                 showToast('Please log in first', 'error');
                 navigate('/signIn');
@@ -107,6 +126,7 @@ const FoodOrder = () => {
 
             orderData.foodPrice = display.foodPrice;
             orderData.totalPrice = totalPrice;
+            orderData.phone = phone.trim();
 
             await dispatch(orderFood({ orderData, token })).unwrap();
             showToast('Order placed successfully!', 'success');
@@ -185,6 +205,31 @@ const FoodOrder = () => {
                                 </div>
                                 
                                 <div className="w-full">
+                                    <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-900">
+                                        Phone Number <span className="text-red-500">*</span>
+                                    </label>
+                                    <input 
+                                        type="tel" 
+                                        name="phone" 
+                                        id="phone" 
+                                        value={phone}
+                                        onChange={(e) => {
+                                            setPhone(e.target.value);
+                                            setPhoneError('');
+                                        }}
+                                        className={`bg-gray-50 border ${phoneError ? 'border-red-500' : 'border-gray-300'} text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5`}
+                                        placeholder="+234 904 123 4567"
+                                        required 
+                                    />
+                                    {phoneError && (
+                                        <p className="mt-1 text-sm text-red-500">{phoneError}</p>
+                                    )}
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Required for delivery coordination
+                                    </p>
+                                </div>
+                                
+                                <div className="w-full">
                                     <label htmlFor="food" className="block mb-2 text-sm font-medium text-gray-900">Food Name</label>
                                     <input 
                                         value={display.foodName} 
@@ -243,7 +288,7 @@ const FoodOrder = () => {
                                 <div className="w-full bg-gray-100 p-4 rounded-lg mt-4">
                                     <div className="flex justify-between items-center">
                                         <span className="text-lg font-medium text-gray-900">Total Price:</span>
-                                        <span className="text-xl font-bold text-gray-900">${totalPrice}</span>
+                                        <span className="text-xl font-bold text-gray-900">${formatPrice(totalPrice)}</span>
                                     </div>
                                 </div>
                             </div>
