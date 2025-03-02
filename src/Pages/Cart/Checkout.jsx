@@ -20,6 +20,7 @@ const Checkout = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
   const [phoneError, setPhoneError] = useState('');
+  const [lastOrderId, setLastOrderId] = useState(null);
   
   const { 
     cartItems, 
@@ -84,6 +85,36 @@ const Checkout = () => {
         date: new Date().toISOString().split('T')[0]
       };
       
+      if (transactionDetails && paymentMethod === 'online') {
+        dispatch(clearCart());
+        
+        const tempId = `temp-${Date.now()}`;
+        navigate('/order-success', { 
+          state: { 
+            orderId: tempId,
+            isPaid: true,
+            contactPhone: phoneNumber.trim(),
+            isProcessing: true
+          }
+        });
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(orderData)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to place order');
+        }
+        
+        return;
+      }
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
         method: 'POST',
         headers: {
@@ -131,7 +162,6 @@ const Checkout = () => {
       return;
     }
     
-    // Continue with WhatsApp order
     const items = cartItems.map(item => `- ${item.foodName} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
     
     const message = encodeURIComponent(
@@ -149,8 +179,67 @@ const Checkout = () => {
     processOrder();
   };
   
+  const handlePaymentSuccess = (response) => {
+    toast.success('Payment successful! Redirecting...');
+    
+    navigate('/order-success', { 
+      state: { 
+        orderId: `temp-${Date.now()}`,
+        isPaid: true,
+        contactPhone: phoneNumber.trim(),
+        isProcessing: true
+      }
+    });
+    
+    setTimeout(() => {
+      const orderData = {
+        items: cartItems.map(item => ({
+          foodId: item._id,
+          foodName: item.foodName,
+          quantity: item.quantity,
+          price: item.foodPrice,
+          totalPrice: item.totalPrice,
+          foodImage: item.foodImage
+        })),
+        deliveryLocation,
+        deliveryFee,
+        fullAddress,
+        subtotal: totalAmount,
+        total: grandTotal,
+        paymentMethod: 'online',
+        paymentStatus: 'paid',
+        transactionRef: response?.transaction_id || null,
+        buyerName: user?.displayName || '',
+        email: user?.email || '',
+        userEmail: user?.email || '',
+        phone: phoneNumber.trim(),
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      // Clear cart immediately
+      dispatch(clearCart());
+      
+      fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(orderData)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to place order');
+        }
+        return response.json();
+      })
+      .catch(error => {
+        console.error('Background order processing error:', error);
+      });
+    }, 300);
+  };
+  
   const handlePayOnline = () => {
-    // Validate phone number first
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
       return;
@@ -171,7 +260,7 @@ const Checkout = () => {
       payment_options: 'card,mobilemoney,ussd,banktransfer',
       customer: {
         email: user?.email || '',
-        phone_number: phoneNumber.trim(), // Include phone in Flutterwave config
+        phone_number: phoneNumber.trim(),
         name: user?.displayName || '',
       },
       customizations: {
@@ -185,31 +274,29 @@ const Checkout = () => {
     
     handleFlutterPayment({
       callback: (response) => {
-        console.log("Payment response:", response);
-        
         closePaymentModal();
         
-        if (response.status === "successful" || response.status === "completed") {
-          toast.success('Payment successful!');
-          processOrder(response);
-        } else {
-          toast.error('Payment was not completed successfully.');
-          setProcessingPayment(false);
-        }
+        console.log("Payment response:", response);
+        
+        setTimeout(() => {
+          if (response.status === "successful" || response.status === "completed") {
+            handlePaymentSuccess(response);
+          } else {
+            toast.error('Payment was not completed successfully.');
+            setProcessingPayment(false);
+          }
+        }, 100);
       },
       onClose: () => {
-        console.log("Payment modal closed");
-        toast.info('Payment cancelled');
         setProcessingPayment(false);
+        toast.info('Payment cancelled');
       },
     });
   };
   
   const handlePlaceOrder = () => {
-    // Validate phone number first
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
-      // Scroll to the phone input
       document.getElementById('phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -247,11 +334,9 @@ const Checkout = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Order details section */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-6">Order Details</h2>
               <div className="divide-y divide-gray-200">
-                {/* Cart items */}
                 {cartItems.map((item) => (
                   <div key={item._id} className="py-4 flex items-center">
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
