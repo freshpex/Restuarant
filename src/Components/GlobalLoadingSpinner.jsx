@@ -2,7 +2,7 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 
 const GlobalLoadingSpinner = () => {
-    const { globalLoading } = useSelector(state => state.ui);
+    const globalLoading = useSelector(state => state.ui?.globalLoading || false);
 
     if (!globalLoading) return null;
 

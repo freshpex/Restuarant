@@ -8,16 +8,28 @@ import LoadingSpinner from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { formatPrice } from '../../utils/formatUtils';
 
+const showToast = (message, type) => {
+  if (type === 'success') {
+    toast.success(message);
+  } else if (type === 'error') {
+    toast.error(message);
+  } else {
+    toast(message, {
+      icon: type === 'warning' ? '⚠️' : 'ℹ️',
+      style: {
+        borderRadius: '10px',
+        background: type === 'warning' ? '#FEF3C7' : '#E0F2FE',
+        color: type === 'warning' ? '#92400E' : '#1E40AF',
+      },
+    });
+  }
+};
+
 const FoodOrder = () => {
     window.scrollTo(0,0);
     const [display, setDisplay] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [totalPrice, setTotalPrice] = useState(0);
-    const [deliveryLocation, setDeliveryLocation] = useState('emaudo');
-    const [deliveryFee, setDeliveryFee] = useState(500);  // Default to Emaudo fee
-    const [fullAddress, setFullAddress] = useState('');  // New state for full address
-    const [isAddressModified, setIsAddressModified] = useState(false);
-    const addressChangeTimeout = useRef(null);
     const { id } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -27,16 +39,9 @@ const FoodOrder = () => {
     const { loading: orderLoading, error } = useSelector(state => state.foodActions);
     const token = localStorage.getItem('token');
 
-    // Define delivery fee structure
-    const deliveryFees = {
-        emaudo: 500,
-        town: 1000,
-        village: 1000
-    };
-
     useEffect(() => {
         if (!token) {
-            toast.error('Please log in first');
+            showToast('Please log in first', 'error');
             navigate('/signIn');
             return;
         }
@@ -51,7 +56,7 @@ const FoodOrder = () => {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    toast.error('Error loading food details');
+                    showToast('Error loading food details', 'error');
                 });
         }
     }, [id, navigate, dispatch, token]);
@@ -59,39 +64,9 @@ const FoodOrder = () => {
     useEffect(() => {
         if (display && display.foodPrice) {
             const basePrice = parseFloat(display.foodPrice);
-            const itemsTotal = (basePrice * quantity);
-            const total = itemsTotal + deliveryFee;
-            setTotalPrice(total.toFixed(2));
+            setTotalPrice((basePrice * quantity).toFixed(2));
         }
-    }, [quantity, display, deliveryFee]);
-
-    useEffect(() => {
-        if (!isAddressModified || !fullAddress.trim()) return;
-        
-        if (addressChangeTimeout.current) {
-            clearTimeout(addressChangeTimeout.current);
-        }
-        
-        addressChangeTimeout.current = setTimeout(() => {
-            const containsEmaudo = fullAddress.toLowerCase().includes('emaudo');
-            
-            if (containsEmaudo && deliveryLocation !== 'emaudo') {
-                setDeliveryLocation('emaudo');
-                setDeliveryFee(deliveryFees.emaudo);
-                toast.info('Delivery location automatically set to Emaudo based on your address');
-            } else if (!containsEmaudo && deliveryLocation === 'emaudo') {
-                setDeliveryLocation('town');
-                setDeliveryFee(deliveryFees.town);
-                toast.info('Delivery location set to Town as Emaudo was not detected in your address');
-            }
-        }, 500);
-        
-        return () => {
-            if (addressChangeTimeout.current) {
-                clearTimeout(addressChangeTimeout.current);
-            }
-        };
-    }, [fullAddress, isAddressModified]);
+    }, [quantity, display]);
 
     const validateDate = (selectedDate) => {
         const today = new Date();
@@ -106,48 +81,27 @@ const FoodOrder = () => {
             setQuantity(newQuantity);
         } else if (newQuantity > parseInt(display.foodQuantity)) {
             setQuantity(parseInt(display.foodQuantity));
-            toast.error(`Maximum available quantity is ${display.foodQuantity}`);
+            showToast(`Maximum available quantity is ${display.foodQuantity}`, 'error');
         } else {
             setQuantity(1);
         }
     };
 
-    const handleDeliveryLocationChange = (e) => {
-        const newLocation = e.target.value;
-        const containsEmaudo = fullAddress.toLowerCase().includes('emaudo');
-        
-        if (newLocation === 'emaudo' && !containsEmaudo && fullAddress.trim() !== '') {
-            toast.warning(
-                "You've selected Emaudo delivery but your address doesn't contain 'Emaudo'. " +
-                "Please ensure you're actually delivering to Emaudo or select a different delivery area."
-            );
-        }
-        
-        setDeliveryLocation(newLocation);
-        setDeliveryFee(deliveryFees[newLocation]);
-    };
-    
-    const handleAddressChange = (e) => {
-        const newAddress = e.target.value;
-        setFullAddress(newAddress);
-        setIsAddressModified(true);
-    };
-
     const handlePurchase = async (orderData) => {
         try {
             if (!token) {
-                toast.error('Please log in first');
+                showToast('Please log in first', 'error');
                 navigate('/signIn');
                 return;
             }
 
             if (!validateDate(orderData.date)) {
-                toast.error('Please select today or a future date');
+                showToast('Please select today or a future date', 'error');
                 return;
             }
 
             if (quantity <= 0 || quantity > display.foodQuantity) {
-                toast.error(`Please select a quantity between 1 and ${display.foodQuantity}`);
+                showToast(`Please select a quantity between 1 and ${display.foodQuantity}`, 'error');
                 return;
             }
 
@@ -155,23 +109,16 @@ const FoodOrder = () => {
             orderData.totalPrice = totalPrice;
 
             await dispatch(orderFood({ orderData, token })).unwrap();
-            toast.success('Order placed successfully!');
+            showToast('Order placed successfully!', 'success');
             navigate('/orderFood', { state: { newOrder: true } });
         } catch (error) {
             console.error('Error placing order:', error);
-            toast.error(error.message || 'Error placing order. Please try again.');
+            showToast(error.message || 'Error placing order. Please try again.', 'error');
         }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
-        // Validate full address is provided
-        if (!fullAddress.trim()) {
-            toast.error('Please enter your full delivery address');
-            return;
-        }
-        
         const form = e.target;
         const buyerName = user.displayName;
         const email = user.email;
@@ -191,12 +138,7 @@ const FoodOrder = () => {
             quantity,
             foodImage, 
             foodId,
-            userEmail: email,
-            deliveryLocation,
-            deliveryFee,
-            fullAddress,  // Include full address
-            itemsSubtotal: (parseFloat(foodPrice) * quantity).toFixed(2),
-            paymentStatus: 'unpaid'  // Default to unpaid
+            userEmail: email
         };
 
         handlePurchase(addProduct);
@@ -298,69 +240,10 @@ const FoodOrder = () => {
                                     </div>
                                 </div>
                                 
-                                <div className="w-full mt-4">
-                                    <label htmlFor="fullAddress" className="block mb-2 text-sm font-medium text-gray-900">
-                                        Full Delivery Address*
-                                    </label>
-                                    <textarea
-                                        id="fullAddress"
-                                        name="fullAddress"
-                                        value={fullAddress}
-                                        onChange={handleAddressChange}
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-                                        placeholder="Enter your complete delivery address"
-                                        rows="3"
-                                        required
-                                    />
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Please provide detailed address for accurate delivery. If you're in Emaudo, please include 'Emaudo' in your address.
-                                    </p>
-                                </div>                                
-                                
-                                <div className="w-full mt-4">
-                                    <label htmlFor="deliveryLocation" className="block mb-2 text-sm font-medium text-gray-900">
-                                        Delivery Location Type
-                                    </label>
-                                    <select
-                                        id="deliveryLocation"
-                                        name="deliveryLocation"
-                                        value={deliveryLocation}
-                                        onChange={handleDeliveryLocationChange}
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-                                        required
-                                    >
-                                        <option value="emaudo">Emaudo (₦500)</option>
-                                        <option value="town">Town (₦1,000)</option>
-                                        <option value="village">Village (₦1,000)</option>
-                                    </select>
-                                    {fullAddress && deliveryLocation === 'emaudo' && !fullAddress.toLowerCase().includes('emaudo') && (
-                                        <p className="mt-1 text-xs text-yellow-600">
-                                            ⚠️ You selected Emaudo but your address doesn't mention Emaudo. Please verify your delivery location.
-                                        </p>
-                                    )}
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Delivery fee will be added to your order total. Delivery type is automatically detected from your address.
-                                    </p>
-                                </div>
-                                
                                 <div className="w-full bg-gray-100 p-4 rounded-lg mt-4">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm text-gray-700">Items Subtotal:</span>
-                                        <span className="text-sm font-medium text-gray-900">
-                                            {formatPrice(parseFloat(display.foodPrice) * quantity)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm text-gray-700">Delivery Fee:</span>
-                                        <span className="text-sm font-medium text-gray-900">
-                                            {formatPrice(deliveryFee)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                    <div className="flex justify-between items-center">
                                         <span className="text-lg font-medium text-gray-900">Total Price:</span>
-                                        <span className="text-xl font-bold text-gray-900">
-                                            {formatPrice(totalPrice)}
-                                        </span>
+                                        <span className="text-xl font-bold text-gray-900">${totalPrice}</span>
                                     </div>
                                 </div>
                             </div>

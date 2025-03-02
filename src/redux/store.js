@@ -1,36 +1,32 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import rootReducer from './rootReducer';
+import authReducer from './slices/authSlice';
+import foodReducer from './slices/foodSlice';
+import foodActionsReducer from './slices/foodActionsSlice';
+import uiReducer from './slices/uiSlice';
 import cartReducer from './slices/cartSlice';
 
+const rootReducer = combineReducers({
+  auth: authReducer,
+  food: foodReducer,
+  foodActions: foodActionsReducer,
+  ui: uiReducer,
+  cart: cartReducer
+});
+
+// Persist config
 const persistConfig = {
   key: 'root',
   version: 1,
   storage,
-  whitelist: ['auth', 'food'],
-  serialize: true
-};
-
-const authPersistConfig = {
-  key: 'auth',
-  storage,
-  whitelist: ['user', 'token', 'isAuthenticated', 'role']
-};
-
-const cartPersistConfig = {
-  key: 'cart',
-  storage,
-  whitelist: ['cartItems', 'totalQuantity', 'totalAmount']
+  whitelist: ['auth', 'cart'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
-  reducer: {
-    persistedReducer,
-    cart: persistReducer(cartPersistConfig, cartReducer),
-  },
+  reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

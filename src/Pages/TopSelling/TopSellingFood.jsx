@@ -9,6 +9,7 @@ import {
     IconButton,
   } from "@material-tailwind/react";
 import { Link } from "react-router-dom";
+import { formatPrice } from '../../utils/formatUtils';
    
   export default function TopSellingFood({data}) {
     return (
@@ -42,7 +43,7 @@ import { Link } from "react-router-dom";
               {data.foodName}
             </Typography>
             <Typography variant="h5" color="blue-gray" className="font-semibold">
-            ₦ {data.foodPrice}
+            {formatPrice(parseFloat(data.foodPrice))}
             </Typography>
             
            
