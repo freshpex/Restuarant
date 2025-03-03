@@ -52,6 +52,8 @@ const OrderManagement = () => {
   const [selectedFood, setSelectedFood] = useState(null);
   const [quantityError, setQuantityError] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [deleteAllConfirmation, setDeleteAllConfirmation] = useState(false);
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -134,7 +136,6 @@ const OrderManagement = () => {
         toast.success(`Order status updated to ${status}`);
       }
       
-      // Only update local state if not already updated by payment status change
       if (showToast) {
         setOrders(orders.map(order => 
           order._id === orderId ? { ...order, status } : order
@@ -173,11 +174,9 @@ const OrderManagement = () => {
             paymentStatus 
           };
           
-          // If payment status changed to paid, also update order status to preparing
           if (paymentStatus === 'paid' && order.status === 'pending') {
             updatedOrder.status = 'preparing';
-            // Call the backend to update order status as well
-            updateOrderStatus(orderId, 'preparing', false); // Pass false to prevent toast notification
+            updateOrderStatus(orderId, 'preparing', false);
           }
           
           return updatedOrder;
@@ -204,14 +203,12 @@ const OrderManagement = () => {
     const selected = availableFoods.find(food => food._id === foodId);
     
     if (selected) {
-      // Reset quantity to 1 or available quantity, whichever is smaller
       const availableQty = parseInt(selected.foodQuantity) || 0;
       const safeQuantity = Math.min(1, availableQty);
       
       setSelectedFood(selected);
-      setQuantityError(''); // Clear any previous quantity errors
+      setQuantityError('');
       
-      // Calculate with delivery fee based on current location
       const subtotal = parseFloat(selected.foodPrice) * safeQuantity;
       const deliveryFee = calculateDeliveryFee(newOrder.deliveryLocation);
       const total = subtotal + deliveryFee;
@@ -245,7 +242,6 @@ const OrderManagement = () => {
     if (selectedFood) {
       const availableQty = parseInt(selectedFood.foodQuantity) || 0;
       
-      // Check if requested quantity exceeds available quantity
       if (requestedQuantity > availableQty) {
         setQuantityError(`Only ${availableQty} available in inventory`);
       } else if (requestedQuantity <= 0) {
@@ -254,7 +250,6 @@ const OrderManagement = () => {
         setQuantityError('');
       }
       
-      // Calculate totals with delivery fee
       const subtotal = parseFloat(selectedFood.foodPrice) * requestedQuantity;
       const deliveryFee = calculateDeliveryFee(newOrder.deliveryLocation);
       const total = subtotal + deliveryFee;
@@ -290,7 +285,6 @@ const OrderManagement = () => {
     const location = e.target.value;
     const deliveryFee = calculateDeliveryFee(location);
     
-    // Recalculate total price if food is selected
     if (selectedFood) {
       const subtotal = parseFloat(selectedFood.foodPrice) * newOrder.quantity;
       const total = subtotal + deliveryFee;
@@ -311,7 +305,6 @@ const OrderManagement = () => {
   const createOrder = async (e) => {
     e.preventDefault();
     
-    // Validate form
     if (!newOrder.buyerName || !newOrder.foodId || !newOrder.phone) {
       toast.error('Please fill in all required fields');
       return;
@@ -330,16 +323,13 @@ const OrderManagement = () => {
     try {
       setIsCreatingOrder(true);
       
-      // Ensure emails match if not set
       if (!newOrder.userEmail) {
         newOrder.userEmail = newOrder.email;
       }
       
-      // Calculate totals
       const subtotal = parseFloat(newOrder.foodPrice) * newOrder.quantity;
       let deliveryFee = 0;
       
-      // Set delivery fee based on location
       if (newOrder.deliveryLocation === 'emaudo') {
         deliveryFee = 500;
       } else if (newOrder.deliveryLocation === 'town') {
@@ -350,7 +340,6 @@ const OrderManagement = () => {
         deliveryFee = 1500;
       }
       
-      // Create the order to send to the API
       const orderData = {
         ...newOrder,
         deliveryFee,
@@ -374,7 +363,6 @@ const OrderManagement = () => {
 
       const result = await response.json();
       
-      // Add the new order to the list
       setOrders([result.order, ...orders]);
       
       toast.success('Order created successfully!');
@@ -409,7 +397,6 @@ const OrderManagement = () => {
     setSelectedFood(null);
   };
 
-  // Filter orders based on search term, status, payment status, and date range
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -488,6 +475,38 @@ const OrderManagement = () => {
     setDeleteConfirmation(order);
   };
 
+  // Delete all orders
+  const deleteAllOrders = async () => {
+    try {
+      setIsDeletingAll(true);
+      const response = await fetch(`${API_URL}/admin/orders`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete all orders');
+      }
+
+      const data = await response.json();
+      setOrders([]);
+      toast.success(`${data.deletedCount || 'All'} orders deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting all orders:', error);
+      toast.error('Failed to delete all orders: ' + error.message);
+    } finally {
+      setIsDeletingAll(false);
+      setDeleteAllConfirmation(false);
+    }
+  };
+
+  const confirmDeleteAll = () => {
+    setDeleteAllConfirmation(true);
+  };
+
   return (
     <>
       <Helmet>
@@ -499,13 +518,24 @@ const OrderManagement = () => {
           <div className="flex space-x-3">
             <button 
               onClick={() => setShowAddOrderModal(true)} 
-              className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg px-4 py-2 flex items-center"
+              className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg px-2 py-2 flex items-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Manual Order
+              Add Order
             </button>
+            {orders.length > 0 && (
+              <button 
+                onClick={confirmDeleteAll} 
+                className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 flex items-center"
+                disabled={isDeletingAll}
+              >
+                {isDeletingAll ? (
+                  <FaSpinner className="animate-spin mr-1" />
+                ) : (
+                  <FaTrash className="mr-1"/>
+                )}
+                Delete All
+              </button>
+            )}
             <button 
               onClick={resetFilters} 
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2"
@@ -1230,6 +1260,64 @@ const OrderManagement = () => {
                   </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Confirmation Modal */}
+      {deleteAllConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-5 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Delete All Orders</h3>
+                <button 
+                  onClick={() => setDeleteAllConfirmation(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center text-red-600 mb-4">
+                <FaExclamationTriangle className="text-2xl mr-3" />
+                <div>
+                  <h4 className="font-bold text-lg">Warning: Permanent Action</h4>
+                  <p className="text-gray-700">This will delete ALL orders permanently.</p>
+                </div>
+              </div>
+              
+              <p className="mb-4 text-gray-700">Are you absolutely sure you want to delete all {orders.length} orders? This action cannot be undone.</p>
+              
+              <div className="flex justify-end space-x-3 mt-6 border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setDeleteAllConfirmation(false)}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteAllOrders}
+                  className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center"
+                  disabled={isDeletingAll}
+                >
+                  {isDeletingAll ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" /> Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash className="mr-2" /> Yes, Delete All
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
