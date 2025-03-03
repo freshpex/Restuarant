@@ -59,6 +59,10 @@ const Analytics = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [salesBreakdown, setSalesBreakdown] = useState([]);
+  const [salesSummary, setSalesSummary] = useState({
+    items: [],
+    totalAmount: 0
+  });
 
   // Helper function to get default start date
   function getDefaultStartDate(period) {
@@ -97,6 +101,7 @@ const Analytics = () => {
     fetchDailySales();
     fetchInventoryItems();
     fetchSalesBreakdown();
+    fetchSalesSummary();
   }, [startDate, endDate]);
   
   // Handle date filter change
@@ -243,6 +248,39 @@ const Analytics = () => {
       setSalesBreakdown(data.sales || []);
     } catch (error) {
       console.error('Error fetching sales breakdown:', error);
+    }
+  };
+
+  const fetchSalesSummary = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `${API_URL}/admin/sales-summary?startDate=${startDate}&endDate=${endDate}`, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales summary');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setSalesSummary({
+          items: data.items || [],
+          totalAmount: data.totalAmount || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching sales summary:', error);
+      toast.error('Could not load sales summary');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -464,6 +502,14 @@ const Analytics = () => {
                 : 'text-gray-500 hover:text-gray-700'}`}
             >
               Sales Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'summary'
+                ? 'border-b-2 border-yellow-600 text-yellow-600'
+                : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Daily Sales (Summary)
             </button>
             <button
               onClick={() => setActiveTab('inventory')}
@@ -766,6 +812,117 @@ const Analytics = () => {
                       No sales data available for the selected date range
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* SALES SUMMARY TAB */}
+            {activeTab === 'summary' && (
+              <div>
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <h2 className="text-xl font-semibold flex items-center">
+                      <FaMoneyBillWave className="mr-2 text-yellow-600" /> Sales Summary
+                    </h2>
+                    <div className="mt-2 md:mt-0">
+                      <button
+                        onClick={() => exportToCSV(
+                          salesSummary.items.map(item => ({
+                            foodName: item.foodName,
+                            quantity: item.quantity,
+                            unitPrice: item.unitPrice,
+                            totalPrice: item.totalPrice,
+                            date: item.date
+                          })), 
+                          'sales-summary'
+                        )}
+                        className="flex items-center px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                      >
+                        <FaDownload className="mr-2" /> Export Data
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <div className="bg-yellow-50 p-6 rounded-lg text-center">
+                      <h3 className="text-lg font-medium mb-1">Total Sales</h3>
+                      <p className="text-3xl font-bold text-yellow-700">
+                        ₦{salesSummary.totalAmount.toFixed(2)}
+                      </p>
+                      <p className="text-sm text-yellow-600 mt-1">
+                        {startDate === endDate ? 
+                          `For ${new Date(startDate).toLocaleDateString()}` : 
+                          `From ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {salesSummary.items.length > 0 ? (
+                    <div className="overflow-hidden">
+                      <div className="max-w-full overflow-x-auto pb-2">
+                        <table className="min-w-full bg-white">
+                          <thead>
+                            <tr className="bg-gray-100 text-left text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                              <th className="sticky left-0 bg-gray-100 px-4 py-3">Item</th>
+                              <th className="px-4 py-3 text-center">Date</th>
+                              <th className="px-4 py-3 text-center">Quantity</th>
+                              <th className="px-4 py-3 text-right">Unit Price</th>
+                              <th className="px-4 py-3 text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {salesSummary.items.map((item, index) => (
+                              <tr key={index}>
+                                <td className="sticky left-0 bg-white px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {item.foodName}
+                                </td>
+                                <td className="px-4 py-3 text-center whitespace-nowrap text-sm text-gray-500">
+                                  {new Date(item.date).toLocaleDateString()}
+                                </td>
+                                <td className="px-4 py-3 text-center whitespace-nowrap text-sm text-gray-500">
+                                  {item.quantity}
+                                </td>
+                                <td className="px-4 py-3 text-right whitespace-nowrap text-sm text-gray-500">
+                                  ₦{parseFloat(item.unitPrice).toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 text-right whitespace-nowrap text-sm font-medium text-gray-900">
+                                  ₦{parseFloat(item.totalPrice).toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-gray-50">
+                              <td colSpan="4" className="sticky left-0 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900">
+                                Total
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                                ₦{salesSummary.totalAmount.toFixed(2)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg">
+                      <FaChartBar className="text-gray-300 text-4xl mb-3" />
+                      <p className="text-gray-500 mb-1">No sales data available for the selected date range</p>
+                      <p className="text-sm text-gray-400">Try selecting a different date range</p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 text-sm text-gray-500">
+                    <p className="mb-2 flex items-center">
+                      <FaExclamationTriangle className="text-yellow-500 mr-2" /> 
+                      <span>Tips for mobile users:</span>
+                    </p>
+                    <ul className="list-disc pl-10">
+                      <li>Scroll left/right to view all columns</li>
+                      <li>The "Item" column remains visible while scrolling</li>
+                      <li>Tap on a row to highlight it for easier reading</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}

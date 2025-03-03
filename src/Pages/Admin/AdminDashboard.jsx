@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { 
   FaUsers, FaUtensils, FaChartLine, FaShoppingCart, 
-  FaTachometerAlt, FaBars, FaTimes 
+  FaTachometerAlt, FaBars, FaTimes, FaDoorOpen 
 } from 'react-icons/fa';
 
 const AdminDashboard = () => {
@@ -108,6 +108,15 @@ const AdminDashboard = () => {
             >
               <FaChartLine className="mr-3" />
               Analytics
+            </Link>
+
+            <Link 
+              to="/"
+              onClick={closeSidebar}
+              className="my-8"
+            >
+              Go Back
+              <FaDoorOpen />              
             </Link>
           </nav>
           
