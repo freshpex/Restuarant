@@ -233,6 +233,16 @@ const Checkout = () => {
         }
         return response.json();
       })
+      .then(data => {
+        navigate('/order-success', { 
+          state: { 
+            orderId: data.orderId,
+            orderReference: data.orderReference,
+            isPaid: true,
+            contactPhone: phoneNumber.trim()
+          }
+        }, { replace: true });
+      })
       .catch(error => {
         console.error('Background order processing error:', error);
       });
@@ -304,7 +314,7 @@ const Checkout = () => {
     const initiatePayment = (orderId, orderReference) => {
       const config = {
         public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref: orderReference, // Use our order reference
+        tx_ref: orderReference,
         amount: parseFloat(grandTotal),
         currency: 'NGN',
         payment_options: 'card,mobilemoney,ussd,banktransfer',

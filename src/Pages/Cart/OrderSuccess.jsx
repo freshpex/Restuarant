@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { FaCheckCircle, FaShoppingBag, FaClock, FaMotorcycle, FaUtensils, FaSpinner } from 'react-icons/fa';
+import { FaCheckCircle, FaShoppingBag, FaClock, FaMotorcycle, FaUtensils, FaSpinner, FaCopy } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 const OrderSuccess = () => {
   const location = useLocation();
   const { orderId, orderReference, isPaid, contactPhone, isProcessing } = location.state || {};
   const [processing, setProcessing] = useState(isProcessing || false);
   
-  const displayReference = orderReference || orderId;
+  // Use the orderReference as the primary tracking reference for the customer
   const trackingReference = orderReference || orderId;
-
+  
   useEffect(() => {
     if (processing) {
       const timer = setTimeout(() => {
@@ -20,25 +21,24 @@ const OrderSuccess = () => {
       return () => clearTimeout(timer);
     }
   }, [processing]);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Order Success - References:', { 
-        orderId, 
-        orderReference,
-        displayReference,
-        trackingReference
-      });
-    }
-  }, [orderId, orderReference]);
   
-  if (!orderId) {
+  if (!orderId && !orderReference) {
     return <Navigate to="/" replace />;
   }
   
   const estimatedDelivery = new Date();
   estimatedDelivery.setMinutes(estimatedDelivery.getMinutes() + 45);
   const deliveryTimeString = estimatedDelivery.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  const copyTrackingReference = () => {
+    navigator.clipboard.writeText(trackingReference)
+      .then(() => {
+        toast.success('Tracking reference copied to clipboard');
+      })
+      .catch(() => {
+        toast.error('Failed to copy tracking reference');
+      });
+  };
   
   return (
     <>
@@ -64,13 +64,28 @@ const OrderSuccess = () => {
                   Thank you for your order. We've received your request and will begin preparing now.
                 </p>
                 
+                {/* Highlight the tracking reference prominently */}
+                <div className="bg-yellow-50 p-6 rounded-lg mb-6">
+                  <h2 className="text-xl font-bold text-gray-800 mb-3">Your Order Tracking Reference</h2>
+                  <div className="flex items-center justify-center space-x-2 bg-white py-3 px-4 rounded-md border border-yellow-200">
+                    <span className="text-lg font-mono font-bold text-yellow-700">{trackingReference}</span>
+                    <button 
+                      onClick={copyTrackingReference} 
+                      className="text-yellow-600 hover:text-yellow-800 ml-2"
+                      title="Copy tracking reference"
+                    >
+                      <FaCopy />
+                    </button>
+                  </div>
+                  <p className="text-sm text-yellow-700 mt-2">
+                    Please save this reference number to track your order status
+                  </p>
+                </div>
+                
                 {/* Order details */}
                 <div className="bg-gray-50 p-4 rounded-lg mb-6">
                   <p className="text-sm text-gray-700 mb-1">
-                    Order Reference: <span className="font-medium">{displayReference}</span>
-                  </p>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Save this reference number to track your order status
+                    Order Reference: <span className="font-medium">{trackingReference}</span>
                   </p>
                   <p className="text-sm text-gray-700 mb-1">
                     Contact Phone: {contactPhone ? (

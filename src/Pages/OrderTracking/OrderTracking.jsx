@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { FaSearch, FaSpinner, FaBox, FaCheck, FaTimes, FaShoppingBag, FaUtensils, FaMotorcycle, FaTruck } from 'react-icons/fa';
+import { FaSearch, FaSpinner, FaBox, FaCheck, FaTimes, FaShoppingBag, FaUtensils, FaMotorcycle, FaTruck, FaClipboard, FaExclamationTriangle } from 'react-icons/fa';
 import { formatPrice } from '../../utils/formatUtils';
 import toast from 'react-hot-toast';
 
@@ -16,44 +16,29 @@ const OrderTracking = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchAttempted, setSearchAttempted] = useState(false);
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (searchQuery) {
       handleTrackOrder();
     }
-  }, [searchQuery]);
+  }, []);
   
   const handleTrackOrder = async () => {
     if (!trackingId.trim()) {
-      toast.error('Please enter an order ID or reference number');
+      toast.error('Please enter a tracking reference');
       return;
     }
     
     setLoading(true);
     setError(null);
+    setSearchAttempted(true);
     
     try {
-      try {
-        const pingResponse = await fetch(`${import.meta.env.VITE_API_URL}/ping`);
-        if (!pingResponse.ok) {
-          console.warn('API ping failed, server may be down');
-        } else {
-          console.log('API ping successful');
-        }
-      } catch (pingError) {
-        console.error('API ping error, server may be unreachable:', pingError);
-      }
-      
-      // Log what we're tracking to help with debugging
-      console.log(`Tracking order with ID: ${trackingId.trim()}`);
-      console.log(`Full tracking URL: ${import.meta.env.VITE_API_URL}/order/track?reference=${encodeURIComponent(trackingId.trim())}`);
       
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/order/track?reference=${encodeURIComponent(trackingId.trim())}`
       );
-      
-      // Add detailed logging for the response
-      console.log('Track order response status:', response.status);
       
       if (!response.ok) {
         let errorMessage = 'Failed to retrieve order information';
@@ -98,6 +83,12 @@ const OrderTracking = () => {
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleTrackOrder();
+    }
+  };
   
   return (
     <>
@@ -110,7 +101,7 @@ const OrderTracking = () => {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Track Your Order</h1>
             <p className="mt-2 text-gray-600">
-              Enter your order ID or reference number to check your order status
+              Enter your order reference number to check your order status
             </p>
           </div>
           
@@ -121,7 +112,8 @@ const OrderTracking = () => {
                   type="text"
                   value={trackingId}
                   onChange={(e) => setTrackingId(e.target.value)}
-                  placeholder="Order ID or Reference Number"
+                  onKeyPress={handleKeyPress}
+                  placeholder="Enter your tracking reference (e.g., TK-240808-1234)"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -139,6 +131,9 @@ const OrderTracking = () => {
                 Track Order
               </button>
             </div>
+            <div className="mt-3 text-xs text-gray-500">
+              <p>Enter the order reference from your receipt or confirmation email (starting with "TK-")</p>
+            </div>
           </div>
           
           {error && !loading && (
@@ -149,7 +144,7 @@ const OrderTracking = () => {
                 </div>
                 <h2 className="text-2xl font-semibold text-gray-800 mb-2">Order Not Found</h2>
                 <p className="text-gray-600 text-center max-w-md">
-                  {error} Please double-check your order ID or reference number and try again.
+                  {error} Please double-check your order reference number and try again.
                 </p>
               </div>
             </div>
@@ -158,19 +153,23 @@ const OrderTracking = () => {
           {order && !loading && (
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="bg-yellow-50 border-b border-yellow-100 p-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-800">
-                      Order #{order.orderGroupId || order._id}
-                    </h2>
-                    <p className="text-gray-600 mt-1">Placed on {formatDate(order.createdAt)}</p>
+                    <div className="flex items-center mb-2">
+                      <FaClipboard className="text-yellow-600 mr-2" />
+                      <h2 className="text-xl font-semibold text-gray-800">
+                        Order Reference: {order.orderReference || order.orderGroupId || order._id}
+                      </h2>
+                    </div>
+                    <p className="text-gray-600">Placed on {formatDate(order.createdAt)}</p>
                   </div>
-                  <div className="bg-gray-100 rounded-lg px-4 py-2">
+                  <div className="mt-4 sm:mt-0 bg-gray-100 rounded-lg px-4 py-2">
                     <span className="text-sm font-medium">
                       Status: {' '}
                       <span 
                         className={`
                           ${order.status === 'pending' ? 'text-yellow-600' : ''}
+                          ${order.status === 'processing' ? 'text-blue-600' : ''}
                           ${order.status === 'preparing' ? 'text-blue-600' : ''}
                           ${order.status === 'ready' ? 'text-green-600' : ''}
                           ${order.status === 'delivered' ? 'text-green-700' : ''}
@@ -228,7 +227,7 @@ const OrderTracking = () => {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Order Details</h3>
                 
                 <div className="divide-y divide-gray-200">
-                  {Array.isArray(order.items) ? 
+                  {order.items && order.items.length > 0 ? (
                     order.items.map((item, index) => (
                       <div key={index} className="py-4 flex items-start">
                         {item.foodImage && (
@@ -252,16 +251,30 @@ const OrderTracking = () => {
                           </div>
                         </div>
                       </div>
-                    )) : (
-                      <div className="py-4">
-                        <h4 className="text-base font-medium text-gray-900">{order.foodName}</h4>
-                        <div className="flex justify-between mt-1">
-                          <p className="text-sm text-gray-500">Quantity: {order.quantity}</p>
-                          <p className="text-sm font-medium text-gray-900">{formatPrice(order.totalPrice)}</p>
+                    ))
+                  ) : (
+                    // Single item order
+                    <div className="py-4">
+                      <div className="flex items-start">
+                        {order.foodImage && (
+                          <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                            <img
+                              src={order.foodImage}
+                              alt={order.foodName}
+                              className="h-full w-full object-cover object-center"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h4 className="text-base font-medium text-gray-900">{order.foodName}</h4>
+                          <div className="flex justify-between mt-1">
+                            <p className="text-sm text-gray-500">Quantity: {order.quantity}</p>
+                            <p className="text-sm font-medium text-gray-900">{formatPrice(order.totalPrice)}</p>
+                          </div>
                         </div>
                       </div>
-                    )
-                  }
+                    </div>
+                  )}
                 </div>
               </div>
               
