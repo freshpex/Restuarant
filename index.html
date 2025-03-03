@@ -2,13 +2,105 @@
 <html data-theme="light" lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Primary Meta Tags -->
+    <title>Tim's Kitchen - Delicious Homemade Meals</title>
+    <meta name="title" content="Tim's Kitchen - Delicious Homemade Meals">
+    <meta name="description" content="Welcome to Tim's Kitchen where we serve delicious homemade meals made with fresh ingredients and love.">
+    <meta name="keywords" content="food, restaurant, kitchen, homemade meals, cooking, Tim's Kitchen">
+    <meta name="author" content="Tim's Kitchen">
+    
+    <!-- Favicon and Apple Touch Icons -->
     <link rel="shortcut icon" href="/logo.png" type="image/x-icon">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tim's Kitchen</title>
+    <link rel="apple-touch-icon" href="/logo.png">
+    
+    <!-- Open Graph / Facebook Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://timskitchen.vercel.app/">
+    <meta property="og:title" content="Tim's Kitchen - Delicious Homemade Meals">
+    <meta property="og:description" content="Welcome to Tim's Kitchen where we serve delicious homemade meals made with fresh ingredients and love.">
+    <meta property="og:image" content="/logo.png">
+    
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tim's Kitchen - Delicious Homemade Meals">
+    <meta name="twitter:description" content="Welcome to Tim's Kitchen where we serve delicious homemade meals made with fresh ingredients and love.">
+    <meta name="twitter:image" content="/logo.png">
+    
+    <!-- Theme Color for browsers -->
+    <meta name="theme-color" content="#4285f4">
+    
+    <!-- Preconnect to important domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Stylesheets -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Please enable JavaScript to view this website.</noscript>
     <script type="module" src="/src/main.jsx"></script>
     <script src="//code.tidio.co/vceyif2fikdyqoe0sln5ccoyt8cyfmjm.js" async></script>
+    
+    <!-- Structured data for SEO -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Restaurant",
+        "name": "Tim's Kitchen",
+        "image": "/logo.png",
+        "url": "https://timskitchen.com",
+        "telephone": "+123456789",
+        "servesCuisine": "Homemade meals",
+        "priceRange": "₦500 - ₦5000",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Mount Camel Road",
+          "addressLocality": "Emaudo",
+          "addressRegion": "Edo State",
+          "postalCode": "310001",
+          "addressCountry": "NG"
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "08:00",
+            "closes": "21:00"
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": "Saturday",
+            "opens": "08:00",
+            "closes": "22:00"
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": "Sunday",
+            "opens": "10:00",
+            "closes": "21:00"
+          }
+        ],
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 6.5244,
+          "longitude": 3.3792
+        },
+        "sameAs": [
+          "https://www.facebook.com/timskitchen4u",
+          "https://www.instagram.com/timskitchen4u",
+          "https://twitter.com/timskitchen4u"
+        ]
+      }
+    </script>
   </body>
 </html>

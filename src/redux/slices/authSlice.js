@@ -272,15 +272,17 @@ const serializeUser = (user) => {
     };
 };
 
+const initialState = {
+    user: null,
+    token: localStorage.getItem('token') || null,
+    loading: true,
+    error: null,
+    userProfile: null
+};
+
 const authSlice = createSlice({
     name: 'auth',
-    initialState: {
-        user: null,
-        token: localStorage.getItem('token'),
-        loading: false,
-        error: null,
-        isAuthenticated: !!localStorage.getItem('token')
-    },
+    initialState,
     reducers: {
         clearError: (state) => {
             state.error = null;
@@ -290,12 +292,14 @@ const authSlice = createSlice({
             state.token = token;
             state.isAuthenticated = true;
             localStorage.setItem('token', token);
+            state.loading = false;
         },
         clearCredentials: (state) => {
             state.user = null;
             state.token = null;
             state.isAuthenticated = false;
             localStorage.removeItem('token');
+            state.loading = false;
         }
     },
     extraReducers: (builder) => {
@@ -363,15 +367,17 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
+            .addCase(fetchUserProfile.pending, (state) => {
+                state.loading = true;
+            })
             .addCase(fetchUserProfile.fulfilled, (state, action) => {
+                state.userProfile = action.payload;
+                state.user = { ...state.user, ...action.payload };
                 state.loading = false;
-                if (action.payload) {
-                    state.user = {
-                        ...state.user,
-                        role: action.payload.role || 'member',
-                        name: action.payload.name || state.user.displayName
-                    };
-                }
+            })
+            .addCase(fetchUserProfile.rejected, (state, action) => {
+                state.error = action.payload;
+                state.loading = false;
             });
     }
 });
