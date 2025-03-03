@@ -118,12 +118,6 @@ const Cart = () => {
   };
   
   const handleCheckout = () => {
-    if (!isAuthenticated) {
-      toast.error('Please log in to checkout');
-      navigate('/signIn', { state: { from: '/cart' } });
-      return;
-    }
-    
     if (!fullAddress.trim()) {
       toast.error('Please enter your delivery address');
       return;
@@ -136,11 +130,12 @@ const Cart = () => {
         deliveryLocation, 
         deliveryFee, 
         fullAddress,
-        grandTotal: grandTotal.toFixed(2)
+        grandTotal: grandTotal.toFixed(2),
+        isGuest: !isAuthenticated
       } 
     });
   };
-  
+
   if (cartItems.length === 0) {
     return (
       <>
@@ -226,7 +221,7 @@ const Cart = () => {
                             <FaPlus className={item.quantity >= parseInt(item.foodQuantity) ? "text-gray-300" : "text-gray-600"} />
                           </button>
                         </div>
-                        <button 
+                        <button
                           onClick={() => handleRemoveItem(item._id)}
                           className="text-red-600 hover:text-red-800"
                         >
@@ -312,6 +307,7 @@ const Cart = () => {
                   <p>Delivery Fee</p>
                   <p>{formatPrice(deliveryFee)}</p>
                 </div>
+                
                 <div className="border-t pt-4 mt-4">
                   <div className="flex justify-between font-medium text-lg">
                     <p>Total</p>
@@ -326,6 +322,35 @@ const Cart = () => {
                   Proceed to Checkout
                 </button>
               </div>
+              
+              {!isAuthenticated && (
+                <div className="mt-4 bg-blue-50 p-4 rounded-md border border-blue-100">
+                  <p className="text-sm text-blue-700 mb-2">  
+                    <strong>Checking out as a guest?</strong> You can continue without an account, but signing in offers benefits:
+                  </p>
+                  <ul className="text-xs text-blue-600 list-disc pl-5 mb-2">
+                    <li>Easily track your order status</li>
+                    <li>Faster checkout in the future</li>
+                    <li>Access to your order history</li>
+                  </ul>
+                  
+                  <div className="flex space-x-2 mt-3">
+                    <Link 
+                      to="/signIn"
+                      state={{ from: '/cart' }}
+                      className="bg-blue-600 text-white py-2 px-4 rounded-md text-xs font-medium hover:bg-blue-700"
+                    >
+                      Sign In
+                    </Link>
+                    <Link 
+                      to="/signup"
+                      className="bg-green-600 text-white py-2 px-4 rounded-md text-xs font-medium hover:bg-green-700"
+                    >
+                      Create Account
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -8,6 +8,7 @@ import { clearCart } from '../../redux/slices/cartSlice';
 import { formatPrice } from '../../utils/formatUtils';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { selectCurrentUser } from '../../redux/selectors';
+import { Link } from 'react-router-dom';
 
 const Checkout = () => {
   const location = useLocation();
@@ -20,7 +21,19 @@ const Checkout = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
   const [phoneError, setPhoneError] = useState('');
-  const [lastOrderId, setLastOrderId] = useState(null);
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
+  
+  useEffect(() => {
+    if (location.state?.isGuest) {
+      const timer = setTimeout(() => {
+        setShowSignupPrompt(true);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
   
   const { 
     cartItems, 
@@ -28,7 +41,8 @@ const Checkout = () => {
     deliveryLocation, 
     deliveryFee, 
     fullAddress,
-    grandTotal
+    grandTotal,
+    isGuest = false
   } = location.state || {};
   
   if (!cartItems || cartItems.length === 0) {
@@ -59,6 +73,12 @@ const Checkout = () => {
       setLoading(false);
       return;
     }
+
+    if (isGuest && !guestName.trim()) {
+      toast.error('Please enter your name');
+      setLoading(false);
+      return;
+    }
     
     try {
       const orderData = {
@@ -78,11 +98,12 @@ const Checkout = () => {
         paymentMethod,
         paymentStatus: transactionDetails ? 'paid' : 'unpaid',
         transactionRef: transactionDetails?.transaction_id || null,
-        buyerName: user?.displayName || '',
-        email: user?.email || '',
-        userEmail: user?.email || '',
+        buyerName: isGuest ? guestName : user?.displayName || '',
+        email: isGuest ? guestEmail : user?.email || '',
+        userEmail: isGuest ? guestEmail : user?.email || '',
         phone: phoneNumber.trim(),
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        isGuestOrder: isGuest
       };
       
       if (transactionDetails && paymentMethod === 'online') {
@@ -538,6 +559,30 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Add the signup prompt component here */}
+              {isGuest && showSignupPrompt && (
+                <div className="mt-6 bg-blue-50 p-6 rounded-lg border border-blue-100 animate-fadeIn">
+                  <h3 className="text-lg font-medium text-blue-800 mb-2">Create an account for a better experience!</h3>
+                  <p className="text-blue-700 mb-4">
+                    Sign up now to easily track your orders, save your delivery information for future orders, and get exclusive deals.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Link 
+                      to="/signup" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      Create Account
+                    </Link>
+                    <button 
+                      onClick={() => setShowSignupPrompt(false)}
+                      className="border border-blue-300 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      Continue as Guest
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6">

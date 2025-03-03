@@ -11,6 +11,7 @@ const OrderSuccess = () => {
   const [paymentStatus, setPaymentStatus] = useState(isPaid ? 'paid' : 'pending');
   const [orderStatus, setOrderStatus] = useState('pending');
   const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   
   const trackingReference = orderReference || orderId;
 
@@ -54,6 +55,16 @@ const OrderSuccess = () => {
       return () => clearTimeout(timer);
     }
   }, [processing]);
+
+  useEffect(() => {
+    if (location.state?.isGuestOrder) {
+      const timer = setTimeout(() => {
+        setShowSignupPrompt(true);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   if (!orderId && !orderReference) {
     return <Navigate to="/" replace />;
@@ -232,6 +243,30 @@ const OrderSuccess = () => {
                       ? "Your payment is being processed. We'll update you once it's confirmed."
                       : "Please complete your payment to confirm your order. You can pay via WhatsApp or online through your order history."}
                 </p>
+
+                {/* Signup prompt for guest orders */}
+                {showSignupPrompt && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-medium text-blue-800 mb-2">Save your order details for next time!</h3>
+                    <p className="text-blue-700 mb-4">
+                      Create an account to easily track all your orders, save your delivery details, and reorder your favorite meals with just a few clicks.
+                    </p>
+                    <div className="flex space-x-4">
+                      <Link 
+                        to="/signup" 
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        Create Account
+                      </Link>
+                      <button 
+                        className="text-blue-600 hover:text-blue-800 underline"
+                        onClick={() => setShowSignupPrompt(false)}
+                      >
+                        Maybe Later
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
             

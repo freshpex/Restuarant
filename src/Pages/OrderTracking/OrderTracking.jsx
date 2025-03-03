@@ -4,6 +4,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { FaSearch, FaSpinner, FaBox, FaCheck, FaTimes, FaShoppingBag, FaUtensils, FaMotorcycle, FaTruck, FaClipboard, FaExclamationTriangle } from 'react-icons/fa';
 import { formatPrice } from '../../utils/formatUtils';
 import toast from 'react-hot-toast';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated } from '../../redux/selectors';
 
 const OrderTracking = () => {
   const navigate = useNavigate();
@@ -11,18 +13,24 @@ const OrderTracking = () => {
   const { orderId } = useParams();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = orderId || queryParams.get('id') || '';
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   
   const [trackingId, setTrackingId] = useState(searchQuery);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
+  const [isGuest, setIsGuest] = useState(!isAuthenticated);
   
   useEffect(() => {
     if (searchQuery) {
       handleTrackOrder();
     }
   }, []);
+
+  useEffect(() => {
+    setIsGuest(!isAuthenticated);
+  }, [isAuthenticated]);  
   
   const handleTrackOrder = async () => {
     if (!trackingId.trim()) {
@@ -337,6 +345,26 @@ const OrderTracking = () => {
                   </div>
                 </div>
               </div>
+              {isGuest && order && (
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 my-6">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">Want easier order tracking?</h3>
+                      <div className="mt-1 text-sm text-blue-700">
+                        <p>Create an account to easily track all your orders and save your delivery information for future orders.</p>
+                        <div className="mt-3">
+                          <Link 
+                            to="/signup" 
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-medium inline-block"
+                          >
+                            Sign Up Now
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
