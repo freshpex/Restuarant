@@ -172,7 +172,7 @@ const RawMaterials = () => {
         
         toast.success('Raw material added successfully');
         
-        setMaterials([...materials, data.material]);
+        fetchMaterials();
       }
       
       setShowAddModal(false);

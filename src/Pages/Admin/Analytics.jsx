@@ -23,6 +23,7 @@ import {
 } from 'chart.js';
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
+import { formatPrice } from '../../utils/formatUtils';
 
 // Register ChartJS components
 ChartJS.register(
@@ -631,7 +632,7 @@ const Analytics = () => {
                     <div className="bg-yellow-50 p-6 rounded-lg text-center">
                       <h3 className="text-lg font-medium mb-1">Total Sales</h3>
                       <p className="text-3xl font-bold text-yellow-700">
-                        ₦{salesSummary.totalAmount.toFixed(2)}
+                        {formatPrice(salesSummary.totalAmount)}
                       </p>
                       <p className="text-sm text-yellow-600 mt-1">
                         {startDate === endDate ? 
@@ -667,10 +668,10 @@ const Analytics = () => {
                                   {item.quantity}
                                 </td>
                                 <td className="px-4 py-3 text-right whitespace-nowrap text-sm text-gray-500">
-                                  ₦{parseFloat(item.unitPrice).toFixed(2)}
+                                  {formatPrice(parseFloat(item.unitPrice))}
                                 </td>
                                 <td className="px-4 py-3 text-right whitespace-nowrap text-sm font-medium text-gray-900">
-                                  ₦{parseFloat(item.totalPrice).toFixed(2)}
+                                  {formatPrice(parseFloat(item.totalPrice))}
                                 </td>
                               </tr>
                             ))}
@@ -678,10 +679,10 @@ const Analytics = () => {
                           <tfoot>
                             <tr className="bg-gray-50">
                               <td colSpan="4" className="sticky left-0 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900">
-                                Total
+                                Total: <span className="md:hidden ml-1 font-bold">{formatPrice(salesSummary.totalAmount)}</span>
                               </td>
                               <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                                ₦{salesSummary.totalAmount.toFixed(2)}
+                                {formatPrice(salesSummary.totalAmount)}
                               </td>
                             </tr>
                           </tfoot>
@@ -854,7 +855,7 @@ const Analytics = () => {
                                 {item.foodQuantity}
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                ₦{item.price.toFixed(2)}
+                                {formatPrice(item.price)}
                               </td>
                             </tr>
                           ))}
@@ -955,7 +956,7 @@ const Analytics = () => {
                     <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
                       <p className="text-sm font-medium text-blue-800">Total Revenue</p>
                       <h3 className="text-2xl font-bold text-blue-900 mt-2">
-                        ₦{(stats?.totalRevenue || 0).toFixed(2)}
+                        {formatPrice(stats?.totalRevenue || 0)}
                       </h3>
                       <p className="text-xs text-blue-700 mt-1">All time revenue</p>
                     </div>
@@ -963,8 +964,8 @@ const Analytics = () => {
                     <div className="bg-green-50 p-6 rounded-lg border border-green-100">
                       <p className="text-sm font-medium text-green-800">Average Order Value</p>
                       <h3 className="text-2xl font-bold text-green-900 mt-2">
-                        ₦{stats?.orderCount > 0 
-                          ? (stats?.totalRevenue / stats?.orderCount).toFixed(2) 
+                        {stats?.orderCount > 0 
+                          ? formatPrice(stats?.totalRevenue / stats?.orderCount) 
                           : '0.00'}
                       </h3>
                       <p className="text-xs text-green-700 mt-1">Per order</p>
@@ -1000,7 +1001,7 @@ const Analytics = () => {
                                 label: function(context) {
                                   const label = context.dataset.label || '';
                                   const value = context.raw || 0;
-                                  return `${label}: ₦${value.toFixed(2)}`;
+                                  return `${label}: ${formatPrice(value)}`;
                                 }
                               }
                             }
@@ -1055,7 +1056,7 @@ const Analytics = () => {
                                     const value = context.raw || 0;
                                     const total = context.chart.data.datasets[0].data.reduce((sum, val) => sum + val, 0);
                                     const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                    return `${label}: ₦${value.toFixed(2)} (${percentage}%)`;
+                                    return `${label}: ${formatPrice(value)} (${percentage}%)`;
                                   }
                                 }
                               }
