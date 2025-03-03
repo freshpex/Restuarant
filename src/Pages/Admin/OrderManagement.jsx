@@ -28,6 +28,29 @@ const OrderManagement = () => {
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [showAddOrderModal, setShowAddOrderModal] = useState(false);
+  const [availableFoods, setAvailableFoods] = useState([]);
+  const [isLoadingFoods, setIsLoadingFoods] = useState(false);
+  const [newOrder, setNewOrder] = useState({
+    buyerName: '',
+    email: '',
+    userEmail: '',
+    phone: '',
+    foodId: '',
+    foodName: '',
+    foodPrice: '',
+    foodImage: '',
+    quantity: 1,
+    deliveryLocation: 'restaurant',
+    fullAddress: '',
+    paymentMethod: 'whatsapp',
+    paymentStatus: 'paid',
+    status: 'preparing',
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [quantityError, setQuantityError] = useState('');
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -35,6 +58,12 @@ const OrderManagement = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+    if (showAddOrderModal) {
+      fetchAvailableFoods();
+    }
+  }, [showAddOrderModal]);
 
   const fetchOrders = async () => {
     try {
@@ -60,7 +89,31 @@ const OrderManagement = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId, status) => {
+  const fetchAvailableFoods = async () => {
+    try {
+      setIsLoadingFoods(true);
+      const response = await fetch(`${API_URL}/admin/foods`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch foods');
+      }
+
+      const data = await response.json();
+      setAvailableFoods(data.foods || []);
+    } catch (error) {
+      toast.error('Error loading food items');
+      console.error(error);
+    } finally {
+      setIsLoadingFoods(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, status, showToast = true) => {
     try {
       setUpdatingOrderId(orderId);
       const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
@@ -76,12 +129,16 @@ const OrderManagement = () => {
         throw new Error('Failed to update order status');
       }
 
-      toast.success(`Order status updated to ${status}`);
+      if (showToast) {
+        toast.success(`Order status updated to ${status}`);
+      }
       
-      // Update local state
-      setOrders(orders.map(order => 
-        order._id === orderId ? { ...order, status } : order
-      ));
+      // Only update local state if not already updated by payment status change
+      if (showToast) {
+        setOrders(orders.map(order => 
+          order._id === orderId ? { ...order, status } : order
+        ));
+      }
     } catch (error) {
       toast.error(error.message || 'Error updating order status');
     } finally {
@@ -108,14 +165,247 @@ const OrderManagement = () => {
       toast.success(`Payment status updated to ${paymentStatus}`);
       
       // Update local state
-      setOrders(orders.map(order => 
-        order._id === orderId ? { ...order, paymentStatus } : order
-      ));
+      setOrders(orders.map(order => {
+        if (order._id === orderId) {
+          const updatedOrder = { 
+            ...order, 
+            paymentStatus 
+          };
+          
+          // If payment status changed to paid, also update order status to preparing
+          if (paymentStatus === 'paid' && order.status === 'pending') {
+            updatedOrder.status = 'preparing';
+            // Call the backend to update order status as well
+            updateOrderStatus(orderId, 'preparing', false); // Pass false to prevent toast notification
+          }
+          
+          return updatedOrder;
+        }
+        return order;
+      }));
     } catch (error) {
       toast.error(error.message || 'Error updating payment status');
     } finally {
       setUpdatingPaymentId(null);
     }
+  };
+
+  const handleOrderInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewOrder({
+      ...newOrder,
+      [name]: value
+    });
+  };
+
+  const handleFoodSelect = (e) => {
+    const foodId = e.target.value;
+    const selected = availableFoods.find(food => food._id === foodId);
+    
+    if (selected) {
+      // Reset quantity to 1 or available quantity, whichever is smaller
+      const availableQty = parseInt(selected.foodQuantity) || 0;
+      const safeQuantity = Math.min(1, availableQty);
+      
+      setSelectedFood(selected);
+      setQuantityError(''); // Clear any previous quantity errors
+      
+      // Calculate with delivery fee based on current location
+      const subtotal = parseFloat(selected.foodPrice) * safeQuantity;
+      const deliveryFee = calculateDeliveryFee(newOrder.deliveryLocation);
+      const total = subtotal + deliveryFee;
+      
+      setNewOrder({
+        ...newOrder,
+        foodId: selected._id,
+        foodName: selected.foodName,
+        foodPrice: selected.foodPrice,
+        foodImage: selected.foodImage || '',
+        quantity: safeQuantity,
+        totalPrice: total.toFixed(2)
+      });
+    } else {
+      setSelectedFood(null);
+      setQuantityError('');
+      setNewOrder({
+        ...newOrder,
+        foodId: '',
+        foodName: '',
+        foodPrice: '',
+        foodImage: '',
+        totalPrice: '0.00'
+      });
+    }
+  };
+
+  const handleQuantityChange = (e) => {
+    const requestedQuantity = parseInt(e.target.value) || 0;
+    
+    if (selectedFood) {
+      const availableQty = parseInt(selectedFood.foodQuantity) || 0;
+      
+      // Check if requested quantity exceeds available quantity
+      if (requestedQuantity > availableQty) {
+        setQuantityError(`Only ${availableQty} available in inventory`);
+      } else if (requestedQuantity <= 0) {
+        setQuantityError('Quantity must be at least 1');
+      } else {
+        setQuantityError('');
+      }
+      
+      // Calculate totals with delivery fee
+      const subtotal = parseFloat(selectedFood.foodPrice) * requestedQuantity;
+      const deliveryFee = calculateDeliveryFee(newOrder.deliveryLocation);
+      const total = subtotal + deliveryFee;
+      
+      setNewOrder({
+        ...newOrder,
+        quantity: requestedQuantity,
+        totalPrice: total.toFixed(2)
+      });
+    } else {
+      setNewOrder({
+        ...newOrder,
+        quantity: Math.max(1, requestedQuantity)
+      });
+    }
+  };
+
+  const calculateDeliveryFee = (location) => {
+    switch(location) {
+      case 'emaudo':
+        return 500;
+      case 'town':
+        return 1000;
+      case 'village':
+        return 1500;
+      case 'restaurant':
+      default:
+        return 0;
+    }
+  };
+
+  const handleDeliveryLocationChange = (e) => {
+    const location = e.target.value;
+    const deliveryFee = calculateDeliveryFee(location);
+    
+    // Recalculate total price if food is selected
+    if (selectedFood) {
+      const subtotal = parseFloat(selectedFood.foodPrice) * newOrder.quantity;
+      const total = subtotal + deliveryFee;
+      
+      setNewOrder({
+        ...newOrder,
+        deliveryLocation: location,
+        totalPrice: total.toFixed(2)
+      });
+    } else {
+      setNewOrder({
+        ...newOrder,
+        deliveryLocation: location
+      });
+    }
+  };
+
+  const createOrder = async (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!newOrder.buyerName || !newOrder.foodId || !newOrder.phone) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    if (quantityError) {
+      toast.error('Please fix the quantity issues before submitting');
+      return;
+    }
+    
+    if (selectedFood && parseInt(newOrder.quantity) > parseInt(selectedFood.foodQuantity)) {
+      toast.error(`Cannot order more than available quantity (${selectedFood.foodQuantity})`);
+      return;
+    }
+    
+    try {
+      setIsCreatingOrder(true);
+      
+      // Ensure emails match if not set
+      if (!newOrder.userEmail) {
+        newOrder.userEmail = newOrder.email;
+      }
+      
+      // Calculate totals
+      const subtotal = parseFloat(newOrder.foodPrice) * newOrder.quantity;
+      let deliveryFee = 0;
+      
+      // Set delivery fee based on location
+      if (newOrder.deliveryLocation === 'emaudo') {
+        deliveryFee = 500;
+      } else if (newOrder.deliveryLocation === 'town') {
+        deliveryFee = 1000;
+      } else if (newOrder.deliveryLocation === 'restaurant') {
+        deliveryFee = 0;
+      } else if (newOrder.deliveryLocation === 'village') {
+        deliveryFee = 1500;
+      }
+      
+      // Create the order to send to the API
+      const orderData = {
+        ...newOrder,
+        deliveryFee,
+        itemsSubtotal: subtotal.toFixed(2),
+        totalPrice: (subtotal + deliveryFee).toFixed(2),
+        createdAt: new Date()
+      };
+      
+      const response = await fetch(`${API_URL}/admin/create-order`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const result = await response.json();
+      
+      // Add the new order to the list
+      setOrders([result.order, ...orders]);
+      
+      toast.success('Order created successfully!');
+      setShowAddOrderModal(false);
+      resetNewOrderForm();
+      
+    } catch (error) {
+      toast.error(error.message || 'Error creating order');
+    } finally {
+      setIsCreatingOrder(false);
+    }
+  };
+
+  const resetNewOrderForm = () => {
+    setNewOrder({
+      buyerName: '',
+      email: '',
+      userEmail: '',
+      phone: '',
+      foodId: '',
+      foodName: '',
+      foodPrice: '',
+      foodImage: '',
+      quantity: 1,
+      deliveryLocation: 'restaurant',
+      fullAddress: '',
+      paymentMethod: 'whatsapp',
+      paymentStatus: 'paid',
+      status: 'preparing',
+      date: new Date().toISOString().split('T')[0]
+    });
+    setSelectedFood(null);
   };
 
   // Filter orders based on search term, status, payment status, and date range
@@ -173,12 +463,23 @@ const OrderManagement = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h1 className="text-2xl font-bold mb-4 md:mb-0">Order Management</h1>
-          <button 
-            onClick={resetFilters} 
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2"
-          >
-            Reset Filters
-          </button>
+          <div className="flex space-x-3">
+            <button 
+              onClick={() => setShowAddOrderModal(true)} 
+              className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg px-4 py-2 flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Manual Order
+            </button>
+            <button 
+              onClick={resetFilters} 
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
 
         {/* Search and Filters - make them stacked on mobile */}
@@ -594,6 +895,293 @@ const OrderManagement = () => {
           </>
         )}
       </div>
+
+      {/* Add Order Modal */}
+      {showAddOrderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Add Manual Order</h3>
+                <button 
+                  onClick={() => setShowAddOrderModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={createOrder} className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h4 className="font-medium mb-3">Customer Information</h4>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="buyerName" className="block text-sm text-gray-600 mb-1">
+                      Customer Name* <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="buyerName"
+                      name="buyerName"
+                      value={newOrder.buyerName}
+                      onChange={handleOrderInputChange}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      placeholder="Customer's full name"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="email" className="block text-sm text-gray-600 mb-1">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={newOrder.email}
+                      onChange={handleOrderInputChange}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      placeholder="Optional: Customer's email address"
+                    />
+                    <span className="text-xs text-gray-500">Optional - for receipt and notifications</span>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="phone" className="block text-sm text-gray-600 mb-1">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={newOrder.phone}
+                      onChange={handleOrderInputChange}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      placeholder="Customer's phone number"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-3">Order Details</h4>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="foodId" className="block text-sm text-gray-600 mb-1">
+                      Food Item <span className="text-red-500">*</span>
+                    </label>
+                    {isLoadingFoods ? (
+                      <div className="flex items-center text-gray-500">
+                        <FaSpinner className="animate-spin mr-2" /> Loading food items...
+                      </div>
+                    ) : (
+                      <select
+                        id="foodId"
+                        name="foodId"
+                        value={newOrder.foodId}
+                        onChange={handleFoodSelect}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                        required
+                      >
+                        <option value="">-- Select a food item --</option>
+                        {availableFoods.map(food => (
+                          <option key={food._id} value={food._id} disabled={parseInt(food.foodQuantity) <= 0}>
+                            {food.foodName} - {formatPrice(parseFloat(food.foodPrice))}
+                            {parseInt(food.foodQuantity) <= 0 ? ' (Out of stock)' : ` (${food.foodQuantity} available)`}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="quantity" className="block text-sm text-gray-600 mb-1">
+                      Quantity <span className="text-red-500">*</span>
+                      {selectedFood && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          (Available: {selectedFood.foodQuantity})
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      id="quantity"
+                      name="quantity"
+                      value={newOrder.quantity}
+                      onChange={handleQuantityChange}
+                      min="1"
+                      max={selectedFood ? selectedFood.foodQuantity : undefined}
+                      className={`w-full border ${
+                        quantityError ? 'border-red-500' : 'border-gray-300'
+                      } rounded px-3 py-2 text-sm`}
+                      required
+                    />
+                    {quantityError && (
+                      <p className="text-red-500 text-xs mt-1">{quantityError}</p>
+                    )}
+                  </div>
+                  
+                  {selectedFood && (
+                    <div className="mb-3 p-3 bg-gray-50 rounded-md">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Item Subtotal:</span>
+                        <span>{formatPrice(parseFloat(selectedFood.foodPrice) * newOrder.quantity)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm mt-1">
+                        <span className="text-gray-600">Delivery Fee:</span>
+                        <span>{formatPrice(calculateDeliveryFee(newOrder.deliveryLocation))}</span>
+                      </div>
+                      <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between items-center font-medium">
+                        <span>Total:</span>
+                        <span>{formatPrice(parseFloat(newOrder.totalPrice))}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h4 className="font-medium mb-3">Delivery Information</h4>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="deliveryLocation" className="block text-sm text-gray-600 mb-1">
+                      Delivery Location <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="deliveryLocation"
+                      name="deliveryLocation"
+                      value={newOrder.deliveryLocation}
+                      onChange={handleDeliveryLocationChange}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      required
+                    >
+                      <option value="restaurant">Restaurant (Dine-in)</option>
+                      <option value="emaudo">Emaudo Campus (₦500)</option>
+                      <option value="town">Town (₦1000)</option>
+                      <option value="village">Village (₦1500)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="fullAddress" className="block text-sm text-gray-600 mb-1">
+                      Full Address
+                      {newOrder.deliveryLocation !== 'restaurant' && (
+                        <span className="text-red-500">*</span>
+                      )}
+                    </label>
+                    <textarea
+                      id="fullAddress"
+                      name="fullAddress"
+                      value={newOrder.fullAddress}
+                      onChange={handleOrderInputChange}
+                      rows="3"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      placeholder={newOrder.deliveryLocation === 'restaurant' ? 
+                        "Optional for dine-in orders" : 
+                        "Detailed delivery address"
+                      }
+                      required={newOrder.deliveryLocation !== 'restaurant'}
+                    />
+                    {newOrder.deliveryLocation === 'restaurant' && (
+                      <span className="text-xs text-gray-500">Optional for restaurant dine-in</span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-3">Payment Information</h4>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="paymentMethod" className="block text-sm text-gray-600 mb-1">
+                      Payment Method <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="paymentMethod"
+                      name="paymentMethod"
+                      value={newOrder.paymentMethod}
+                      onChange={handleOrderInputChange}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      required
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="cash">Cash (In Person/POS)</option>
+                      <option value="online">Online</option>
+                    </select>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="paymentStatus" className="block text-sm text-gray-600 mb-1">
+                      Payment Status <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="paymentStatus"
+                      name="paymentStatus"
+                      value={newOrder.paymentStatus}
+                      onChange={handleOrderInputChange}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      required
+                    >
+                      <option value="paid">Paid</option>
+                      <option value="unpaid">Unpaid</option>
+                    </select>
+                  </div>
+                  
+                    <div className="mb-3">
+                      <label htmlFor="status" className="block text-sm text-gray-600 mb-1">
+                        Order Status <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="status"
+                        name="status"
+                        value={newOrder.status}
+                        onChange={handleOrderInputChange}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                        required
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="ready">Ready</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+  
+                <div className="flex justify-end space-x-3 mt-6 border-t border-gray-200 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddOrderModal(false)}
+                    className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingOrder || !!quantityError || (selectedFood && parseInt(newOrder.quantity) > parseInt(selectedFood.foodQuantity))}
+                    className={`px-4 py-2 text-sm ${
+                      isCreatingOrder || quantityError || (selectedFood && parseInt(newOrder.quantity) > parseInt(selectedFood.foodQuantity))
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-yellow-600 hover:bg-yellow-700'
+                    } text-white rounded-lg flex items-center`}
+                  >
+                    {isCreatingOrder ? (
+                      <>
+                        <FaSpinner className="animate-spin mr-2" /> Creating Order...
+                      </>
+                    ) : (
+                      'Create Order'
+                    )}
+                  </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };
