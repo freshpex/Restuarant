@@ -183,7 +183,7 @@ function App() {
                 },
                 {
                     path: "/track-order",
-                    element: <OrderTracking />
+                    element: <PrivateRouter><OrderTracking /></PrivateRouter>
                 },
                 {
                     path: "/track-order/:orderId",

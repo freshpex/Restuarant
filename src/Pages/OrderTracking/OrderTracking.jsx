@@ -6,6 +6,7 @@ import { formatPrice } from '../../utils/formatUtils';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../../redux/selectors';
+import { Link } from 'react-router-dom';
 
 const OrderTracking = () => {
   const navigate = useNavigate();
@@ -61,7 +62,6 @@ const OrderTracking = () => {
       }
       
       const data = await response.json();
-      console.log('Track order response data:', data);
       
       if (!data.success) {
         throw new Error(data.error || 'Order not found');

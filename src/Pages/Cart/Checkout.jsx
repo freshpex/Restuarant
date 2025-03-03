@@ -328,11 +328,12 @@ const Checkout = () => {
           total: grandTotal,
           paymentStatus: 'processing',
           paymentMethod: 'online',
-          buyerName: user?.displayName || '',
-          email: user?.email || '',
-          userEmail: user?.email || '',
+          buyerName: isGuest ? guestName : user?.displayName || '',
+          email: isGuest ? guestEmail : user?.email || '',
+          userEmail: isGuest ? guestEmail : user?.email || '',
           phone: phoneNumber.trim(),
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split('T')[0],
+          isGuestOrder: isGuest
         };
         
         const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
@@ -359,6 +360,14 @@ const Checkout = () => {
     };
     
     const initiatePayment = (orderId, orderReference) => {
+      const customerEmail = isGuest 
+        ? (guestEmail || 'guest@timskitchen.com')
+        : (user?.email || 'customer@timskitchen.com');
+        
+      const customerName = isGuest
+        ? (guestName || 'Guest Customer') 
+        : (user?.displayName || 'Customer');
+      
       const config = {
         public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
         tx_ref: orderReference,
@@ -366,9 +375,9 @@ const Checkout = () => {
         currency: 'NGN',
         payment_options: 'card,mobilemoney,ussd,banktransfer',
         customer: {
-          email: user?.email || '',
+          email: customerEmail,
           phone_number: phoneNumber.trim(),
-          name: user?.displayName || '',
+          name: customerName,
         },
         customizations: {
           title: "Tim's Kitchen Cart Checkout",
@@ -377,7 +386,8 @@ const Checkout = () => {
         },
         meta: {
           orderId: orderId,
-          orderReference: orderReference
+          orderReference: orderReference,
+          isGuestOrder: isGuest
         }
       };
       
@@ -515,6 +525,65 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Add guest name input field */}
+              {isGuest && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Guest Information</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="mb-4">
+                      <label htmlFor="guestName" className="block mb-2 text-sm font-medium text-gray-700">
+                        Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="guestName"
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5"
+                        placeholder="Enter your full name"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label htmlFor="guestEmail" className="block mb-2 text-sm font-medium text-gray-700">
+                        Email Address <span className="text-gray-500">(optional)</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="guestEmail"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5"
+                        placeholder="Enter your email address"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Your order confirmation and tracking details will be sent here if provided
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
+                      <div className="flex">
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-blue-800">Create an account for a better experience!</h3>
+                          <div className="mt-2 text-sm text-blue-700">
+                            <p>Sign up to track your orders easily, save your delivery details, and get exclusive offers.</p>
+                            <div className="mt-3">
+                              <Link 
+                                to="/signup" 
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium inline-block"
+                              >
+                                Create Account
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
