@@ -28,6 +28,15 @@ const MaterialsTable = ({
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="overflow-x-auto">
@@ -89,6 +98,19 @@ const MaterialsTable = ({
                   )}
                 </div>
               </th>
+              <th
+                onClick={() => handleSort('createdAt')}
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              >
+                <div className="flex items-center">
+                  Added Date
+                  {sortField === 'createdAt' && (
+                    sortDirection === 'asc' ?
+                      <FaSortAmountUp className="ml-1" /> :
+                      <FaSortAmountDown className="ml-1" />
+                  )}
+                </div>
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
@@ -102,7 +124,7 @@ const MaterialsTable = ({
           <tbody className="bg-white divide-y divide-gray-200">
             {materials.length === 0 ? (
               <tr>
-                <td colSpan={canEditDelete ? 7 : 6} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={canEditDelete ? 8 : 7} className="px-6 py-4 text-center text-gray-500">
                   <div className="flex flex-col items-center">
                     <FaBoxOpen className="text-4xl mb-2 text-gray-300" />
                     <p>No raw materials found</p>
@@ -160,6 +182,9 @@ const MaterialsTable = ({
                       ) : (
                         <span className="text-sm text-gray-500">-</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(material.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs leading-5 font-medium rounded-full flex items-center justify-center w-fit ${statusColor}`}>

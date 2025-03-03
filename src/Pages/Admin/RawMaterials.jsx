@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
 import { 
   FaPlus, FaSearch, FaSpinner, FaExclamationTriangle, 
-  FaFilter, FaDownload, FaBoxOpen 
+  FaFilter, FaDownload, FaBoxOpen, FaCalendarAlt, FaTimes
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken, selectCurrentUser } from '../../redux/selectors';
@@ -24,6 +24,11 @@ const RawMaterials = () => {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [dateFilterActive, setDateFilterActive] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   const [formValues, setFormValues] = useState({
     name: '',
@@ -55,7 +60,17 @@ const RawMaterials = () => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/staff/raw-materials`, {
+      let url = `${API_URL}/staff/raw-materials`;
+      
+      // Add date filters if active
+      if (dateFilterActive && (startDate || endDate)) {
+        url += '?';
+        if (startDate) url += `startDate=${startDate}`;
+        if (startDate && endDate) url += '&';
+        if (endDate) url += `endDate=${endDate}`;
+      }
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -126,6 +141,8 @@ const RawMaterials = () => {
       return;
     }
     
+    setSubmitting(true); // Start loading
+    
     try {
       if (editingMaterial) {
         // Update existing material
@@ -180,11 +197,15 @@ const RawMaterials = () => {
     } catch (error) {
       console.error('Error saving material:', error);
       toast.error(error.message || 'Error saving raw material');
+    } finally {
+      setSubmitting(false); // End loading regardless of outcome
     }
   };
 
   const handleDelete = async () => {
     if (!deleteConfirmation) return;
+    
+    setDeleting(true); // Start loading
     
     try {
       const response = await fetch(`${API_URL}/staff/raw-materials/${deleteConfirmation._id}`, {
@@ -207,6 +228,8 @@ const RawMaterials = () => {
     } catch (error) {
       console.error('Error deleting material:', error);
       toast.error(error.message || 'Error deleting raw material');
+    } finally {
+      setDeleting(false); // End loading regardless of outcome
     }
   };
 
@@ -217,6 +240,23 @@ const RawMaterials = () => {
       setSortField(field);
       setSortDirection('asc');
     }
+  };
+
+  const applyDateFilter = () => {
+    if (!startDate && !endDate) {
+      toast.error('Please select at least one date');
+      return;
+    }
+    
+    setDateFilterActive(true);
+    fetchMaterials();
+  };
+  
+  const clearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+    setDateFilterActive(false);
+    fetchMaterials();
   };
 
   const filteredAndSortedMaterials = materials
@@ -317,6 +357,26 @@ const RawMaterials = () => {
             </div>
             
             <button
+              onClick={() => document.getElementById('dateFilterPanel').classList.toggle('hidden')}
+              className={`px-4 py-2 rounded-lg flex items-center text-sm ${
+                dateFilterActive 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <FaCalendarAlt className="mr-2" /> Date Filter
+              {dateFilterActive && (
+                <FaTimes 
+                  className="ml-1 text-white" 
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    clearDateFilter();
+                  }}
+                />
+              )}
+            </button>
+            
+            <button
               onClick={() => setFilterLowStock(!filterLowStock)}
               className={`px-4 py-2 rounded-lg flex items-center text-sm ${
                 filterLowStock 
@@ -341,6 +401,66 @@ const RawMaterials = () => {
               <FaPlus className="mr-2" /> Add Material
             </button>
           </div>
+        </div>
+        
+        <div id="dateFilterPanel" className="bg-white p-4 rounded-lg shadow-md mb-6 hidden">
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                From Date
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+                To Date
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+              />
+            </div>
+            
+            <div className="mt-5">
+              <button
+                onClick={applyDateFilter}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center text-sm"
+              >
+                Apply Filter
+              </button>
+            </div>
+            
+            <div className="mt-5">
+              <button
+                onClick={clearDateFilter}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg flex items-center text-sm"
+              >
+                Clear Filter
+              </button>
+            </div>
+          </div>
+          
+          {dateFilterActive && (
+            <div className="mt-2 text-sm text-gray-600">
+              Currently filtering: {startDate && endDate 
+                ? `From ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`
+                : startDate
+                ? `From ${new Date(startDate).toLocaleDateString()}`
+                : `Until ${new Date(endDate).toLocaleDateString()}`
+              }
+            </div>
+          )}
         </div>
         
         {loading ? (
@@ -377,6 +497,7 @@ const RawMaterials = () => {
           onSubmit={handleSubmit}
           onCancel={() => setShowAddModal(false)}
           isEditing={!!editingMaterial}
+          isSubmitting={submitting}
         />
       </Modal>
 
@@ -388,6 +509,7 @@ const RawMaterials = () => {
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirmation(null)}
         confirmButtonClass="bg-red-600 hover:bg-red-700"
+        isSubmitting={deleting}
       />
     </>
   );
