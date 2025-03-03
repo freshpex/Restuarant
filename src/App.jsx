@@ -46,6 +46,12 @@ import OrderSuccess from './Pages/Cart/OrderSuccess';
 import Contact from "./Pages/Contact/Contact";
 import Events from "./Pages/Events/Events";
 import OrderTracking from './Pages/OrderTracking/OrderTracking';
+import StaffRoute from './Components/StaffRoute';
+import StaffDashboard from './Pages/Staff/StaffDashboard';
+import StaffOrders from './Pages/Staff/StaffOrders';
+import StaffFoods from './Pages/Staff/StaffFoods';
+import StaffAddOrder from './Pages/Staff/StaffAddOrder';
+import StaffActivities from './Pages/Admin/StaffActivities';
 
 function App() {
     const dispatch = useDispatch();
@@ -120,7 +126,7 @@ function App() {
                 },
                 {
                     path: "/addFood",
-                    element: <AdminRoute><AddFood /></AdminRoute>
+                    element: <PrivateRouter><AddFood /></PrivateRouter>
                 },
                 {
                     path: "/orderFood",
@@ -208,6 +214,32 @@ function App() {
                     path: 'analytics',
                     element: <Analytics />
                 },
+                {
+                    path: 'staff-activities',
+                    element: <StaffActivities />
+                },
+            ]
+        },
+        {
+            path: '/staff',
+            element: <StaffRoute />,
+            children: [
+                {
+                    path: 'dashboard',
+                    element: <StaffDashboard />
+                },
+                {
+                    path: 'orders',
+                    element: <StaffOrders />
+                },
+                {
+                    path: 'foods',
+                    element: <StaffFoods />
+                },
+                {
+                    path: 'add-order',
+                    element: <StaffAddOrder />
+                }
             ]
         }
     ]);

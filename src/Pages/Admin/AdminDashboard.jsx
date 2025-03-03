@@ -3,7 +3,8 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { 
   FaUsers, FaUtensils, FaChartLine, FaShoppingCart, 
-  FaTachometerAlt, FaBars, FaTimes, FaDoorOpen 
+  FaTachometerAlt, FaBars, FaTimes, FaSignOutAlt,
+  FaUserClock
 } from 'react-icons/fa';
 
 const AdminDashboard = () => {
@@ -111,24 +112,25 @@ const AdminDashboard = () => {
             </Link>
 
             <Link 
-              to="/"
+              to="/admin/staff-activities" 
+              className={`flex items-center px-4 py-3 rounded-lg ml-4 ${
+                isActive('/admin/staff-activities') ? 'bg-yellow-600 text-white' : 'text-gray-300 hover:bg-gray-800'
+              }`}
               onClick={closeSidebar}
-              className="my-8"
             >
-              Go Back
-              <FaDoorOpen />              
+              <FaUserClock className="mr-3" />
+              Staff Activities
+            </Link>
+
+            <Link 
+              to="/"
+              className="w-full flex items-center px-4 py-2 rounded-lg text-yellow-100 hover:bg-yellow-900 transition-colors"
+            >
+              <FaSignOutAlt className="mr-3" />
+              Home
             </Link>
           </nav>
           
-          <div className="absolute bottom-0 left-0 p-4 w-full">
-            <Link
-              to="/"
-              className="flex items-center text-sm text-gray-400 hover:text-white"
-              onClick={closeSidebar}
-            >
-              Back to Main Site
-            </Link>
-          </div>
         </div>
         
         {/* Overlay for mobile when sidebar is open */}

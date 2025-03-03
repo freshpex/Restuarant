@@ -245,7 +245,7 @@ const Analytics = () => {
       }
 
       const data = await response.json();
-      setSalesBreakdown(data.sales || []);
+      setSalesBreakdown(data.sales.byPaymentMethod || []);
     } catch (error) {
       console.error('Error fetching sales breakdown:', error);
     }

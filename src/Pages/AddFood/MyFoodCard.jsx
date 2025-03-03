@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { Helmet } from 'react-helmet';
 import {
     Card,
@@ -9,7 +8,11 @@ import {
     Button,
   } from "@material-tailwind/react";
 import { Link } from 'react-router-dom';
+import { selectIsAdmin } from '../../redux/selectors';
+
 const MyFoodCard = ({display}) => {
+  const isAdmin = useSelector(selectIsAdmin);
+  
     return (
         <>
         
@@ -53,25 +56,27 @@ const MyFoodCard = ({display}) => {
         <Typography color="gray" className="mb-8 font-normal">
           {display.foodDescription}
         </Typography>
-        <Link to={`/update/${display._id}`}   className="inline-block">
-          <Button variant="text" className="flex hover:bg-yellow-700 items-center gap-1">
-            Update Food
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="h-4 w-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"
-              />
-            </svg>
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link to={`/update/${display._id}`}   className="inline-block">
+            <Button variant="text" className="flex hover:bg-yellow-700 items-center gap-1">
+              Update Food
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-4 w-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"
+                />
+              </svg>
+            </Button>
+          </Link>
+        )}
       </CardBody>
     </Card>
         </div>
