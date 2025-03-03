@@ -40,7 +40,7 @@ const StaffAddOrder = () => {
   const fetchAvailableFoods = async () => {
     try {
       setIsLoadingFoods(true);
-      const response = await fetch(`${API_URL}/admin/foods`, {
+      const response = await fetch(`${API_URL}/staff/foods`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,14 +74,12 @@ const StaffAddOrder = () => {
     const selected = availableFoods.find(food => food._id === foodId);
     
     if (selected) {
-      // Reset quantity to 1 or available quantity, whichever is smaller
       const availableQty = parseInt(selected.foodQuantity) || 0;
       const safeQuantity = Math.min(1, availableQty);
       
       setSelectedFood(selected);
-      setQuantityError(''); // Clear any previous quantity errors
+      setQuantityError('');
       
-      // Calculate with delivery fee based on current location
       const subtotal = parseFloat(selected.foodPrice) * safeQuantity;
       const deliveryFee = calculateDeliveryFee(newOrder.deliveryLocation);
       const total = subtotal + deliveryFee;
@@ -115,7 +113,6 @@ const StaffAddOrder = () => {
     if (selectedFood) {
       const availableQty = parseInt(selectedFood.foodQuantity) || 0;
       
-      // Check if requested quantity exceeds available quantity
       if (requestedQuantity > availableQty) {
         setQuantityError(`Only ${availableQty} available in inventory`);
       } else if (requestedQuantity <= 0) {
@@ -124,7 +121,6 @@ const StaffAddOrder = () => {
         setQuantityError('');
       }
       
-      // Calculate totals with delivery fee
       const subtotal = parseFloat(selectedFood.foodPrice) * requestedQuantity;
       const deliveryFee = calculateDeliveryFee(newOrder.deliveryLocation);
       const total = subtotal + deliveryFee;
@@ -146,7 +142,7 @@ const StaffAddOrder = () => {
     const location = e.target.value;
     const deliveryFee = calculateDeliveryFee(location);
     
-    // Recalculate total price if food is selected
+    
     if (selectedFood) {
       const subtotal = parseFloat(selectedFood.foodPrice) * newOrder.quantity;
       const total = subtotal + deliveryFee;
@@ -181,13 +177,11 @@ const StaffAddOrder = () => {
   const createOrder = async (e) => {
     e.preventDefault();
     
-    // Validate form
     if (!newOrder.buyerName || !newOrder.foodId || !newOrder.phone) {
       toast.error('Please fill in all required fields');
       return;
     }
     
-    // Check quantity validation
     if (quantityError) {
       toast.error('Please fix the quantity issues before submitting');
       return;
@@ -201,16 +195,13 @@ const StaffAddOrder = () => {
     try {
       setIsCreatingOrder(true);
       
-      // Ensure emails match if not set
       if (!newOrder.userEmail) {
         newOrder.userEmail = newOrder.email || 'walkin@guest.com';
       }
       
-      // Calculate totals
       const subtotal = parseFloat(newOrder.foodPrice) * newOrder.quantity;
       const deliveryFee = calculateDeliveryFee(newOrder.deliveryLocation);
       
-      // Create the order to send to the API
       const orderData = {
         ...newOrder,
         deliveryFee,
@@ -218,7 +209,7 @@ const StaffAddOrder = () => {
         totalPrice: (subtotal + deliveryFee).toFixed(2)
       };
       
-      const response = await fetch(`${API_URL}/admin/create-order`, {
+      const response = await fetch(`${API_URL}/staff/create-order`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

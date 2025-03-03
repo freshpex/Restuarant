@@ -29,7 +29,7 @@ const StaffFoods = () => {
   const fetchFoods = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/admin/foods`, {
+      const response = await fetch(`${API_URL}/staff/foods`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -50,7 +50,7 @@ const StaffOrders = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/admin/orders`, {
+      const response = await fetch(`${API_URL}/staff/orders`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,7 +74,7 @@ const StaffOrders = () => {
   const updateOrderStatus = async (orderId, status) => {
     try {
       setUpdatingOrderId(orderId);
-      const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
+      const response = await fetch(`${API_URL}/staff/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

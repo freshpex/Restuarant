@@ -4,16 +4,22 @@ import { Helmet } from 'react-helmet';
 import { 
   FaUserClock, FaUtensils, FaClipboardList, FaEdit, 
   FaCalendarAlt, FaSpinner, FaUserTag, FaChartBar,
-  FaCashRegister, FaUserTie
+  FaCashRegister, FaUserTie, FaMoneyBillWave, FaTruck,
+  FaCheck, FaExclamationCircle, FaShoppingBag, FaHistory
 } from 'react-icons/fa';
 import { selectToken, selectCurrentUser } from '../../redux/selectors';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 
 const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
   const [error, setError] = useState(null);
+  const [displayCount, setDisplayCount] = useState({
+    food: 5,
+    orders: 5,
+    updates: 6
+  });
   
   const token = useSelector(selectToken);
   const currentUser = useSelector(selectCurrentUser);
@@ -137,6 +143,13 @@ const StaffDashboard = () => {
       default:
         return role || 'Staff';
     }
+  };
+
+  const loadMore = (section) => {
+    setDisplayCount(prev => ({
+      ...prev,
+      [section]: prev[section] + 5
+    }));
   };
   
   if (loading) {
@@ -280,62 +293,229 @@ const StaffDashboard = () => {
           </div>
         </div>
         
-        {/* Recent Activity Timeline */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="font-semibold text-xl text-gray-800 mb-4">Recent Activity</h2>
-          <div className="space-y-4">
-            {dashboardData?.activity?.recent?.map((activity, index) => (
-              <div key={index} className="flex gap-3 border-b border-gray-100 pb-4 last:border-0">
-                <div className="mt-1">
-                  {getActivityIcon(activity.activityType)}
-                </div>
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                    <h3 className="font-medium text-gray-900">{formatActivityType(activity.activityType)}</h3>
-                    <span className="text-sm text-gray-500">{formatTime(activity.timestamp)}</span>
-                  </div>
-                  
-                  {activity.details?.endpoint && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      {activity.details?.method} {activity.details?.endpoint}
-                    </p>
-                  )}
-                  
-                  {activity.activityType === 'food_added' && (
-                    <div className="mt-1 bg-gray-50 p-2 rounded text-sm">
-                      <p className="font-medium">{activity.details?.foodName}</p>
-                      <div className="flex justify-between mt-1">
-                        <span>Price: ₦{activity.details?.foodPrice}</span>
-                        <span>Quantity: {activity.details?.foodQuantity}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {(activity.activityType === 'order_status_updated' || 
-                    activity.activityType === 'order_payment_updated') && (
-                    <div className="mt-1 bg-gray-50 p-2 rounded text-sm">
-                      <div className="flex justify-between">
-                        <span>Order: {activity.details?.orderId?.substring(0, 8)}</span>
-                        <span>Customer: {activity.details?.orderDetails?.customer}</span>
-                      </div>
-                      {activity.activityType === 'order_status_updated' && (
-                        <p className="mt-1">
-                          Status changed from <span className="font-medium">{activity.details?.oldStatus}</span> to <span className="font-medium">{activity.details?.newStatus}</span>
-                        </p>
-                      )}
-                      {activity.activityType === 'order_payment_updated' && (
-                        <p className="mt-1">
-                          Payment status: <span className="font-medium">{activity.details?.newPaymentStatus}</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="font-semibold text-xl text-gray-800 mb-4 flex items-center">
+              <FaUtensils className="mr-2 text-yellow-600" /> Food Activities
+            </h2>
             
-            {(!dashboardData?.activity?.recent || dashboardData.activity.recent.length === 0) && (
-              <p className="text-center text-gray-500 py-6">No recent activity found</p>
+            <div className="space-y-4">
+              {dashboardData?.activity?.food && dashboardData.activity.food.length > 0 ? (
+                <>
+                  {dashboardData.activity.food
+                    .slice(0, displayCount.food)
+                    .map((activity, index) => (
+                    <div key={index} className="border-l-4 border-green-500 pl-4 py-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">Added: {activity.details?.foodName || 'Food item'}</h3>
+                          <p className="text-sm text-gray-500">
+                            Price: ₦{activity.details?.foodPrice || '0'} • Quantity: {activity.details?.foodQuantity || '0'}
+                          </p>
+                          {activity.details?.foodCategory && (
+                            <span className="text-xs bg-green-100 text-green-800 rounded-full px-2 py-1 mt-1 inline-block">
+                              {activity.details.foodCategory}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                          {activity.timestamp ? format(new Date(activity.timestamp), 'MMM d, h:mm a') : 'Unknown date'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {dashboardData.activity.food.length > displayCount.food && (
+                    <div className="text-center mt-3">
+                      <button 
+                        onClick={() => loadMore('food')}
+                        className="text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center mx-auto"
+                      >
+                        <FaHistory className="mr-1" /> View More ({dashboardData.activity.food.length - displayCount.food} remaining)
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <FaUtensils className="mx-auto mb-2 text-gray-300 text-2xl" />
+                  <p>No recent food activities</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Order Creation Activities */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="font-semibold text-xl text-gray-800 mb-4 flex items-center">
+              <FaClipboardList className="mr-2 text-yellow-600" /> New Orders
+            </h2>
+            
+            <div className="space-y-4">
+              {dashboardData?.activity?.orders && dashboardData.activity.orders.filter(a => a.activityType === 'order_created').length > 0 ? (
+                <>
+                  {dashboardData.activity.orders
+                    .filter(a => a.activityType === 'order_created')
+                    .slice(0, displayCount.orders)
+                    .map((activity, index) => (
+                      <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              Customer: {activity.details?.customerName || 'Unknown'}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Order #{activity.details?.orderReference?.slice(-6) || activity.details?.orderId?.slice(0, 6) || 'New order'}
+                            </p>
+                            <p className="text-sm font-medium text-green-600 mt-1">
+                              Amount: ₦{activity.details?.totalAmount || '0.00'}
+                            </p>
+                          </div>
+                          <span className="text-xs text-gray-500 whitespace-nowrap">
+                            {activity.timestamp ? format(new Date(activity.timestamp), 'MMM d, h:mm a') : 'Unknown date'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                  {dashboardData.activity.orders.filter(a => a.activityType === 'order_created').length > displayCount.orders && (
+                    <div className="text-center mt-3">
+                      <button 
+                        onClick={() => loadMore('orders')}
+                        className="text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center mx-auto"
+                      >
+                        <FaHistory className="mr-1" /> View More ({dashboardData.activity.orders.filter(a => a.activityType === 'order_created').length - displayCount.orders} remaining)
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <FaClipboardList className="mx-auto mb-2 text-gray-300 text-2xl" />
+                  <p>No recent order creations</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Order Update Activities */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h2 className="font-semibold text-xl text-gray-800 mb-4 flex items-center">
+            <FaEdit className="mr-2 text-yellow-600" /> Recent Order Updates
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {dashboardData?.activity?.orders && 
+             dashboardData.activity.orders.filter(a => 
+               a.activityType === 'order_status_updated' || 
+               a.activityType === 'order_payment_updated'
+             ).length > 0 ? (
+              <>
+                {dashboardData.activity.orders
+                  .filter(a => a.activityType === 'order_status_updated' || a.activityType === 'order_payment_updated')
+                  .slice(0, displayCount.updates)
+                  .map((activity, index) => {
+                    let borderColor = 'border-gray-300';
+                    let icon = <FaEdit className="text-gray-500" />;
+                    
+                    if (activity.activityType === 'order_status_updated') {
+                      if (activity.details?.newStatus === 'delivered') {
+                        borderColor = 'border-green-500';
+                        icon = <FaCheck className="text-green-500" />;
+                      } else if (activity.details?.newStatus === 'cancelled') {
+                        borderColor = 'border-red-500';
+                        icon = <FaExclamationCircle className="text-red-500" />;
+                      } else if (activity.details?.newStatus === 'preparing') {
+                        borderColor = 'border-blue-500';
+                        icon = <FaUtensils className="text-blue-500" />;
+                      } else if (activity.details?.newStatus === 'ready') {
+                        borderColor = 'border-purple-500';
+                        icon = <FaTruck className="text-purple-500" />;
+                      }
+                    } else if (activity.activityType === 'order_payment_updated') {
+                      if (activity.details?.newPaymentStatus === 'paid') {
+                        borderColor = 'border-green-500';
+                        icon = <FaMoneyBillWave className="text-green-500" />;
+                      }
+                    }
+                    
+                    return (
+                      <div key={index} className={`border-l-4 ${borderColor} pl-4 py-3 bg-gray-50 rounded`}>
+                        <div className="flex items-center gap-3">
+                          <div className="mt-0.5">
+                            {icon}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                {activity.activityType === 'order_status_updated' ? (
+                                  <p className="font-medium text-gray-900">
+                                    Status: <span className="capitalize">{activity.details?.oldStatus || 'pending'}</span> → <span className="capitalize font-semibold">{activity.details?.newStatus}</span>
+                                  </p>
+                                ) : (
+                                  <p className="font-medium text-gray-900">
+                                    Payment marked as <span className="font-semibold text-green-600">paid</span>
+                                  </p>
+                                )}
+                                
+                                <p className="text-sm">
+                                  <span className="text-gray-600">
+                                    {activity.details?.orderDetails?.customer || 'Customer'}
+                                  </span>
+                                  {activity.details?.orderId && (
+                                    <span className="text-xs bg-gray-100 rounded ml-2 px-2 py-0.5">
+                                      #{activity.details.orderId.substring(0, 6)}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                {activity.timestamp ? formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true }) : 'Recently'}
+                              </span>
+                            </div>
+                            
+                            {activity.details?.orderDetails?.items && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {activity.details.orderDetails.items}
+                              </p>
+                            )}
+                            
+                            {activity.details?.orderDetails?.total && (
+                              <p className="text-xs font-medium text-gray-800 mt-1">
+                                Total: ₦{activity.details.orderDetails.total}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                {dashboardData.activity.orders.filter(a => 
+                  a.activityType === 'order_status_updated' || 
+                  a.activityType === 'order_payment_updated'
+                ).length > displayCount.updates && (
+                  <div className="col-span-2 text-center mt-3">
+                    <button 
+                      onClick={() => loadMore('updates')}
+                      className="text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center mx-auto"
+                    >
+                      <FaHistory className="mr-1" /> View More ({
+                        dashboardData.activity.orders.filter(a => 
+                          a.activityType === 'order_status_updated' || 
+                          a.activityType === 'order_payment_updated'
+                        ).length - displayCount.updates} remaining)
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="col-span-2 text-center py-8 text-gray-500">
+                <FaHistory className="mx-auto mb-2 text-gray-300 text-3xl" />
+                <p>No recent order updates</p>
+                <p className="text-sm mt-2">Order status and payment updates will appear here</p>
+              </div>
             )}
           </div>
         </div>

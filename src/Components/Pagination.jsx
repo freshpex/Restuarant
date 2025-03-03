@@ -30,21 +30,6 @@ const Pagination = ({
     }
   };
 
-  const renderPageButton = (pageNumber) => (
-    <button
-      key={pageNumber}
-      onClick={() => goToPage(pageNumber)}
-      className={`flex items-center justify-center w-8 h-8 mx-1 rounded-md
-        ${pageNumber === currentPage
-          ? 'bg-yellow-600 text-white font-bold'
-          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-        }`}
-      disabled={pageNumber === currentPage}
-    >
-      {pageNumber}
-    </button>
-  );
-
   return (
     <div className="flex items-center justify-center mt-6 mb-4">
       {/* First page button */}
@@ -73,14 +58,25 @@ const Pagination = ({
       )}
 
       {/* Page number buttons */}
-      {pageNumbers.map(renderPageButton)}
+      {pageNumbers.map(number => (
+        <button
+          key={number}
+          onClick={() => goToPage(number)}
+          className={`flex items-center justify-center w-8 h-8 mx-1 rounded-md
+            ${number === currentPage
+              ? 'bg-yellow-600 text-white font-medium'
+              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            }`}
+          disabled={number === currentPage}
+        >
+          {number}
+        </button>
+      ))}
 
-      {/* Show ellipsis if there are pages after the end */}
       {endPage < totalPages && (
         <span className="flex items-center justify-center w-8 h-8 mx-1">...</span>
       )}
 
-      {/* Next page button */}
       <button
         onClick={() => goToPage(currentPage + 1)}
         disabled={currentPage === totalPages}
@@ -90,7 +86,6 @@ const Pagination = ({
         <FaAngleRight size={14} />
       </button>
       
-      {/* Last page button */}
       <button
         onClick={() => goToPage(totalPages)}
         disabled={currentPage === totalPages}

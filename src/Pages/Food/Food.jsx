@@ -269,7 +269,7 @@ const Food = () => {
                                 )}
                                 
                                 {/* Category filter */}
-                                <div className="mt-4 w-full max-w-[350px]">
+                                <div className="relative left-0">
                                     <select 
                                         value={selectedCategory}
                                         onChange={handleCategoryChange}

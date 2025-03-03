@@ -22,8 +22,7 @@ const StaffActivities = () => {
   const [filterType, setFilterType] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalActivities, setTotalActivities] = useState(0);
-  const [filteredActivities, setFilteredActivities] = useState([]);
+  const [paginatedActivities, setPaginatedActivities] = useState([]);
   
   const ITEMS_PER_PAGE = 10;
   
@@ -38,7 +37,7 @@ const StaffActivities = () => {
   
   useEffect(() => {
     fetchStaffActivities();
-  }, [startDate, endDate, filterType, currentPage]);
+  }, [startDate, endDate, filterType]);
   
   const fetchStaffActivities = async () => {
     try {
@@ -49,7 +48,6 @@ const StaffActivities = () => {
         url += `&type=${filterType}`;
       }
       
-      // Add search parameter if search term exists
       if (searchTerm) {
         url += `&search=${encodeURIComponent(searchTerm)}`;
       }
@@ -66,18 +64,9 @@ const StaffActivities = () => {
       }
 
       const data = await response.json();
-      const allActivities = data.activities || [];
+      setActivities(data.activities || []);
       
-      setTotalActivities(allActivities.length);
-      
-      const paginatedActivities = paginateData(allActivities, currentPage, ITEMS_PER_PAGE);
-      setActivities(allActivities);
-      setFilteredActivities(paginatedActivities);
-      
-      const totalPages = Math.ceil(allActivities.length / ITEMS_PER_PAGE);
-      if (currentPage > totalPages && totalPages > 0) {
-        setCurrentPage(1);
-      }
+      setCurrentPage(1);
     } catch (error) {
       console.error('Error fetching staff activities:', error);
       toast.error('Failed to load staff activities');
@@ -87,12 +76,13 @@ const StaffActivities = () => {
     }
   };
   
-  const paginateData = (data, page, itemsPerPage) => {
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return data.slice(startIndex, endIndex);
-  };
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    setPaginatedActivities(activities.slice(startIndex, endIndex));
+  }, [activities, currentPage]);
   
+  // Apply search filter
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchStaffActivities();
@@ -101,21 +91,17 @@ const StaffActivities = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
   
-  useEffect(() => {
-    setFilteredActivities(paginateData(activities, currentPage, ITEMS_PER_PAGE));
-  }, [currentPage, activities]);
-  
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [startDate, endDate, filterType, searchTerm]);
-  
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
-  
   const formatTime = (timestamp) => {
     if (!timestamp) return 'N/A';
     return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+  };
+  
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    document.querySelector('.bg-white.p-6.rounded-lg.shadow-md').scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    });
   };
   
   const formatActivityType = (type) => {
@@ -370,12 +356,12 @@ const StaffActivities = () => {
           <div className="flex justify-between mt-4">
             <div className="flex items-center">
               <span className="text-sm text-gray-600 mr-3">
-                {totalActivities} activities found
+                {activities.length} activities found
               </span>
             </div>
             
             <div className="flex space-x-2">
-              {totalActivities > 0 && (
+              {activities.length > 0 && (
                 <button
                   onClick={deleteAllActivities}
                   disabled={isDeleting}
@@ -384,7 +370,7 @@ const StaffActivities = () => {
                   {isDeleting ? (
                     <FaSpinner className="animate-spin mr-1" />
                   ) : (
-                    <FaTrash className="mr-1" />
+                    <FaTrash />
                   )}
                   Delete All
                 </button>
@@ -412,10 +398,10 @@ const StaffActivities = () => {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="font-semibold text-xl text-gray-800 mb-4">Activity Log</h2>
             
-            {filteredActivities.length > 0 ? (
+            {activities.length > 0 ? (
               <>
                 <div className="space-y-6">
-                  {filteredActivities.map((activity, index) => (
+                  {paginatedActivities.map((activity, index) => (
                     <div key={index} className={`flex gap-3 border-b border-gray-100 pb-6 last:border-0 ${activity.isDeletionRecord ? 'bg-red-50 p-3 rounded' : ''}`}>
                       <div className="mt-1">
                         {getActivityIcon(activity.activityType)}
@@ -497,9 +483,9 @@ const StaffActivities = () => {
                 </div>
                 
                 {/* Pagination component */}
-                <Pagination
+                <Pagination 
                   currentPage={currentPage}
-                  totalItems={totalActivities}
+                  totalItems={activities.length}
                   itemsPerPage={ITEMS_PER_PAGE}
                   onPageChange={handlePageChange}
                 />
