@@ -180,18 +180,18 @@ const Checkout = () => {
   };
   
   const handlePaymentSuccess = (response) => {
-    toast.success('Payment successful! Redirecting...');
-    
-    navigate('/order-success', { 
-      state: { 
-        orderId: `temp-${Date.now()}`,
-        isPaid: true,
-        contactPhone: phoneNumber.trim(),
-        isProcessing: true
+    toast.promise(
+      updateOrderPaymentStatus(response),
+      {
+        loading: 'Confirming payment...',
+        success: 'Payment confirmed! Redirecting...',
+        error: 'Payment verification issue. Your payment may still be processing.',
       }
-    });
-    
-    setTimeout(() => {
+    );
+  };
+
+  const updateOrderPaymentStatus = async (paymentResponse) => {
+    try {
       const orderData = {
         items: cartItems.map(item => ({
           foodId: item._id,
@@ -207,8 +207,8 @@ const Checkout = () => {
         subtotal: totalAmount,
         total: grandTotal,
         paymentMethod: 'online',
-        paymentStatus: 'paid',
-        transactionRef: response?.transaction_id || null,
+        paymentStatus: paymentResponse?.status === 'successful' || paymentResponse?.status === 'completed' ? 'paid' : 'processing',
+        transactionRef: paymentResponse?.transaction_id || null,
         buyerName: user?.displayName || '',
         email: user?.email || '',
         userEmail: user?.email || '',
@@ -216,39 +216,66 @@ const Checkout = () => {
         date: new Date().toISOString().split('T')[0]
       };
       
-      // Clear cart immediately
       dispatch(clearCart());
       
-      fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+      const orderResponse = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(orderData)
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to place order');
-        }
-        return response.json();
-      })
-      .then(data => {
-        navigate('/order-success', { 
-          state: { 
-            orderId: data.orderId,
-            orderReference: data.orderReference,
-            isPaid: true,
-            contactPhone: phoneNumber.trim()
-          }
-        }, { replace: true });
-      })
-      .catch(error => {
-        console.error('Background order processing error:', error);
       });
-    }, 300);
+      
+      if (!orderResponse.ok) {
+        throw new Error('Failed to create order');
+      }
+      
+      const orderResult = await orderResponse.json();
+      const { orderId, orderReference } = orderResult;
+      
+      const paymentUpdateResponse = await fetch(`${import.meta.env.VITE_API_URL}/orders/${orderId}/payment`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          paymentStatus: 'paid',
+          transactionRef: paymentResponse.transaction_id
+        })
+      });
+      
+      if (!paymentUpdateResponse.ok) {
+        console.error('Payment status update failed but order was created');
+      }
+      
+      navigate('/order-success', { 
+        state: { 
+          orderId: orderId,
+          orderReference: orderReference,
+          isPaid: true,
+          contactPhone: phoneNumber.trim()
+        }
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      
+      navigate('/order-success', { 
+        state: { 
+          orderId: `temp-${Date.now()}`,
+          isPaid: false,
+          paymentPending: true,
+          contactPhone: phoneNumber.trim()
+        }
+      });
+      
+      throw error;
+    }
   };
-  
+
   const handlePayOnline = () => {
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
@@ -303,7 +330,6 @@ const Checkout = () => {
         
         const data = await response.json();
         
-        // Now proceed with payment using the real orderId
         initiatePayment(data.orderId, data.orderReference);
       } catch (error) {
         toast.error(error.message || 'Failed to initialize order');
@@ -341,17 +367,7 @@ const Checkout = () => {
           closePaymentModal();
           
           if (response.status === "successful" || response.status === "completed") {
-            updateOrderPaymentStatus(orderId, response.transaction_id);
-            
-            dispatch(clearCart());
-            navigate('/order-success', { 
-              state: { 
-                orderId: orderId,
-                orderReference: orderReference,
-                isPaid: true,
-                contactPhone: phoneNumber.trim()
-              }
-            });
+            handlePaymentSuccess(response);
           } else {
             toast.error('Payment was not completed successfully.');
             setProcessingPayment(false);
@@ -362,24 +378,6 @@ const Checkout = () => {
           toast.info('Payment cancelled');
         },
       });
-    };
-    
-    const updateOrderPaymentStatus = async (orderId, transactionId) => {
-      try {
-        await fetch(`${import.meta.env.VITE_API_URL}/orders/${orderId}/payment`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            paymentStatus: 'paid',
-            transactionRef: transactionId
-          })
-        });
-      } catch (error) {
-        console.error('Failed to update payment status:', error);
-      }
     };
     
     createOrderFirst();
