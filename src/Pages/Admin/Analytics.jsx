@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
-import { FaSpinner, FaChartBar, FaUsers, FaUtensils, FaMoneyBillWave } from 'react-icons/fa';
+import { 
+  FaSpinner, FaChartBar, FaUsers, FaUtensils, FaMoneyBillWave, 
+  FaCalendarAlt, FaFilter, FaSearch, FaExclamationTriangle,
+  FaBoxOpen, FaClipboardList, FaDownload, FaTable
+} from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import {
@@ -15,8 +19,10 @@ import {
   Legend,
   PointElement,
   ArcElement,
+  TimeScale,
 } from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
+import 'chartjs-adapter-date-fns';
 
 // Register ChartJS components
 ChartJS.register(
@@ -28,10 +34,12 @@ ChartJS.register(
   Tooltip,
   Legend,
   PointElement,
-  ArcElement
+  ArcElement,
+  TimeScale
 );
 
 const Analytics = () => {
+  // State for general data
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,13 +47,66 @@ const Analytics = () => {
   const [monthlyRevenue, setMonthlyRevenue] = useState({});
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
+  
+  // State for filtering
+  const [dateFilter, setDateFilter] = useState('week');
+  const [startDate, setStartDate] = useState(getDefaultStartDate('week'));
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  // State for detailed data
+  const [dailySales, setDailySales] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [salesBreakdown, setSalesBreakdown] = useState([]);
 
+  // Helper function to get default start date
+  function getDefaultStartDate(period) {
+    const today = new Date();
+    let result = new Date();
+    
+    switch(period) {
+      case 'day':
+        result = today;
+        break;
+      case 'week':
+        result.setDate(today.getDate() - 7);
+        break;
+      case 'month':
+        result.setMonth(today.getMonth() - 1);
+        break;
+      case 'year':
+        result.setFullYear(today.getFullYear() - 1);
+        break;
+      default:
+        result.setDate(today.getDate() - 7);
+    }
+    
+    return result.toISOString().split('T')[0];
+  }
+
+  // Initial data loading
   useEffect(() => {
     fetchStats();
     fetchTopFoods();
     fetchMonthlyRevenue();
   }, []);
+  
+  // Effect to fetch filtered data when filter changes
+  useEffect(() => {
+    fetchDailySales();
+    fetchInventoryItems();
+    fetchSalesBreakdown();
+  }, [startDate, endDate]);
+  
+  // Handle date filter change
+  const handleDateFilterChange = (period) => {
+    setDateFilter(period);
+    setStartDate(getDefaultStartDate(period));
+    setEndDate(new Date().toISOString().split('T')[0]);
+  };
 
+  // Fetch basic stats
   const fetchStats = async () => {
     try {
       setLoading(true);
@@ -70,6 +131,7 @@ const Analytics = () => {
     }
   };
 
+  // Fetch top selling foods
   const fetchTopFoods = async () => {
     try {
       const response = await fetch(`${API_URL}/topSellingFoods`, {
@@ -90,6 +152,7 @@ const Analytics = () => {
     }
   };
 
+  // Fetch monthly revenue
   const fetchMonthlyRevenue = async () => {
     try {
       const response = await fetch(`${API_URL}/admin/monthly-revenue`, {
@@ -110,7 +173,108 @@ const Analytics = () => {
     }
   };
 
-  // Prepare chart data for top selling foods
+  // NEW: Fetch daily sales data
+  const fetchDailySales = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/admin/daily-sales?startDate=${startDate}&endDate=${endDate}`, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch daily sales');
+      }
+
+      const data = await response.json();
+      setDailySales(data.dailySales || []);
+    } catch (error) {
+      console.error('Error fetching daily sales:', error);
+      toast.error('Could not load daily sales data');
+    }
+  };
+
+  // NEW: Fetch inventory items
+  const fetchInventoryItems = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/admin/inventory?startDate=${startDate}&endDate=${endDate}`, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch inventory');
+      }
+
+      const data = await response.json();
+      setInventoryItems(data.foods || []);
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+    }
+  };
+
+  // NEW: Fetch sales breakdown
+  const fetchSalesBreakdown = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/admin/sales-breakdown?startDate=${startDate}&endDate=${endDate}`, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales breakdown');
+      }
+
+      const data = await response.json();
+      setSalesBreakdown(data.sales || []);
+    } catch (error) {
+      console.error('Error fetching sales breakdown:', error);
+    }
+  };
+
+  // Export data as CSV
+  const exportToCSV = (data, filename) => {
+    if (!data || data.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+    
+    const headers = Object.keys(data[0]).join(',');
+    const csvRows = data.map(row => 
+      Object.values(row).map(value => 
+        typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
+      ).join(',')
+    );
+    
+    const csvContent = [headers, ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CHARTS DATA PREPARATION
+  
+  // Top foods chart data
   const topFoodsChartData = {
     labels: topFoods.map(food => food.foodName),
     datasets: [
@@ -124,7 +288,7 @@ const Analytics = () => {
     ],
   };
 
-  // Prepare monthly revenue data
+  // Monthly revenue data
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const currentYear = new Date().getFullYear();
   
@@ -144,27 +308,42 @@ const Analytics = () => {
     ],
   };
 
-  // Prepare category distribution data
+  // Daily sales chart data
+  const dailySalesChartData = {
+    labels: dailySales.map(day => day.date),
+    datasets: [
+      {
+        label: 'Items Sold',
+        data: dailySales.map(day => day.itemCount),
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        yAxisID: 'y',
+      },
+      {
+        label: 'Revenue (₦)',
+        data: dailySales.map(day => day.revenue),
+        borderColor: 'rgb(53, 162, 235)',
+        backgroundColor: 'rgba(53, 162, 235, 0.5)',
+        yAxisID: 'y1',
+      },
+    ],
+  };
+
+  // Sales by category chart
   const categoryData = {
     labels: [],
     datasets: [
       {
         data: [],
         backgroundColor: [
-          '#FF6384',
-          '#36A2EB',
-          '#FFCE56',
-          '#4BC0C0',
-          '#9966FF',
-          '#FF9F40'
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+          '#9966FF', '#FF9F40', '#8AC24A', '#00BCD4',
+          '#673AB7', '#795548', '#607D8B', '#E91E63'
         ],
         hoverBackgroundColor: [
-          '#FF6384',
-          '#36A2EB',
-          '#FFCE56',
-          '#4BC0C0',
-          '#9966FF',
-          '#FF9F40'
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+          '#9966FF', '#FF9F40', '#8AC24A', '#00BCD4',
+          '#673AB7', '#795548', '#607D8B', '#E91E63'
         ],
       },
     ],
@@ -180,14 +359,130 @@ const Analytics = () => {
     categoryData.labels = Object.keys(categoryCount);
     categoryData.datasets[0].data = Object.values(categoryCount);
   }
+  
+  // Filter inventory items by search term
+  const filteredInventory = inventoryItems.filter(item => 
+    item.foodName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.foodCategory?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <>
       <Helmet>
-        <title>Admin | Analytics</title>
+        <title>Admin | Analytics Dashboard</title>
       </Helmet>
       <div className="container mx-auto px-4">
         <h1 className="text-2xl font-bold mb-6">Analytics Dashboard</h1>
+
+        {/* Date filter controls */}
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 className="text-lg font-medium flex items-center">
+                <FaFilter className="mr-2 text-yellow-600" /> Data Filters
+              </h2>
+              <p className="text-sm text-gray-500">Filter the analytics data by date range</p>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={() => handleDateFilterChange('day')}
+                className={`px-3 py-1 text-sm rounded-full ${dateFilter === 'day' 
+                  ? 'bg-yellow-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+              >
+                Today
+              </button>
+              <button 
+                onClick={() => handleDateFilterChange('week')}
+                className={`px-3 py-1 text-sm rounded-full ${dateFilter === 'week' 
+                  ? 'bg-yellow-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+              >
+                Last 7 days
+              </button>
+              <button 
+                onClick={() => handleDateFilterChange('month')}
+                className={`px-3 py-1 text-sm rounded-full ${dateFilter === 'month' 
+                  ? 'bg-yellow-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+              >
+                Last 30 days
+              </button>
+              <button 
+                onClick={() => handleDateFilterChange('year')}
+                className={`px-3 py-1 text-sm rounded-full ${dateFilter === 'year' 
+                  ? 'bg-yellow-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+              >
+                Last year
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <div className="flex items-center">
+                <label htmlFor="startDate" className="text-sm mr-2 whitespace-nowrap">From:</label>
+                <input 
+                  type="date" 
+                  id="startDate"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                />
+              </div>
+              <div className="flex items-center">
+                <label htmlFor="endDate" className="text-sm mr-2 whitespace-nowrap">To:</label>
+                <input 
+                  type="date" 
+                  id="endDate"
+                  value={endDate}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab navigation */}
+        <div className="mb-6 overflow-x-auto">
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'overview'
+                ? 'border-b-2 border-yellow-600 text-yellow-600'
+                : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('sales')}
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'sales'
+                ? 'border-b-2 border-yellow-600 text-yellow-600'
+                : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Sales Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'inventory'
+                ? 'border-b-2 border-yellow-600 text-yellow-600'
+                : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Inventory
+            </button>
+            <button
+              onClick={() => setActiveTab('revenue')}
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'revenue'
+                ? 'border-b-2 border-yellow-600 text-yellow-600'
+                : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Revenue
+            </button>
+          </div>
+        </div>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -198,163 +493,561 @@ const Analytics = () => {
             {error}
           </div>
         ) : (
-          <div>
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-gray-500 text-sm font-medium">Total Users</p>
-                    <h3 className="text-3xl font-bold mt-1">{stats?.userCount || 0}</h3>
+          <>
+            {/* OVERVIEW TAB */}
+            {activeTab === 'overview' && (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium">Total Users</p>
+                        <h3 className="text-3xl font-bold mt-1">{stats?.userCount || 0}</h3>
+                      </div>
+                      <div className="bg-blue-100 p-3 rounded-full">
+                        <FaUsers className="text-3xl text-blue-500" />
+                      </div>
+                    </div>
                   </div>
-                  <FaUsers className="text-3xl text-blue-500" />
-                </div>
-              </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-gray-500 text-sm font-medium">Total Foods</p>
-                    <h3 className="text-3xl font-bold mt-1">{stats?.foodCount || 0}</h3>
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium">Total Foods</p>
+                        <h3 className="text-3xl font-bold mt-1">{stats?.foodCount || 0}</h3>
+                      </div>
+                      <div className="bg-green-100 p-3 rounded-full">
+                        <FaUtensils className="text-3xl text-green-500" />
+                      </div>
+                    </div>
                   </div>
-                  <FaUtensils className="text-3xl text-green-500" />
-                </div>
-              </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-gray-500 text-sm font-medium">Total Orders</p>
-                    <h3 className="text-3xl font-bold mt-1">{stats?.orderCount || 0}</h3>
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium">Total Orders</p>
+                        <h3 className="text-3xl font-bold mt-1">{stats?.orderCount || 0}</h3>
+                      </div>
+                      <div className="bg-yellow-100 p-3 rounded-full">
+                        <FaChartBar className="text-3xl text-yellow-500" />
+                      </div>
+                    </div>
                   </div>
-                  <FaChartBar className="text-3xl text-yellow-500" />
-                </div>
-              </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-gray-500 text-sm font-medium">Total Revenue</p>
-                    <h3 className="text-3xl font-bold mt-1">₦{(stats?.totalRevenue || 0).toFixed(2)}</h3>
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium">Total Revenue</p>
+                        <h3 className="text-3xl font-bold mt-1">₦{(stats?.totalRevenue || 0).toFixed(2)}</h3>
+                      </div>
+                      <div className="bg-indigo-100 p-3 rounded-full">
+                        <FaMoneyBillWave className="text-3xl text-indigo-500" />
+                      </div>
+                    </div>
                   </div>
-                  <FaMoneyBillWave className="text-3xl text-green-600" />
                 </div>
-              </div>
-            </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Top Selling Foods</h3>
-                <Bar 
-                  data={topFoodsChartData} 
-                  options={{
-                    responsive: true,
-                    plugins: {
-                      legend: {
-                        position: 'top',
-                      },
-                      title: {
-                        display: true,
-                        text: 'Order Count by Food Item'
-                      }
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Monthly Revenue</h3>
-                <Line 
-                  data={revenueChartData}
-                  options={{
-                    responsive: true,
-                    plugins: {
-                      legend: {
-                        position: 'top',
-                      },
-                      title: {
-                        display: true,
-                        text: `Monthly Revenue - ${currentYear}`
-                      }
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
-                <div className="h-64">
-                  <Pie 
-                    data={categoryData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'right',
-                        },
-                        title: {
-                          display: true,
-                          text: 'Food Items by Category'
+                {/* Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Top Selling Foods</h3>
+                      <button 
+                        onClick={() => exportToCSV(topFoods, 'top-selling-foods')}
+                        className="text-xs flex items-center text-blue-600 hover:text-blue-800"
+                      >
+                        <FaDownload className="mr-1" /> Export CSV
+                      </button>
+                    </div>
+                    <Bar 
+                      data={topFoodsChartData} 
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: {
+                            position: 'top',
+                          },
+                          title: {
+                            display: true,
+                            text: 'Order Count by Food Item'
+                          }
                         }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+                      }}
+                    />
+                  </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Order ID
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Customer
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {stats?.recentOrders?.slice(0, 5).map((order) => (
-                        <tr key={order._id}>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                            #{order._id.substring(order._id.length - 6).toUpperCase()}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
-                            <div className="text-xs text-gray-500">{order.userEmail}</div>
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                          ₦{Number(order.totalPrice).toFixed(2)}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap">
-                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                              ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
-                                  order.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
-                                    'bg-blue-100 text-blue-800'}`
-                            }>
-                              {order.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Monthly Revenue</h3>
+                      <button 
+                        onClick={() => exportToCSV(
+                          Object.entries(monthlyRevenue).map(([month, amount]) => ({month, amount})), 
+                          'monthly-revenue'
+                        )}
+                        className="text-xs flex items-center text-blue-600 hover:text-blue-800"
+                      >
+                        <FaDownload className="mr-1" /> Export CSV
+                      </button>
+                    </div>
+                    <Line 
+                      data={revenueChartData}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: {
+                            position: 'top',
+                          },
+                          title: {
+                            display: true,
+                            text: `Monthly Revenue - ${currentYear}`
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
+                    <div className="h-64 flex justify-center">
+                      <div style={{height: '100%', width: '100%', maxWidth: '300px'}}>
+                        <Pie 
+                          data={categoryData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: {
+                                position: 'right',
+                              },
+                              title: {
+                                display: true,
+                                text: 'Food Items by Category'
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Order ID
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Customer
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Amount
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {stats?.recentOrders?.slice(0, 5).map((order) => (
+                            <tr key={order._id}>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                #{order._id.substring(order._id.length - 6).toUpperCase()}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
+                                <div className="text-xs text-gray-500">{order.userEmail}</div>
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                ₦{Number(order.totalPrice).toFixed(2)}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap">
+                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                  ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                    order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
+                                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
+                                        'bg-blue-100 text-blue-800'}`
+                                }>
+                                  {order.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          {(!stats?.recentOrders || stats.recentOrders.length === 0) && (
+                            <tr>
+                              <td colSpan="4" className="px-4 py-2 text-center text-sm text-gray-500">
+                                No recent orders
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            )}
+
+            {/* SALES TAB */}
+            {activeTab === 'sales' && (
+              <div>
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <h2 className="text-xl font-semibold flex items-center">
+                      <FaChartBar className="mr-2 text-yellow-600" /> Sales Analysis
+                    </h2>
+                    <div className="mt-2 md:mt-0">
+                      <button
+                        onClick={() => exportToCSV(dailySales, 'daily-sales')}
+                        className="flex items-center px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                      >
+                        <FaDownload className="mr-2" /> Export Data
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {dailySales.length > 0 ? (
+                    <>
+                      <div className="mb-6">
+                        <h3 className="text-lg font-medium mb-2">Daily Sales & Revenue</h3>
+                        <div className="h-80">
+                          <Line 
+                            data={dailySalesChartData}
+                            options={{
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              interaction: {
+                                mode: 'index',
+                                intersect: false,
+                              },
+                              plugins: {
+                                tooltip: {
+                                  callbacks: {
+                                    label: function(context) {
+                                      const label = context.dataset.label || '';
+                                      const value = context.parsed.y;
+                                      return label + ': ' + (label.includes('Revenue') ? '₦' + value.toFixed(2) : value);
+                                    }
+                                  }
+                                },
+                              },
+                              scales: {
+                                y: {
+                                  type: 'linear',
+                                  display: true,
+                                  position: 'left',
+                                  title: {
+                                    display: true,
+                                    text: 'Items Sold'
+                                  }
+                                },
+                                y1: {
+                                  type: 'linear',
+                                  display: true,
+                                  position: 'right',
+                                  grid: {
+                                    drawOnChartArea: false,
+                                  },
+                                  title: {
+                                    display: true,
+                                    text: 'Revenue (₦)'
+                                  }
+                                },
+                              },
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No sales data available for the selected date range
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* INVENTORY TAB */}
+            {activeTab === 'inventory' && (
+              <div>
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <h2 className="text-xl font-semibold flex items-center">
+                      <FaBoxOpen className="mr-2 text-yellow-600" /> Inventory Management
+                    </h2>
+                    <div className="mt-2 md:mt-0">
+                      <button
+                        onClick={() => exportToCSV(inventoryItems, 'inventory')}
+                        className="flex items-center px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                      >
+                        <FaDownload className="mr-2" /> Export Data
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <div className="flex items-center">
+                      <FaSearch className="text-gray-400 mr-2" />
+                      <input 
+                        type="text" 
+                        placeholder="Search inventory..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {filteredInventory.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Food Name
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Category
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Quantity
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Price
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredInventory.map((item) => (
+                            <tr key={item._id}>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                {item.foodName}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                {item.foodCategory}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                {item.foodQuantity}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                ₦{item.price.toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No inventory items found
+                    </div>
+                  )}
+                </div>
+
+                {/* Low Stock Alert */}
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <h3 className="text-lg font-medium mb-4 flex items-center">
+                    <FaExclamationTriangle className="text-yellow-600 mr-2" /> Low Stock Items
+                  </h3>
+                  
+                  {filteredInventory.filter(item => parseInt(item.foodQuantity) <= 10).length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Food Name
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Quantity Left
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredInventory
+                            .filter(item => parseInt(item.foodQuantity) <= 10)
+                            .map((item) => (
+                              <tr key={`low-${item._id}`}>
+                                <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {item.foodName}
+                                </td>
+                                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                  {item.foodQuantity}
+                                </td>
+                                <td className="px-4 py-2 whitespace-nowrap">
+                                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    ${parseInt(item.foodQuantity) === 0 
+                                      ? 'bg-red-100 text-red-800' 
+                                      : parseInt(item.foodQuantity) <= 5 
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-orange-100 text-orange-800'}`}
+                                  >
+                                    {parseInt(item.foodQuantity) === 0 
+                                      ? 'Out of Stock' 
+                                      : parseInt(item.foodQuantity) <= 5 
+                                        ? 'Critical' 
+                                        : 'Low'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No low stock items
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* REVENUE TAB */}
+            {activeTab === 'revenue' && (
+              <div>
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <h2 className="text-xl font-semibold flex items-center">
+                      <FaMoneyBillWave className="mr-2 text-yellow-600" /> Revenue Analysis
+                    </h2>
+                    <div className="mt-2 md:mt-0">
+                      <button
+                        onClick={() => exportToCSV(
+                          Object.entries(monthlyRevenue).map(([month, amount]) => ({month, amount})),
+                          'revenue-data'
+                        )}
+                        className="flex items-center px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                      >
+                        <FaDownload className="mr-2" /> Export Data
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                    <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                      <p className="text-sm font-medium text-blue-800">Total Revenue</p>
+                      <h3 className="text-2xl font-bold text-blue-900 mt-2">
+                        ₦{(stats?.totalRevenue || 0).toFixed(2)}
+                      </h3>
+                      <p className="text-xs text-blue-700 mt-1">All time revenue</p>
+                    </div>
+
+                    <div className="bg-green-50 p-6 rounded-lg border border-green-100">
+                      <p className="text-sm font-medium text-green-800">Average Order Value</p>
+                      <h3 className="text-2xl font-bold text-green-900 mt-2">
+                        ₦{stats?.orderCount > 0 
+                          ? (stats?.totalRevenue / stats?.orderCount).toFixed(2) 
+                          : '0.00'}
+                      </h3>
+                      <p className="text-xs text-green-700 mt-1">Per order</p>
+                    </div>
+
+                    <div className="bg-purple-50 p-6 rounded-lg border border-purple-100">
+                      <p className="text-sm font-medium text-purple-800">Current Month Revenue</p>
+                      <h3 className="text-2xl font-bold text-purple-900 mt-2">
+                        ₦{(() => {
+                          const now = new Date();
+                          const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                          return (monthlyRevenue[monthKey] || 0).toFixed(2);
+                        })()}
+                      </h3>
+                      <p className="text-xs text-purple-700 mt-1">This month</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium mb-4">Monthly Revenue Trend</h3>
+                    <div className="h-96">
+                      <Line 
+                        data={revenueChartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: 'top',
+                            },
+                            tooltip: {
+                              callbacks: {
+                                label: function(context) {
+                                  const label = context.dataset.label || '';
+                                  const value = context.raw || 0;
+                                  return `${label}: ₦${value.toFixed(2)}`;
+                                }
+                              }
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              title: {
+                                display: true,
+                                text: 'Revenue (₦)'
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Sales by Payment Method</h3>
+                    <div className="h-80 flex justify-center">
+                      <div style={{ width: '100%', maxWidth: '400px' }}>
+                        <Doughnut
+                          data={{
+                            labels: ['Online Payment', 'WhatsApp Payment', 'Cash on Delivery'],
+                            datasets: [
+                              {
+                                data: [
+                                  salesBreakdown.filter(item => item.paymentMethod === 'online')
+                                    .reduce((sum, item) => sum + Number(item.amount || 0), 0),
+                                  salesBreakdown.filter(item => item.paymentMethod === 'whatsapp')
+                                    .reduce((sum, item) => sum + Number(item.amount || 0), 0),
+                                  salesBreakdown.filter(item => item.paymentMethod === 'cash')
+                                    .reduce((sum, item) => sum + Number(item.amount || 0), 0),
+                                ],
+                                backgroundColor: ['#4F46E5', '#10B981', '#F59E0B'],
+                                hoverBackgroundColor: ['#3730A3', '#059669', '#D97706'],
+                              },
+                            ],
+                          }}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: {
+                                position: 'bottom',
+                              },
+                              tooltip: {
+                                callbacks: {
+                                  label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.chart.data.datasets[0].data.reduce((sum, val) => sum + val, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ₦${value.toFixed(2)} (${percentage}%)`;
+                                  }
+                                }
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </>
