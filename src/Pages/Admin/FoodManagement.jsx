@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
-import { FaEdit, FaTrash, FaEye, FaPlus, FaSearch, FaSpinner, FaEllipsisV } from 'react-icons/fa';
+import { 
+  FaEdit, FaTrash, FaEye, FaPlus, FaSearch, FaSpinner, 
+  FaEllipsisV, FaExclamationTriangle, FaFilter 
+} from 'react-icons/fa'; // Added FaExclamationTriangle and FaFilter
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import { Link } from 'react-router-dom';
@@ -17,9 +20,10 @@ const FoodManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [activeActionMenu, setActiveActionMenu] = useState(null);
+  const [filterLowStock, setFilterLowStock] = useState(false);
   
   const token = useSelector(selectToken);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchFoods();
@@ -79,12 +83,14 @@ const FoodManagement = () => {
     }
   };
 
-  // Filter foods based on search term and category
+  // Filter foods based on search term, category, and low stock filter
   const filteredFoods = foods.filter(food => {
     const matchesSearch = food.foodName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         food.foodDescription?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = category ? food.foodCategory === category : true;
-    return matchesSearch && matchesCategory;
+    const matchesLowStock = filterLowStock ? 
+                          (Number(food.foodQuantity) <= 5) : true;
+    return matchesSearch && matchesCategory && matchesLowStock;
   });
 
   // Pagination logic
@@ -95,9 +101,15 @@ const FoodManagement = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Toggle action menu for mobile view
   const toggleActionMenu = (id) => {
     setActiveActionMenu(activeActionMenu === id ? null : id);
+  };
+
+  const getStockStatus = (quantity) => {
+    const qty = Number(quantity);
+    if (qty <= 0) return { status: 'out', text: 'Out of Stock', color: 'bg-red-100 text-red-800' };
+    if (qty <= 5) return { status: 'low', text: 'Low Stock', color: 'bg-yellow-100 text-yellow-800' };
+    return { status: 'normal', text: 'In Stock', color: 'bg-green-100 text-green-800' };
   };
 
   return (
@@ -139,6 +151,18 @@ const FoodManagement = () => {
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
+
+          {/* Add Low Stock filter button */}
+          <button
+            onClick={() => setFilterLowStock(!filterLowStock)}
+            className={`px-4 py-2 rounded-lg flex items-center text-sm ${
+              filterLowStock 
+                ? 'bg-yellow-600 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            <FaFilter className="mr-2" /> Low Stock
+          </button>
         </div>
 
         {loading ? (
@@ -158,49 +182,59 @@ const FoodManagement = () => {
                   No food items found
                 </div>
               ) : (
-                currentItems.map((food) => (
-                  <div key={food._id} className="bg-white p-4 rounded-lg shadow-md">
-                    <div className="flex items-center">
-                      <img 
-                        src={food.foodImage}
-                        alt={food.foodName}
-                        className="h-16 w-16 object-cover rounded mr-4"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{food.foodName}</h3>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-sm text-gray-600">₦{food.foodPrice}</span>
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            {food.foodCategory}
-                          </span>
+                currentItems.map((food) => {
+                  const stockStatus = getStockStatus(food.foodQuantity);
+                  return (
+                    <div key={food._id} className="bg-white p-4 rounded-lg shadow-md">
+                      <div className="flex items-center">
+                        <img 
+                          src={food.foodImage}
+                          alt={food.foodName}
+                          className="h-16 w-16 object-cover rounded mr-4"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">{food.foodName}</h3>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-sm text-gray-600">₦{food.foodPrice}</span>
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              {food.foodCategory}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center mt-1">
+                            <p className="text-xs text-gray-500">Orders: {food.orderCount || 0}</p>
+                            {/* Add stock status */}
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full flex items-center ${stockStatus.color}`}>
+                              {stockStatus.status !== 'normal' && <FaExclamationTriangle className="mr-1" />}
+                              {food.foodQuantity || 0} left
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Orders: {food.orderCount || 0}</p>
+                      </div>
+                      
+                      <div className="flex justify-between mt-4 pt-3 border-t border-gray-200">
+                        <Link 
+                          to={`/seeFood/${food._id}`}
+                          className="flex-1 flex justify-center items-center py-2 text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <FaEye className="mr-2" /> View
+                        </Link>
+                        <Link 
+                          to={`/update/${food._id}`}
+                          className="flex-1 flex justify-center items-center py-2 text-indigo-600 hover:bg-indigo-50 rounded"
+                        >
+                          <FaEdit className="mr-2" /> Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(food._id)}
+                          disabled={deleting}
+                          className="flex-1 flex justify-center items-center py-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <FaTrash className="mr-2" /> Delete
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="flex justify-between mt-4 pt-3 border-t border-gray-200">
-                      <Link 
-                        to={`/seeFood/${food._id}`}
-                        className="flex-1 flex justify-center items-center py-2 text-blue-600 hover:bg-blue-50 rounded"
-                      >
-                        <FaEye className="mr-2" /> View
-                      </Link>
-                      <Link 
-                        to={`/update/${food._id}`}
-                        className="flex-1 flex justify-center items-center py-2 text-indigo-600 hover:bg-indigo-50 rounded"
-                      >
-                        <FaEdit className="mr-2" /> Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(food._id)}
-                        disabled={deleting}
-                        className="flex-1 flex justify-center items-center py-2 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <FaTrash className="mr-2" /> Delete
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               
               {/* Mobile pagination */}
@@ -240,6 +274,8 @@ const FoodManagement = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    {/* Add Quantity column */}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -247,64 +283,74 @@ const FoodManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                         No food items found
                       </td>
                     </tr>
                   ) : (
-                    currentItems.map((food) => (
-                      <tr key={food._id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="h-12 w-12">
-                            <img 
-                              src={food.foodImage} 
-                              alt={food.foodName}
-                              className="h-12 w-12 object-cover rounded"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{food.foodName}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            {food.foodCategory}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">₦{food.foodPrice}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{food.orderCount || 0}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <Link 
-                              to={`/seeFood/${food._id}`}
-                              className="text-blue-600 hover:text-blue-900"
-                              title="View"
-                            >
-                              <FaEye />
-                            </Link>
-                            <Link 
-                              to={`/update/${food._id}`}
-                              className="text-indigo-600 hover:text-indigo-900"
-                              title="Edit"
-                            >
-                              <FaEdit />
-                            </Link>
-                            <button
-                              onClick={() => handleDelete(food._id)}
-                              disabled={deleting}
-                              className="text-red-600 hover:text-red-900"
-                              title="Delete"
-                            >
-                              <FaTrash />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                    currentItems.map((food) => {
+                      const stockStatus = getStockStatus(food.foodQuantity);
+                      return (
+                        <tr key={food._id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="h-12 w-12">
+                              <img 
+                                src={food.foodImage} 
+                                alt={food.foodName}
+                                className="h-12 w-12 object-cover rounded"
+                              />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">{food.foodName}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              {food.foodCategory}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">₦{food.foodPrice}</div>
+                          </td>
+                          {/* Add Quantity cell with stock status */}
+                          <td className="px-6 py-4">
+                            <span className={`px-2 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${stockStatus.color}`}>
+                              {stockStatus.status !== 'normal' && <FaExclamationTriangle className="mr-1" />}
+                              {food.foodQuantity || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">{food.orderCount || 0}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <Link 
+                                to={`/seeFood/${food._id}`}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="View"
+                              >
+                                <FaEye />
+                              </Link>
+                              <Link 
+                                to={`/update/${food._id}`}
+                                className="text-indigo-600 hover:text-indigo-900"
+                                title="Edit"
+                              >
+                                <FaEdit />
+                              </Link>
+                              <button
+                                onClick={() => handleDelete(food._id)}
+                                disabled={deleting}
+                                className="text-red-600 hover:text-red-900"
+                                title="Delete"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

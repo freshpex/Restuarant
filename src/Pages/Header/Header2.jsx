@@ -230,7 +230,9 @@ const Header2 = () => {
                                    {isAdmin && (
                                         <button className="text-lg border-2 border-gray-100 hover:border-2 hover:bg-yellow-700 hover:border-yellow-700 mb-3 text-yellow-700 hover:text-white rounded-md py-2 px-4 w-full">
                                             <NavLink to="/admin">Admin Dashboard</NavLink>
+                                            <NavLink to="/staff/dashboard">Staff Dashboard</NavLink>
                                         </button>
+                                        
                                     )}
                                     {isCashier && (
                                         <button className="text-lg border-2 border-gray-100 hover:border-2 hover:bg-green-700 hover:border-green-700 mb-3 text-green-700 hover:text-white rounded-md py-2 px-4 w-full">

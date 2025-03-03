@@ -1,5 +1,3 @@
-// Make selectors safer with fallbacks
-
 // Selectors for auth state
 export const selectCurrentUser = state => state.auth?.user;
 export const selectIsAuthenticated = state => Boolean(state.auth?.isAuthenticated);

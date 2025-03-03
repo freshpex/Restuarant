@@ -3,11 +3,10 @@ import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
 import { 
   FaPlus, FaSearch, FaSpinner, FaExclamationTriangle, 
-  FaFilter, FaDownload, FaBoxOpen, FaCalendarAlt, FaTimes
+  FaFilter, FaDownload, FaPlusCircle, FaCalendarAlt, FaTimes
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken, selectCurrentUser } from '../../redux/selectors';
-
 import MaterialsTable from '../../Components/RawMaterials/MaterialsTable';
 import MaterialForm from '../../Components/RawMaterials/MaterialForm';
 import Modal from '../../Components/Common/Modal';
@@ -29,6 +28,7 @@ const RawMaterials = () => {
   const [dateFilterActive, setDateFilterActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const currentUser = useSelector(selectCurrentUser);
   
   const [formValues, setFormValues] = useState({
     name: '',
@@ -41,7 +41,6 @@ const RawMaterials = () => {
   });
 
   const token = useSelector(selectToken);
-  const currentUser = useSelector(selectCurrentUser);
   const API_URL = import.meta.env.VITE_API_URL;
   
   const isAdmin = currentUser?.role === 'admin';
@@ -135,17 +134,15 @@ const RawMaterials = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Basic validation
     if (!formValues.name || !formValues.quantity || !formValues.unit) {
       toast.error('Name, quantity, and unit are required');
       return;
     }
     
-    setSubmitting(true); // Start loading
+    setSubmitting(true);
     
     try {
       if (editingMaterial) {
-        // Update existing material
         const response = await fetch(`${API_URL}/staff/raw-materials/${editingMaterial._id}`, {
           method: 'PUT',
           headers: {
@@ -198,14 +195,14 @@ const RawMaterials = () => {
       console.error('Error saving material:', error);
       toast.error(error.message || 'Error saving raw material');
     } finally {
-      setSubmitting(false); // End loading regardless of outcome
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
     if (!deleteConfirmation) return;
     
-    setDeleting(true); // Start loading
+    setDeleting(true);
     
     try {
       const response = await fetch(`${API_URL}/staff/raw-materials/${deleteConfirmation._id}`, {
@@ -229,7 +226,7 @@ const RawMaterials = () => {
       console.error('Error deleting material:', error);
       toast.error(error.message || 'Error deleting raw material');
     } finally {
-      setDeleting(false); // End loading regardless of outcome
+      setDeleting(false);
     }
   };
 
@@ -287,7 +284,6 @@ const RawMaterials = () => {
       return 0;
     });
 
-  // Export to CSV
   const exportToCSV = () => {
     if (materials.length === 0) {
       toast.error('No data to export');

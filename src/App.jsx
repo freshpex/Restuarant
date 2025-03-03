@@ -244,7 +244,11 @@ function App() {
                 {
                     path: 'add-order',
                     element: <StaffAddOrder />
-                }
+                },
+                {
+                    path: "material",
+                    element: <RawMaterials />
+                },
             ]
         }
     ]);

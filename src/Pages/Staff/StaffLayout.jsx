@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../../redux/slices/authSlice';
 import { 
   FaHome, FaUtensils, FaClipboardList, FaUsers, 
-  FaSignOutAlt, FaBars, FaTimes, FaChartBar, 
+  FaSignOutAlt, FaBars, FaTimes, FaWarehouse, 
   FaUserCog, FaCashRegister, FaUserTie, FaUserCheck
 } from 'react-icons/fa';
 import { selectCurrentUser } from '../../redux/selectors';
@@ -19,7 +19,6 @@ const StaffLayout = ({ children }) => {
   const sidebarRef = useRef(null);
   const toggleButtonRef = useRef(null);
 
-  // Close sidebar when clicking outside of it
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -32,7 +31,6 @@ const StaffLayout = ({ children }) => {
       }
     };
 
-    // Close sidebar when route changes (for mobile)
     setSidebarOpen(false);
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -48,7 +46,6 @@ const StaffLayout = ({ children }) => {
     }
   };
 
-  // Get role-specific styling and icons
   const getRoleDetails = () => {
     switch (currentUser?.role) {
       case 'admin':
@@ -113,7 +110,6 @@ const StaffLayout = ({ children }) => {
         </button>
       </div>
       
-      {/* Overlay for mobile when sidebar is open */}
       {sidebarOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
@@ -215,6 +211,23 @@ const StaffLayout = ({ children }) => {
                 <FaUtensils className="mr-3" />
                 Add New Food
               </Link>
+
+              {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                <NavLink 
+                  to="/staff/material" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-100 text-yellow-700 font-medium'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaWarehouse className="mr-3" />
+                  Material Management
+                </NavLink>
+              )}
 
               <div className="pt-4 mt-4 border-t border-gray-200">
                 <Link
