@@ -1,26 +1,45 @@
-import React, { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
 import { 
   FaUsers, FaUtensils, FaChartLine, FaShoppingCart, 
   FaTachometerAlt, FaBars, FaTimes, FaSignOutAlt,
-  FaUserClock
+  FaUserClock, FaHome, FaShieldAlt
 } from 'react-icons/fa';
+import { selectCurrentUser } from '../../redux/selectors';
+import Logo from "../../assets/Logo.png";
 
 const AdminDashboard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarRef = useRef(null);
+  const toggleButtonRef = useRef(null);
+  
+  // Close sidebar when clicking outside of it or navigating
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        sidebarRef.current && 
+        !sidebarRef.current.contains(event.target) &&
+        toggleButtonRef.current && 
+        !toggleButtonRef.current.contains(event.target)
+      ) {
+        setSidebarOpen(false);
+      }
+    };
+
+    // Close sidebar when route changes (for mobile)
+    setSidebarOpen(false);
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [location.pathname]);
   
   const isActive = (path) => {
     return location.pathname === path;
-  };
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
   };
 
   return (
@@ -29,121 +48,177 @@ const AdminDashboard = () => {
         <title>Admin Dashboard | Tim's Kitchen</title>
       </Helmet>
       
-      <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
+      <div className="min-h-screen bg-gray-100 flex flex-col">
         {/* Mobile Header */}
-        <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Admin Panel</h2>
-          <button onClick={toggleSidebar} className="p-2">
+        <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center sticky top-0 z-40">
+          <Link to="/" className="flex items-center">
+            <img src={Logo} alt="Tim's Kitchen" className="h-10 w-10" />
+            <span className="ml-2 text-xl font-bold">Admin Panel</span>
+          </Link>
+          
+          <button 
+            ref={toggleButtonRef}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-gray-800 rounded-md"
+          >
             {sidebarOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
           </button>
         </div>
 
-        {/* Sidebar - Desktop always visible, Mobile conditional */}
-        <div className={`
-          bg-gray-900 text-white 
-          md:w-64 w-3/4 md:static fixed z-30
-          min-h-screen transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        `}>
-          <div className="p-4 md:block"
-          onClick={() => {
-            closeSidebar();
-            window.location.href = '/';
-          }}
-          >
-            <h2 className="text-2xl font-bold">Admin Panel</h2>
-            <p className="text-gray-400 text-sm">Tim's Kitchen Management</p>
-          </div>
-          
-          <nav className="space-y-1 p-4">
-            <Link 
-              to="/admin" 
-              className={`flex items-center px-4 py-3 rounded-lg ${
-                isActive('/admin') ? 'bg-yellow-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-              }`}
-              onClick={closeSidebar}
-            >
-              <FaTachometerAlt className="mr-3" />
-              Dashboard
-            </Link>
-            
-            <Link 
-              to="/admin/users" 
-              className={`flex items-center px-4 py-3 rounded-lg ${
-                isActive('/admin/users') ? 'bg-yellow-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-              }`}
-              onClick={closeSidebar}
-            >
-              <FaUsers className="mr-3" />
-              User Management
-            </Link>
-            
-            <Link 
-              to="/admin/foods" 
-              className={`flex items-center px-4 py-3 rounded-lg ${
-                isActive('/admin/foods') ? 'bg-yellow-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-              }`}
-              onClick={closeSidebar}
-            >
-              <FaUtensils className="mr-3" />
-              Food Management
-            </Link>
-            
-            <Link 
-              to="/admin/orders" 
-              className={`flex items-center px-4 py-3 rounded-lg ${
-                isActive('/admin/orders') ? 'bg-yellow-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-              }`}
-              onClick={closeSidebar}
-            >
-              <FaShoppingCart className="mr-3" />
-              Orders
-            </Link>
-            
-            <Link 
-              to="/admin/analytics" 
-              className={`flex items-center px-4 py-3 rounded-lg ${
-                isActive('/admin/analytics') ? 'bg-yellow-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-              }`}
-              onClick={closeSidebar}
-            >
-              <FaChartLine className="mr-3" />
-              Analytics
-            </Link>
-
-            <Link 
-              to="/admin/staff-activities" 
-              className={`flex items-center px-4 py-3 rounded-lg ml-4 ${
-                isActive('/admin/staff-activities') ? 'bg-yellow-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-              }`}
-              onClick={closeSidebar}
-            >
-              <FaUserClock className="mr-3" />
-              Staff Activities
-            </Link>
-
-            <Link 
-              to="/"
-              className="w-full flex items-center px-4 py-2 rounded-lg text-yellow-100 hover:bg-yellow-900 transition-colors"
-            >
-              <FaSignOutAlt className="mr-3" />
-              Home
-            </Link>
-          </nav>
-          
-        </div>
-        
         {/* Overlay for mobile when sidebar is open */}
         {sidebarOpen && (
           <div 
-            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-20" 
-            onClick={closeSidebar}
+            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setSidebarOpen(false)}
           />
         )}
-        
-        {/* Main Content */}
-        <div className="flex-1 overflow-x-hidden overflow-y-auto p-4">
-          <Outlet />
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar - Fixed on larger screens, sliding on mobile */}
+          <aside 
+            ref={sidebarRef}
+            className={`bg-gray-900 text-gray-300 shadow-lg fixed md:static inset-y-0 left-0 z-50 md:z-auto w-64 transform transition-transform duration-300 ease-in-out ${
+              sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            } overflow-y-auto`}
+          >
+            {/* Logo section - Only visible on desktop */}
+            <div className="hidden md:flex items-center justify-center h-20 bg-gray-800 border-b border-gray-700">
+              <Link to="/" className="flex items-center">
+                <img src={Logo} alt="Tim's Kitchen" className="h-14 w-14" />
+                <span className="ml-2 text-xl font-bold text-white">Admin Panel</span>
+              </Link>
+            </div>
+            
+            {/* Admin info */}
+            <div className="p-4">
+              <div className="bg-yellow-900 bg-opacity-20 p-4 rounded-lg flex items-center mb-6">
+                <div className="text-yellow-500 mr-3 text-xl">
+                  <FaShieldAlt />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-yellow-200">Administrator</p>
+                  <p className="text-xs text-gray-400">{currentUser?.email || 'Not logged in'}</p>
+                </div>
+              </div>
+              
+              <nav className="space-y-1">
+                <NavLink 
+                  to="/admin" 
+                  end
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaTachometerAlt className="mr-3" />
+                  Dashboard
+                </NavLink>
+                
+                <NavLink 
+                  to="/admin/users" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaUsers className="mr-3" />
+                  User Management
+                </NavLink>
+                
+                <NavLink 
+                  to="/admin/foods" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaUtensils className="mr-3" />
+                  Food Management
+                </NavLink>
+                
+                <NavLink 
+                  to="/admin/orders" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaShoppingCart className="mr-3" />
+                  Orders
+                </NavLink>
+                
+                <NavLink 
+                  to="/admin/analytics" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaChartLine className="mr-3" />
+                  Analytics
+                </NavLink>
+                
+                <NavLink 
+                  to="/admin/staff-activities" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaUserClock className="mr-3" />
+                  Staff Activities
+                </NavLink>
+
+                <div className="pt-4 mt-4 border-t border-gray-700">
+                  <Link
+                    to="/"
+                    className="flex items-center px-4 py-3 text-sm rounded-lg text-gray-300 hover:bg-gray-800"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <FaHome className="mr-3" />
+                    Return to Home
+                  </Link>
+                  
+                  <button
+                    onClick={() => navigate('/')}
+                    className="w-full flex items-center px-4 py-3 text-sm rounded-lg text-red-300 hover:bg-red-900 hover:bg-opacity-30"
+                  >
+                    <FaSignOutAlt className="mr-3" />
+                    Exit Admin Panel
+                  </button>
+                </div>
+              </nav>
+            </div>
+          </aside>
+          
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            <Outlet />
+          </main>
         </div>
       </div>
     </>

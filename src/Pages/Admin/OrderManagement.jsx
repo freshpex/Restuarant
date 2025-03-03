@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
-import { FaSpinner, FaSearch, FaFilter, FaChevronDown, FaPhoneAlt, FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
+import { FaSpinner, FaSearch, FaFilter, FaChevronDown, FaPhoneAlt, FaMapMarkerAlt, FaCalendarAlt, FaTrash, FaEye, FaExclamationTriangle } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import moment from 'moment';
@@ -51,6 +51,7 @@ const OrderManagement = () => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
   const [quantityError, setQuantityError] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -455,6 +456,38 @@ const OrderManagement = () => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
+  // Delete order
+  const deleteOrder = async (orderId) => {
+    try {
+      const response = await fetch(`${API_URL}/admin/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete order');
+      }
+
+      setOrders(prevOrders => 
+        prevOrders.filter(order => order._id !== orderId)
+      );
+
+      toast.success('Order deleted successfully');
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Failed to delete order: ' + error.message);
+    } finally {
+      setDeleteConfirmation(null);
+    }
+  };
+
+  const confirmDelete = (order) => {
+    setDeleteConfirmation(order);
+  };
+
   return (
     <>
       <Helmet>
@@ -703,6 +736,17 @@ const OrderManagement = () => {
                             </div>
                           )}
                         </div>
+                        <div className="mt-4 pt-3 border-t border-gray-100">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                confirmDelete(order);
+                              }}
+                              className="w-full flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
+                            >
+                              <FaTrash className="mr-2" /> Delete Order
+                            </button>
+                          </div>
                       </div>
                     )}
                   </div>
@@ -831,6 +875,13 @@ const OrderManagement = () => {
                                 <option value="delivered">Delivered</option>
                                 <option value="cancelled">Cancelled</option>
                               </select>
+                              <button
+                                onClick={() => confirmDelete(order)}
+                                className="text-red-500 hover:text-red-700 ml-2"
+                                title="Delete Order"
+                              >
+                                <FaTrash />
+                              </button>
                             </>
                           )}
                         </td>
@@ -1179,6 +1230,46 @@ const OrderManagement = () => {
                   </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-5 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Confirm Delete</h3>
+                <button 
+                  onClick={() => setDeleteConfirmation(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-5">
+              <p>Are you sure you want to delete this order?</p>
+              <div className="flex justify-end space-x-3 mt-6 border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmation(null)}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteOrder(deleteConfirmation._id)}
+                  className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center"
+                >
+                  <FaTrash className="mr-2" /> Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

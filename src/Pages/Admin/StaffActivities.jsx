@@ -148,7 +148,7 @@ const StaffActivities = () => {
         formatActivityType(activity.activityType),
         new Date(activity.timestamp).toLocaleString(),
         activity.details?.endpoint || '',
-        JSON.stringify(activity.details || {}).replace(/,/g, ';') // Prevent commas in JSON from breaking CSV
+        JSON.stringify(activity.details || {}).replace(/,/g, ';')
       ];
     });
     

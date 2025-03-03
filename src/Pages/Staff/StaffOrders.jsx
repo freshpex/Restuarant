@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
 import { 
-  FaSpinner, FaSearch, FaFilter, FaChevronDown, 
-  FaPhoneAlt, FaMapMarkerAlt, FaCheckCircle, FaExclamationTriangle 
+  FaSpinner, FaSearch, FaChevronDown, 
+  FaMapMarkerAlt, FaCalendarAlt 
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
@@ -31,6 +31,14 @@ const StaffOrders = () => {
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [dateFilter, setDateFilter] = useState('');
+
+  useEffect(() => {
+    if (dateFilter) {
+      setDateRange({ start: dateFilter, end: dateFilter });
+      setCurrentPage(1);
+    }
+  }, [dateFilter]);
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -116,7 +124,6 @@ const StaffOrders = () => {
             paymentStatus 
           };
           
-          // If payment status changed to paid, also update order status to preparing
           if (paymentStatus === 'paid' && order.status === 'pending') {
             updatedOrder.status = 'preparing';
           }
@@ -175,12 +182,21 @@ const StaffOrders = () => {
     setPaymentStatusFilter('');
     setDateRange({ start: '', end: '' });
     setCurrentPage(1);
+    setDateFilter('');
+  };
+
+  // Set today's date filter
+  const filterTodayOrders = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    setDateFilter(today);
+    toast.success("Filtered to show today's orders");
   };
 
   // Toggle order details on mobile
   const toggleOrderDetails = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
+  
 
   return (
     <>
@@ -248,6 +264,12 @@ const StaffOrders = () => {
           </div>
           
           <div className="flex justify-end mt-4">
+          <button 
+              onClick={filterTodayOrders}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center text-sm"
+            >
+              <FaCalendarAlt className="mr-2" /> Today's Orders
+            </button>
             <button 
               onClick={resetFilters} 
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 text-sm"
@@ -296,7 +318,6 @@ const StaffOrders = () => {
                     {/* Order details (expandable) */}
                     {expandedOrder === order._id && (
                       <div className="px-4 pb-4 border-t border-gray-100">
-                        {/* Customer info */}
                         <div className="py-3">
                           <h3 className="font-medium text-gray-700">Customer</h3>
                           <p className="text-sm">{order.buyerName || 'N/A'}</p>
@@ -304,7 +325,6 @@ const StaffOrders = () => {
                           <p className="text-sm text-gray-500">{order.phone}</p>
                         </div>
                         
-                        {/* Order items */}
                         <div className="py-3">
                           <h3 className="font-medium text-gray-700 mb-2">Item</h3>
                           <div className="flex justify-between items-center">
@@ -313,7 +333,6 @@ const StaffOrders = () => {
                           </div>
                         </div>
                         
-                        {/* Delivery information */}
                         <div className="py-3">
                           <h3 className="font-medium text-gray-700 mb-1">Delivery Info</h3>
                           <div className="flex items-start space-x-2">
