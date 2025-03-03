@@ -52,6 +52,7 @@ import StaffOrders from './Pages/Staff/StaffOrders';
 import StaffFoods from './Pages/Staff/StaffFoods';
 import StaffAddOrder from './Pages/Staff/StaffAddOrder';
 import StaffActivities from './Pages/Admin/StaffActivities';
+import RawMaterials from './Pages/Admin/RawMaterials.jsx';
 
 function App() {
     const dispatch = useDispatch();
@@ -217,6 +218,10 @@ function App() {
                 {
                     path: 'staff-activities',
                     element: <StaffActivities />
+                },
+                {
+                    path: "material",
+                    element: <RawMaterials />
                 },
             ]
         },

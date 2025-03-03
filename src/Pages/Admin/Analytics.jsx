@@ -52,7 +52,7 @@ const Analytics = () => {
   const [dateFilter, setDateFilter] = useState('week');
   const [startDate, setStartDate] = useState(getDefaultStartDate('week'));
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('summary');
   
   // State for detailed data
   const [dailySales, setDailySales] = useState([]);
@@ -63,6 +63,15 @@ const Analytics = () => {
     items: [],
     totalAmount: 0
   });
+
+  const [overviewStats, setOverviewStats] = useState({
+    userCount: 0,
+    foodCount: 0, 
+    orderCount: 0,
+    totalRevenue: 0,
+    recentOrders: []
+  });
+  const [filteredLabel, setFilteredLabel] = useState('All Time');
 
   // Helper function to get default start date
   function getDefaultStartDate(period) {
@@ -91,13 +100,14 @@ const Analytics = () => {
 
   // Initial data loading
   useEffect(() => {
-    fetchStats();
+    fetchFilteredStats();
     fetchTopFoods();
     fetchMonthlyRevenue();
   }, []);
   
   // Effect to fetch filtered data when filter changes
   useEffect(() => {
+    fetchFilteredStats();
     fetchDailySales();
     fetchInventoryItems();
     fetchSalesBreakdown();
@@ -107,8 +117,27 @@ const Analytics = () => {
   // Handle date filter change
   const handleDateFilterChange = (period) => {
     setDateFilter(period);
-    setStartDate(getDefaultStartDate(period));
+    const newStartDate = getDefaultStartDate(period);
+    setStartDate(newStartDate);
     setEndDate(new Date().toISOString().split('T')[0]);
+    
+    // Set appropriate label for the overview tab
+    switch(period) {
+      case 'day':
+        setFilteredLabel("Today's");
+        break;
+      case 'week':
+        setFilteredLabel("This Week's");
+        break;
+      case 'month':
+        setFilteredLabel("This Month's");
+        break;
+      case 'year':
+        setFilteredLabel("This Year's");
+        break;
+      default:
+        setFilteredLabel("All Time");
+    }
   };
 
   // Fetch basic stats
@@ -284,6 +313,60 @@ const Analytics = () => {
     }
   };
 
+  // Fetch stats with date filter
+  const fetchFilteredStats = async () => {
+    try {
+      setLoading(true);
+      const url = new URL(`${API_URL}/admin/stats`);
+      
+      if (startDate) {
+        url.searchParams.append('startDate', startDate);
+      }
+      if (endDate) {
+        url.searchParams.append('endDate', endDate);
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats');
+      }
+
+      const data = await response.json();
+      setStats(data.stats);
+      
+      const isFiltered = startDate !== getDefaultStartDate('all') || endDate !== new Date().toISOString().split('T')[0];
+      
+      if (isFiltered && data.stats) {
+        setOverviewStats({
+          userCount: data.stats.filteredUserCount || 0,
+          foodCount: data.stats.filteredFoodCount || 0,
+          orderCount: data.stats.filteredOrderCount || 0,
+          totalRevenue: data.stats.filteredRevenue || 0,
+          recentOrders: data.stats.filteredRecentOrders || []
+        });
+      } else {
+        setOverviewStats({
+          userCount: data.stats.userCount || 0,
+          foodCount: data.stats.foodCount || 0,
+          orderCount: data.stats.orderCount || 0,
+          totalRevenue: data.stats.totalRevenue || 0,
+          recentOrders: data.stats.recentOrders || []
+        });
+      }
+    } catch (error) {
+      setError(error.message || 'Error fetching statistics');
+      toast.error(error.message || 'Error fetching statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Export data as CSV
   const exportToCSV = (data, filename) => {
     if (!data || data.length === 0) {
@@ -310,21 +393,6 @@ const Analytics = () => {
     document.body.removeChild(link);
   };
 
-  // CHARTS DATA PREPARATION
-  
-  // Top foods chart data
-  const topFoodsChartData = {
-    labels: topFoods.map(food => food.foodName),
-    datasets: [
-      {
-        label: 'Orders',
-        data: topFoods.map(food => food.orderCount || 0),
-        backgroundColor: 'rgba(253, 224, 71, 0.6)',
-        borderColor: 'rgb(253, 224, 71)',
-        borderWidth: 1,
-      },
-    ],
-  };
 
   // Monthly revenue data
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -488,12 +556,12 @@ const Analytics = () => {
         <div className="mb-6 overflow-x-auto">
           <div className="flex border-b">
             <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 text-sm font-medium ${activeTab === 'overview'
+              onClick={() => setActiveTab('summary')}
+              className={`px-4 py-2 text-sm font-medium ${activeTab === 'summary'
                 ? 'border-b-2 border-yellow-600 text-yellow-600'
                 : 'text-gray-500 hover:text-gray-700'}`}
             >
-              Overview
+              Daily Sales (Summary)
             </button>
             <button
               onClick={() => setActiveTab('sales')}
@@ -502,14 +570,6 @@ const Analytics = () => {
                 : 'text-gray-500 hover:text-gray-700'}`}
             >
               Sales Analysis
-            </button>
-            <button
-              onClick={() => setActiveTab('summary')}
-              className={`px-4 py-2 text-sm font-medium ${activeTab === 'summary'
-                ? 'border-b-2 border-yellow-600 text-yellow-600'
-                : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Daily Sales (Summary)
             </button>
             <button
               onClick={() => setActiveTab('inventory')}
@@ -540,284 +600,8 @@ const Analytics = () => {
           </div>
         ) : (
           <>
-            {/* OVERVIEW TAB */}
-            {activeTab === 'overview' && (
-              <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-gray-500 text-sm font-medium">Total Users</p>
-                        <h3 className="text-3xl font-bold mt-1">{stats?.userCount || 0}</h3>
-                      </div>
-                      <div className="bg-blue-100 p-3 rounded-full">
-                        <FaUsers className="text-3xl text-blue-500" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-gray-500 text-sm font-medium">Total Foods</p>
-                        <h3 className="text-3xl font-bold mt-1">{stats?.foodCount || 0}</h3>
-                      </div>
-                      <div className="bg-green-100 p-3 rounded-full">
-                        <FaUtensils className="text-3xl text-green-500" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-gray-500 text-sm font-medium">Total Orders</p>
-                        <h3 className="text-3xl font-bold mt-1">{stats?.orderCount || 0}</h3>
-                      </div>
-                      <div className="bg-yellow-100 p-3 rounded-full">
-                        <FaChartBar className="text-3xl text-yellow-500" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-gray-500 text-sm font-medium">Total Revenue</p>
-                        <h3 className="text-3xl font-bold mt-1">₦{(stats?.totalRevenue || 0).toFixed(2)}</h3>
-                      </div>
-                      <div className="bg-indigo-100 p-3 rounded-full">
-                        <FaMoneyBillWave className="text-3xl text-indigo-500" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">Top Selling Foods</h3>
-                      <button 
-                        onClick={() => exportToCSV(topFoods, 'top-selling-foods')}
-                        className="text-xs flex items-center text-blue-600 hover:text-blue-800"
-                      >
-                        <FaDownload className="mr-1" /> Export CSV
-                      </button>
-                    </div>
-                    <Bar 
-                      data={topFoodsChartData} 
-                      options={{
-                        responsive: true,
-                        plugins: {
-                          legend: {
-                            position: 'top',
-                          },
-                          title: {
-                            display: true,
-                            text: 'Order Count by Food Item'
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">Monthly Revenue</h3>
-                      <button 
-                        onClick={() => exportToCSV(
-                          Object.entries(monthlyRevenue).map(([month, amount]) => ({month, amount})), 
-                          'monthly-revenue'
-                        )}
-                        className="text-xs flex items-center text-blue-600 hover:text-blue-800"
-                      >
-                        <FaDownload className="mr-1" /> Export CSV
-                      </button>
-                    </div>
-                    <Line 
-                      data={revenueChartData}
-                      options={{
-                        responsive: true,
-                        plugins: {
-                          legend: {
-                            position: 'top',
-                          },
-                          title: {
-                            display: true,
-                            text: `Monthly Revenue - ${currentYear}`
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
-                    <div className="h-64 flex justify-center">
-                      <div style={{height: '100%', width: '100%', maxWidth: '300px'}}>
-                        <Pie 
-                          data={categoryData}
-                          options={{
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                              legend: {
-                                position: 'right',
-                              },
-                              title: {
-                                display: true,
-                                text: 'Food Items by Category'
-                              }
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Order ID
-                            </th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Customer
-                            </th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Amount
-                            </th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Status
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {stats?.recentOrders?.slice(0, 5).map((order) => (
-                            <tr key={order._id}>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                                #{order._id.substring(order._id.length - 6).toUpperCase()}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
-                                <div className="text-xs text-gray-500">{order.userEmail}</div>
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                                ₦{Number(order.totalPrice).toFixed(2)}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap">
-                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                  ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                    order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
-                                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
-                                        'bg-blue-100 text-blue-800'}`
-                                }>
-                                  {order.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                          {(!stats?.recentOrders || stats.recentOrders.length === 0) && (
-                            <tr>
-                              <td colSpan="4" className="px-4 py-2 text-center text-sm text-gray-500">
-                                No recent orders
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SALES TAB */}
-            {activeTab === 'sales' && (
-              <div>
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                    <h2 className="text-xl font-semibold flex items-center">
-                      <FaChartBar className="mr-2 text-yellow-600" /> Sales Analysis
-                    </h2>
-                    <div className="mt-2 md:mt-0">
-                      <button
-                        onClick={() => exportToCSV(dailySales, 'daily-sales')}
-                        className="flex items-center px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
-                      >
-                        <FaDownload className="mr-2" /> Export Data
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {dailySales.length > 0 ? (
-                    <>
-                      <div className="mb-6">
-                        <h3 className="text-lg font-medium mb-2">Daily Sales & Revenue</h3>
-                        <div className="h-80">
-                          <Line 
-                            data={dailySalesChartData}
-                            options={{
-                              responsive: true,
-                              maintainAspectRatio: false,
-                              interaction: {
-                                mode: 'index',
-                                intersect: false,
-                              },
-                              plugins: {
-                                tooltip: {
-                                  callbacks: {
-                                    label: function(context) {
-                                      const label = context.dataset.label || '';
-                                      const value = context.parsed.y;
-                                      return label + ': ' + (label.includes('Revenue') ? '₦' + value.toFixed(2) : value);
-                                    }
-                                  }
-                                },
-                              },
-                              scales: {
-                                y: {
-                                  type: 'linear',
-                                  display: true,
-                                  position: 'left',
-                                  title: {
-                                    display: true,
-                                    text: 'Items Sold'
-                                  }
-                                },
-                                y1: {
-                                  type: 'linear',
-                                  display: true,
-                                  position: 'right',
-                                  grid: {
-                                    drawOnChartArea: false,
-                                  },
-                                  title: {
-                                    display: true,
-                                    text: 'Revenue (₦)'
-                                  }
-                                },
-                              },
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center text-gray-500">
-                      No sales data available for the selected date range
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* SALES SUMMARY TAB */}
-            {activeTab === 'summary' && (
+           {/* SALES SUMMARY TAB */}
+           {activeTab === 'summary' && (
               <div>
                 <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -923,6 +707,86 @@ const Analytics = () => {
                       <li>Tap on a row to highlight it for easier reading</li>
                     </ul>
                   </div>
+                </div>
+              </div>
+            )}
+            
+            {/* SALES TAB */}
+            {activeTab === 'sales' && (
+              <div>
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <h2 className="text-xl font-semibold flex items-center">
+                      <FaChartBar className="mr-2 text-yellow-600" /> Sales Analysis
+                    </h2>
+                    <div className="mt-2 md:mt-0">
+                      <button
+                        onClick={() => exportToCSV(dailySales, 'daily-sales')}
+                        className="flex items-center px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                      >
+                        <FaDownload className="mr-2" /> Export Data
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {dailySales.length > 0 ? (
+                    <>
+                      <div className="mb-6">
+                        <h3 className="text-lg font-medium mb-2">Daily Sales & Revenue</h3>
+                        <div className="h-80">
+                          <Line 
+                            data={dailySalesChartData}
+                            options={{
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              interaction: {
+                                mode: 'index',
+                                intersect: false,
+                              },
+                              plugins: {
+                                tooltip: {
+                                  callbacks: {
+                                    label: function(context) {
+                                      const label = context.dataset.label || '';
+                                      const value = context.parsed.y;
+                                      return label + ': ' + (label.includes('Revenue') ? '₦' + value.toFixed(2) : value);
+                                    }
+                                  }
+                                },
+                              },
+                              scales: {
+                                y: {
+                                  type: 'linear',
+                                  display: true,
+                                  position: 'left',
+                                  title: {
+                                    display: true,
+                                    text: 'Items Sold'
+                                  }
+                                },
+                                y1: {
+                                  type: 'linear',
+                                  display: true,
+                                  position: 'right',
+                                  grid: {
+                                    drawOnChartArea: false,
+                                  },
+                                  title: {
+                                    display: true,
+                                    text: 'Revenue (₦)'
+                                  }
+                                },
+                              },
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No sales data available for the selected date range
+                    </div>
+                  )}
                 </div>
               </div>
             )}
