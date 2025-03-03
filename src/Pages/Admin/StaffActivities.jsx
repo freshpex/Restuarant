@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
+import axios from 'axios';
 import { 
   FaSpinner, FaUserClock, FaUtensils, FaClipboardList, 
   FaEdit, FaCalendarAlt, FaUserTag, FaSearch,
-  FaDownload, FaFilter, FaUser
+  FaDownload, FaFilter, FaUser, FaTrash
 } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
+import Pagination from '../../Components/Pagination';
 
 const StaffActivities = () => {
   const [loading, setLoading] = useState(true);
@@ -18,6 +20,12 @@ const StaffActivities = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalActivities, setTotalActivities] = useState(0);
+  const [filteredActivities, setFilteredActivities] = useState([]);
+  
+  const ITEMS_PER_PAGE = 10;
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -30,7 +38,7 @@ const StaffActivities = () => {
   
   useEffect(() => {
     fetchStaffActivities();
-  }, [startDate, endDate, filterType]);
+  }, [startDate, endDate, filterType, currentPage]);
   
   const fetchStaffActivities = async () => {
     try {
@@ -58,7 +66,18 @@ const StaffActivities = () => {
       }
 
       const data = await response.json();
-      setActivities(data.activities || []);
+      const allActivities = data.activities || [];
+      
+      setTotalActivities(allActivities.length);
+      
+      const paginatedActivities = paginateData(allActivities, currentPage, ITEMS_PER_PAGE);
+      setActivities(allActivities);
+      setFilteredActivities(paginatedActivities);
+      
+      const totalPages = Math.ceil(allActivities.length / ITEMS_PER_PAGE);
+      if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(1);
+      }
     } catch (error) {
       console.error('Error fetching staff activities:', error);
       toast.error('Failed to load staff activities');
@@ -68,6 +87,12 @@ const StaffActivities = () => {
     }
   };
   
+  const paginateData = (data, page, itemsPerPage) => {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return data.slice(startIndex, endIndex);
+  };
+  
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchStaffActivities();
@@ -75,6 +100,18 @@ const StaffActivities = () => {
     
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
+  
+  useEffect(() => {
+    setFilteredActivities(paginateData(activities, currentPage, ITEMS_PER_PAGE));
+  }, [currentPage, activities]);
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [startDate, endDate, filterType, searchTerm]);
+  
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
   
   const formatTime = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -138,7 +175,6 @@ const StaffActivities = () => {
       return;
     }
     
-    // Prepare data for CSV
     const headers = ['Staff Name', 'Staff Email', 'Staff Role', 'Activity Type', 'Timestamp', 'Endpoint', 'Details'];
     const csvRows = activities.map(activity => {
       return [
@@ -168,7 +204,65 @@ const StaffActivities = () => {
     document.body.removeChild(link);
   };
   
-  const filteredActivities = activities;
+  const deleteActivity = async (id) => {
+    if (!confirm('Are you sure you want to delete this activity?')) {
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      const response = await axios.delete(`${API_URL}/admin/staff-activities/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        toast.success('Activity deleted successfully');
+        fetchStaffActivities();
+      } else {
+        toast.error(response.data.message || 'Failed to delete activity');
+      }
+    } catch (error) {
+      console.error('Failed to delete activity:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete activity');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  const deleteAllActivities = async () => {
+    if (!confirm('Are you sure you want to delete ALL staff activities? This action cannot be undone.')) {
+      return;
+    }
+    
+    if (!confirm('FINAL WARNING: This will permanently delete ALL activity records. Continue?')) {
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      const response = await axios.delete(`${API_URL}/admin/staff-activities`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        toast.success(`${response.data.deletedCount || 'All'} activities deleted successfully`);
+        fetchStaffActivities();
+      } else {
+        toast.error(response.data.message || 'Failed to delete activities');
+      }
+    } catch (error) {
+      console.error('Failed to delete all activities:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete activities');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  const canDeleteActivity = (activity) => !activity.isDeletionRecord;
 
   return (
     <>
@@ -274,16 +368,34 @@ const StaffActivities = () => {
           </div>
           
           <div className="flex justify-between mt-4">
-            <span className="text-sm text-gray-600">
-              {filteredActivities.length} activities found
-            </span>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600 mr-3">
+                {totalActivities} activities found
+              </span>
+            </div>
             
-            <button
-              onClick={exportToCSV}
-              className="flex items-center px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-            >
-              <FaDownload className="mr-1" /> Export to CSV
-            </button>
+            <div className="flex space-x-2">
+              {totalActivities > 0 && (
+                <button
+                  onClick={deleteAllActivities}
+                  disabled={isDeleting}
+                  className="flex items-center px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-70"
+                >
+                  {isDeleting ? (
+                    <FaSpinner className="animate-spin mr-1" />
+                  ) : (
+                    <FaTrash className="mr-1" />
+                  )}
+                  Delete All
+                </button>
+              )}
+              <button
+                onClick={exportToCSV}
+                className="flex items-center px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+              >
+                <FaDownload className="mr-1" /> Download
+              </button>
+            </div>
           </div>
         </div>
         
@@ -301,67 +413,97 @@ const StaffActivities = () => {
             <h2 className="font-semibold text-xl text-gray-800 mb-4">Activity Log</h2>
             
             {filteredActivities.length > 0 ? (
-              <div className="space-y-6">
-                {filteredActivities.map((activity, index) => (
-                  <div key={index} className="flex gap-3 border-b border-gray-100 pb-6 last:border-0">
-                    <div className="mt-1">
-                      {getActivityIcon(activity.activityType)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{formatActivityType(activity.activityType)}</h3>
-                          <p className="text-sm text-blue-600 mt-1 flex items-center">
-                            <FaUser className="mr-1 text-xs" />
-                            <span className="font-medium">{activity.staffName || 'Unknown'}</span>
-                            <span className="mx-2 text-gray-400">|</span>
-                            <span className="text-gray-600">{activity.email}</span>
-                            <span className="ml-2 bg-gray-100 px-2 py-0.5 rounded text-xs text-gray-600">{activity.role}</span>
-                          </p>
-                        </div>
-                        <span className="text-sm text-gray-500 mt-1 sm:mt-0">{formatTime(activity.timestamp)}</span>
+              <>
+                <div className="space-y-6">
+                  {filteredActivities.map((activity, index) => (
+                    <div key={index} className={`flex gap-3 border-b border-gray-100 pb-6 last:border-0 ${activity.isDeletionRecord ? 'bg-red-50 p-3 rounded' : ''}`}>
+                      <div className="mt-1">
+                        {getActivityIcon(activity.activityType)}
                       </div>
-                      
-                      {activity.details?.endpoint && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          {activity.details?.method} {activity.details?.endpoint}
-                        </p>
-                      )}
-                      
-                      {activity.activityType === 'food_added' && activity.details?.foodName && (
-                        <div className="mt-2 bg-gray-50 p-2 rounded text-sm">
-                          <p className="font-medium">{activity.details?.foodName}</p>
-                          <div className="flex justify-between mt-1">
-                            <span>Price: ₦{activity.details?.foodPrice}</span>
-                            <span>Quantity: {activity.details?.foodQuantity}</span>
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {formatActivityType(activity.activityType)}
+                              {activity.isDeletionRecord && (
+                                <span className="ml-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
+                                  Deletion Record
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-sm text-blue-600 mt-1 flex items-center">
+                              <FaUser className="mr-1 text-xs" />
+                              <span className="font-medium">{activity.staffName || 'Unknown'}</span>
+                              <span className="mx-2 text-gray-400">|</span>
+                              <span className="text-gray-600">{activity.email}</span>
+                              <span className="ml-2 bg-gray-100 px-2 py-0.5 rounded text-xs text-gray-600">{activity.role}</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center mt-1 sm:mt-0">
+                            <span className="text-sm text-gray-500 mr-3">{formatTime(activity.timestamp)}</span>
+                            
+                            {canDeleteActivity(activity) && (
+                              <button 
+                                onClick={() => deleteActivity(activity._id)}
+                                disabled={isDeleting}
+                                className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                title="Delete this activity"
+                              >
+                                <FaTrash />
+                              </button>
+                            )}
                           </div>
                         </div>
-                      )}
-                      
-                      {(activity.activityType === 'order_status_updated' || 
-                        activity.activityType === 'order_payment_updated') && 
-                        activity.details?.orderDetails?.customer && (
-                        <div className="mt-2 bg-gray-50 p-2 rounded text-sm">
-                          <div className="flex justify-between">
-                            <span>Order: {activity.details?.orderId?.substring(0, 8)}</span>
-                            <span>Customer: {activity.details?.orderDetails?.customer}</span>
+                        
+                        {activity.details?.endpoint && (
+                          <p className="text-sm text-gray-600 mt-2">
+                            {activity.activityType}
+                          </p>
+                        )}
+                        
+                        {activity.activityType === 'food_added' && activity.details?.foodName && (
+                          <div className="mt-2 bg-gray-50 p-2 rounded text-sm">
+                            <p className="font-medium">{activity.details?.foodName}</p>
+                            <div className="flex justify-between mt-1">
+                              <span>Price: ₦{activity.details?.foodPrice}</span>
+                              <span>Quantity: {activity.details?.foodQuantity}</span>
+                            </div>
                           </div>
-                          {activity.activityType === 'order_status_updated' && (
-                            <p className="mt-1">
-                              Status changed from <span className="font-medium">{activity.details?.oldStatus}</span> to <span className="font-medium">{activity.details?.newStatus}</span>
-                            </p>
-                          )}
-                          {activity.activityType === 'order_payment_updated' && (
-                            <p className="mt-1">
-                              Payment status: <span className="font-medium">{activity.details?.newPaymentStatus}</span>
-                            </p>
-                          )}
-                        </div>
-                      )}
+                        )}
+                        
+                        {(activity.activityType === 'order_status_updated' || 
+                          activity.activityType === 'order_payment_updated') && 
+                          activity.details?.orderDetails?.customer && (
+                          <div className="mt-2 bg-gray-50 p-2 rounded text-sm">
+                            <div className="flex justify-between">
+                              <span>Order: {activity.details?.orderId?.substring(0, 8)}</span>
+                              <span>Customer: {activity.details?.orderDetails?.customer}</span>
+                            </div>
+                            {activity.activityType === 'order_status_updated' && (
+                              <p className="mt-1">
+                                Status changed from <span className="font-medium">{activity.details?.oldStatus}</span> to <span className="font-medium">{activity.details?.newStatus}</span>
+                              </p>
+                            )}
+                            {activity.activityType === 'order_payment_updated' && (
+                              <p className="mt-1">
+                                Payment status: <span className="font-medium">{activity.details?.newPaymentStatus}</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                
+                {/* Pagination component */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={totalActivities}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={handlePageChange}
+                />
+              </>
             ) : (
               <div className="text-center py-10 text-gray-500">
                 <FaUserTag className="mx-auto text-gray-300 text-4xl mb-3" />
