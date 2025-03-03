@@ -1,11 +1,13 @@
 import React from 'react';
+import { FaSpinner } from 'react-icons/fa';
 
 const MaterialForm = ({ 
   formValues, 
   onInputChange,
   onSubmit,
   onCancel,
-  isEditing
+  isEditing,
+  isSubmitting
 }) => {
   return (
     <form onSubmit={onSubmit} className="p-6">
@@ -129,15 +131,24 @@ const MaterialForm = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+          disabled={isSubmitting}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-md"
+          disabled={isSubmitting}
+          className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-md flex items-center disabled:opacity-50"
         >
-          {isEditing ? 'Update Material' : 'Add Material'}
+          {isSubmitting ? (
+            <>
+              <FaSpinner className="animate-spin mr-2" />
+              {isEditing ? 'Updating...' : 'Adding...'}
+            </>
+          ) : (
+            isEditing ? 'Update Material' : 'Add Material'
+          )}
         </button>
       </div>
     </form>

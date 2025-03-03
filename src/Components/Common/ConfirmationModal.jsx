@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaSpinner } from 'react-icons/fa';
 
 const ConfirmationModal = ({ 
   isOpen, 
@@ -8,7 +9,8 @@ const ConfirmationModal = ({
   cancelText = "Cancel",
   confirmButtonClass = "bg-red-600 hover:bg-red-700",
   onConfirm, 
-  onCancel 
+  onCancel,
+  isSubmitting = false
 }) => {
   if (!isOpen) return null;
 
@@ -26,16 +28,25 @@ const ConfirmationModal = ({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md disabled:opacity-50"
             >
               {cancelText}
             </button>
             <button
               type="button"
               onClick={onConfirm}
-              className={`px-4 py-2 text-sm font-medium text-white ${confirmButtonClass} rounded-md`}
+              disabled={isSubmitting}
+              className={`px-4 py-2 text-sm font-medium text-white ${confirmButtonClass} rounded-md flex items-center disabled:opacity-50`}
             >
-              {confirmText}
+              {isSubmitting ? (
+                <>
+                  <FaSpinner className="animate-spin mr-2" />
+                  Processing...
+                </>
+              ) : (
+                confirmText
+              )}
             </button>
           </div>
         </div>
