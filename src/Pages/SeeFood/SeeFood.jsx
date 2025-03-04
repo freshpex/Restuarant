@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import { fetchFoodById } from '../../redux/slices/foodSlice';
 import { addToCart } from '../../redux/slices/cartSlice';
-import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -30,12 +29,20 @@ const SeeFood = () => {
     }, [dispatch, id]);
 
     const handleAddToCart = () => {
+        if (parseInt(display.foodQuantity) <= 0) {
+            toast.error(`${display.foodName} is currently out of stock!`);
+            return;
+        }
+        
         dispatch(addToCart({ 
             item: display, 
             quantity 
         }));
         toast.success(`${display.foodName} added to cart!`);
     };
+
+    // Add this variable to check if the item is out of stock
+    const isOutOfStock = parseInt(display?.foodQuantity) <= 0;
 
     if (loading) return <LoadingSpinner />;
     if (error) return (
@@ -88,6 +95,14 @@ const SeeFood = () => {
                             {display.foodDescription}
                         </Typography>
                         
+                        {/* Add out of stock indicator */}
+                        {isOutOfStock && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
+                                <p className="font-bold">Out of Stock</p>
+                                <p className="text-sm">This item is currently unavailable</p>
+                            </div>
+                        )}
+                        
                         {/* Quantity selector */}
                         <div className="mb-4">
                             <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">
@@ -98,6 +113,7 @@ const SeeFood = () => {
                                     type="button" 
                                     className="p-2 border border-gray-300 rounded-l"
                                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                    disabled={isOutOfStock}
                                 >
                                     -
                                 </button>
@@ -109,15 +125,17 @@ const SeeFood = () => {
                                     value={quantity} 
                                     onChange={(e) => setQuantity(Math.min(parseInt(display.foodQuantity), Math.max(1, parseInt(e.target.value) || 1)))}
                                     className="w-16 text-center border-y border-gray-300 py-2"
+                                    disabled={isOutOfStock}
                                 />
                                 <button 
                                     type="button" 
                                     className="p-2 border border-gray-300 rounded-r"
                                     onClick={() => setQuantity(Math.min(parseInt(display.foodQuantity), quantity + 1))}
+                                    disabled={isOutOfStock}
                                 >
                                     +
                                 </button>
-                                <span className="ml-4 text-sm text-gray-500">
+                                <span className={`ml-4 text-sm ${isOutOfStock ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
                                     Available: {display.foodQuantity}
                                 </span>
                             </div>
@@ -125,33 +143,15 @@ const SeeFood = () => {
 
                         {/* Action buttons */}
                         <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                            {/* <Link to={`/foodOrder/${display._id}`} className="inline-block">
-                                <Button variant="text" className="flex hover:bg-yellow-700 items-center gap-1">
-                                    Order Now
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        strokeWidth={2}
-                                        className="h-4 w-4"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"
-                                        />
-                                    </svg>
-                                </Button>
-                            </Link> */}
                             <Button 
                                 variant="text" 
-                                color="yellow"
-                                className="flex items-center gap-1"
+                                color={isOutOfStock ? "gray" : "yellow"}
+                                className={`flex items-center gap-1 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 onClick={handleAddToCart}
+                                disabled={isOutOfStock}
                             >
                                 <FaShoppingCart className="h-4 w-4" />
-                                Add to Cart
+                                {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                             </Button>
                         </div>
                     </CardBody>

@@ -19,12 +19,19 @@ export default function AllFoodCard({data}) {
   const dispatch = useDispatch();
 
   const handleAddToCart = () => {
+    if (parseInt(data.foodQuantity) <= 0) {
+      toast.error(`${data.foodName} is currently out of stock!`);
+      return;
+    }
+    
     dispatch(addToCart({ 
       item: data, 
       quantity: 1 
     }));
     toast.success(`${data.foodName} added to cart!`);
   };
+
+  const isOutOfStock = parseInt(data.foodQuantity) <= 0;
 
   return (
     <Card className="w-full max-w-[32rem] shadow-lg">
@@ -87,7 +94,8 @@ export default function AllFoodCard({data}) {
         </div>
        
         <Typography className="text-xl" color="gray">
-         Quantity : {data.foodQuantity}
+          Quantity: {data.foodQuantity}
+          {isOutOfStock && <span className="text-red-600 ml-2 font-bold">Out of Stock</span>}
         </Typography>
         
       </CardBody>
@@ -97,11 +105,12 @@ export default function AllFoodCard({data}) {
         </Link>
         <Button 
           size="lg" 
-          color="yellow" 
-          className="flex items-center justify-center gap-2"
+          color={isOutOfStock ? "gray" : "yellow"}
+          className={`flex items-center justify-center gap-2 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : ''}`}
           onClick={handleAddToCart}
+          disabled={isOutOfStock}
         >
-          <FaShoppingCart /> Add to Cart
+          <FaShoppingCart /> {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
         </Button>
       </CardFooter>
     </Card>
