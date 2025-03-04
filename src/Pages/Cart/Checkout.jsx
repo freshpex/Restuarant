@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -8,7 +8,6 @@ import { clearCart } from '../../redux/slices/cartSlice';
 import { formatPrice } from '../../utils/formatUtils';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { selectCurrentUser } from '../../redux/selectors';
-import { Link } from 'react-router-dom';
 
 const Checkout = () => {
   const location = useLocation();
@@ -21,19 +20,9 @@ const Checkout = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
   const [phoneError, setPhoneError] = useState('');
+  const [lastOrderId, setLastOrderId] = useState(null);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
-  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
-  
-  useEffect(() => {
-    if (location.state?.isGuest) {
-      const timer = setTimeout(() => {
-        setShowSignupPrompt(true);
-      }, 3000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [location.state]);
   
   const { 
     cartItems, 
@@ -106,36 +95,6 @@ const Checkout = () => {
         isGuestOrder: isGuest
       };
       
-      if (transactionDetails && paymentMethod === 'online') {
-        dispatch(clearCart());
-        
-        const tempId = `temp-${Date.now()}`;
-        navigate('/order-success', { 
-          state: { 
-            orderId: tempId,
-            isPaid: true,
-            contactPhone: phoneNumber.trim(),
-            isProcessing: true
-          }
-        });
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(orderData)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to place order');
-        }
-        
-        return;
-      }
-      
       const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
         method: 'POST',
         headers: {
@@ -151,12 +110,14 @@ const Checkout = () => {
       }
       
       const data = await response.json();
+      setLastOrderId(data.orderId);
       
       dispatch(clearCart());
       
       navigate('/order-success', { 
         state: { 
           orderId: data.orderId,
+          orderReference: data.orderReference,
           isPaid: !!transactionDetails,
           contactPhone: phoneNumber.trim()
         }
@@ -172,7 +133,6 @@ const Checkout = () => {
   };
   
   const handlePayWithWhatsApp = () => {
-    
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
       return;
@@ -182,6 +142,8 @@ const Checkout = () => {
       setPhoneError('Please enter a valid phone number');
       return;
     }
+
+    const customerName = isGuest ? guestName || 'Guest Customer' : user?.displayName || '';
     
     const items = cartItems.map(item => `- ${item.foodName} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
     
@@ -190,7 +152,7 @@ const Checkout = () => {
       `Subtotal: ₦${totalAmount}\n` +
       `Delivery to ${deliveryLocation} (${fullAddress}): ₦${deliveryFee}\n` +
       `Total: ₦${grandTotal}\n\n` +
-      `My name is ${user.displayName}.\n` +
+      `My name is ${customerName}.\n` +
       `My contact number: ${phoneNumber}\n` + 
       `Please confirm if these items are available.`
     );
@@ -213,74 +175,90 @@ const Checkout = () => {
 
   const updateOrderPaymentStatus = async (paymentResponse) => {
     try {
-      const orderData = {
-        items: cartItems.map(item => ({
-          foodId: item._id,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          price: item.foodPrice,
-          totalPrice: item.totalPrice,
-          foodImage: item.foodImage
-        })),
-        deliveryLocation,
-        deliveryFee,
-        fullAddress,
-        subtotal: totalAmount,
-        total: grandTotal,
-        paymentMethod: 'online',
-        paymentStatus: paymentResponse?.status === 'successful' || paymentResponse?.status === 'completed' ? 'paid' : 'processing',
-        transactionRef: paymentResponse?.transaction_id || null,
-        buyerName: user?.displayName || '',
-        email: user?.email || '',
-        userEmail: user?.email || '',
-        phone: phoneNumber.trim(),
-        date: new Date().toISOString().split('T')[0]
-      };
-      
-      dispatch(clearCart());
-      
-      const orderResponse = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(orderData)
-      });
-      
-      if (!orderResponse.ok) {
-        throw new Error('Failed to create order');
-      }
-      
-      const orderResult = await orderResponse.json();
-      const { orderId, orderReference } = orderResult;
-      
-      const paymentUpdateResponse = await fetch(`${import.meta.env.VITE_API_URL}/orders/${orderId}/payment`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          paymentStatus: 'paid',
-          transactionRef: paymentResponse.transaction_id
-        })
-      });
-      
-      if (!paymentUpdateResponse.ok) {
-        console.error('Payment status update failed but order was created');
-      }
-      
-      navigate('/order-success', { 
-        state: { 
-          orderId: orderId,
-          orderReference: orderReference,
-          isPaid: true,
-          contactPhone: phoneNumber.trim()
+      if (lastOrderId) {
+        const paymentUpdateResponse = await fetch(`${import.meta.env.VITE_API_URL}/orders/${lastOrderId}/payment`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            paymentStatus: 'paid',
+            transactionRef: paymentResponse.transaction_id
+          })
+        });
+        
+        if (!paymentUpdateResponse.ok) {
+          console.error('Payment status update failed');
+          throw new Error('Failed to update payment status');
         }
-      });
-      
-      return true;
+        
+        const updateResult = await paymentUpdateResponse.json();
+        
+        navigate('/order-success', { 
+          state: { 
+            orderId: lastOrderId,
+            orderReference: updateResult.orderReference || '',
+            isPaid: true,
+            contactPhone: phoneNumber.trim()
+          }
+        });
+        
+        return true;
+      } else {
+        const orderData = {
+          items: cartItems.map(item => ({
+            foodId: item._id,
+            foodName: item.foodName,
+            quantity: item.quantity,
+            price: item.foodPrice,
+            totalPrice: item.totalPrice,
+            foodImage: item.foodImage
+          })),
+          deliveryLocation,
+          deliveryFee,
+          fullAddress,
+          subtotal: totalAmount,
+          total: grandTotal,
+          paymentMethod: 'online',
+          paymentStatus: paymentResponse?.status === 'successful' || paymentResponse?.status === 'completed' ? 'paid' : 'processing',
+          transactionRef: paymentResponse?.transaction_id || null,
+          buyerName: isGuest ? guestName : user?.displayName || '',
+          email: isGuest ? guestEmail : user?.email || '',
+          userEmail: isGuest ? guestEmail : user?.email || '',
+          phone: phoneNumber.trim(),
+          date: new Date().toISOString().split('T')[0],
+          isGuestOrder: isGuest
+        };
+        
+        dispatch(clearCart());
+        
+        const orderResponse = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(orderData)
+        });
+        
+        if (!orderResponse.ok) {
+          throw new Error('Failed to create order');
+        }
+        
+        const orderResult = await orderResponse.json();
+        
+        navigate('/order-success', { 
+          state: { 
+            orderId: orderResult.orderId,
+            orderReference: orderResult.orderReference,
+            isPaid: true,
+            contactPhone: phoneNumber.trim()
+          }
+        });
+        
+        return true;
+      }
     } catch (error) {
       console.error('Payment processing error:', error);
       
@@ -308,112 +286,115 @@ const Checkout = () => {
       return;
     }
     
+    if (isGuest && !guestName.trim()) {
+      toast.error('Please enter your name');
+      return;
+    }
+    
     setProcessingPayment(true);
     
-    const createOrderFirst = async () => {
-      try {
-        const orderData = {
-          items: cartItems.map(item => ({
-            foodId: item._id,
-            foodName: item.foodName,
-            quantity: item.quantity,
-            price: item.foodPrice,
-            totalPrice: item.totalPrice,
-            foodImage: item.foodImage
-          })),
-          deliveryLocation,
-          deliveryFee,
-          fullAddress,
-          subtotal: totalAmount,
-          total: grandTotal,
-          paymentStatus: 'processing',
-          paymentMethod: 'online',
-          buyerName: isGuest ? guestName : user?.displayName || '',
-          email: isGuest ? guestEmail : user?.email || '',
-          userEmail: isGuest ? guestEmail : user?.email || '',
-          phone: phoneNumber.trim(),
-          date: new Date().toISOString().split('T')[0],
-          isGuestOrder: isGuest
-        };
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(orderData)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create order');
-        }
-        
-        const data = await response.json();
-        
-        initiatePayment(data.orderId, data.orderReference);
-      } catch (error) {
-        toast.error(error.message || 'Failed to initialize order');
-        setProcessingPayment(false);
+    const orderReference = `TK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    const config = {
+      public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
+      tx_ref: orderReference,
+      amount: parseFloat(grandTotal),
+      currency: 'NGN',
+      payment_options: 'card,mobilemoney,ussd,banktransfer',
+      customer: {
+        email: isGuest ? guestEmail || 'guest@timskitchen.com' : user?.email || 'customer@timskitchen.com',
+        phone_number: phoneNumber.trim(),
+        name: isGuest ? guestName || 'Guest Customer' : user?.displayName || 'Customer',
+      },
+      customizations: {
+        title: "Tim's Kitchen Cart Checkout",
+        description: `Payment for ${cartItems.length} items`,
+        logo: "/logo.png",
+      },
+      meta: {
+        orderReference: orderReference
       }
     };
     
-    const initiatePayment = (orderId, orderReference) => {
-      const customerEmail = isGuest 
-        ? (guestEmail || 'guest@timskitchen.com')
-        : (user?.email || 'customer@timskitchen.com');
-        
-      const customerName = isGuest
-        ? (guestName || 'Guest Customer') 
-        : (user?.displayName || 'Customer');
-      
-      const config = {
-        public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref: orderReference,
-        amount: parseFloat(grandTotal),
-        currency: 'NGN',
-        payment_options: 'card,mobilemoney,ussd,banktransfer',
-        customer: {
-          email: customerEmail,
-          phone_number: phoneNumber.trim(),
-          name: customerName,
-        },
-        customizations: {
-          title: "Tim's Kitchen Cart Checkout",
-          description: `Payment for ${cartItems.length} items`,
-          logo: "/logo.png",
-        },
-        meta: {
-          orderId: orderId,
-          orderReference: orderReference,
-          isGuestOrder: isGuest
-        }
-      };
-      
-      const handleFlutterPayment = useFlutterwave(config);
-      
-      handleFlutterPayment({
-        callback: (response) => {
-          closePaymentModal();
-          
-          if (response.status === "successful" || response.status === "completed") {
-            handlePaymentSuccess(response);
-          } else {
-            toast.error('Payment was not completed successfully.');
-            setProcessingPayment(false);
-          }
-        },
-        onClose: () => {
-          setProcessingPayment(false);
-          toast.info('Payment cancelled');
-        },
-      });
-    };
+    const handleFlutterPayment = useFlutterwave(config);
     
-    createOrderFirst();
+    handleFlutterPayment({
+      callback: (response) => {
+        closePaymentModal();
+        
+        if (response.status === "successful" || response.status === "completed") {
+          const orderData = {
+            items: cartItems.map(item => ({
+              foodId: item._id,
+              foodName: item.foodName,
+              quantity: item.quantity,
+              price: item.foodPrice,
+              totalPrice: item.totalPrice,
+              foodImage: item.foodImage
+            })),
+            deliveryLocation,
+            deliveryFee,
+            fullAddress,
+            subtotal: totalAmount,
+            total: grandTotal,
+            paymentMethod: 'online',
+            paymentStatus: 'paid',
+            transactionRef: response.transaction_id,
+            buyerName: isGuest ? guestName : user?.displayName || '',
+            email: isGuest ? guestEmail : user?.email || '',
+            userEmail: isGuest ? guestEmail : user?.email || '',
+            phone: phoneNumber.trim(),
+            date: new Date().toISOString().split('T')[0],
+            isGuestOrder: isGuest,
+            orderReference: orderReference
+          };
+          
+          // Clear cart and show loading feedback
+          dispatch(clearCart());
+          toast.promise(
+            fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify(orderData)
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Failed to create order');
+              }
+              return response.json();
+            })
+            .then(data => {
+              navigate('/order-success', { 
+                state: { 
+                  orderId: data.orderId,
+                  orderReference: data.orderReference || orderReference,
+                  isPaid: true,
+                  contactPhone: phoneNumber.trim()
+                }
+              });
+              return data;
+            }),
+            {
+              loading: 'Finalizing your order...',
+              success: 'Payment successful! Redirecting...',
+              error: 'There was an issue creating your order, but your payment was successful. Contact support.'
+            }
+          );
+        } else {
+          toast.error('Payment was not completed successfully.');
+          setProcessingPayment(false);
+        }
+      },
+      onClose: () => {
+        setProcessingPayment(false);
+        toast.info('Payment cancelled');
+      }
+    });
   };
-  
+
   const handlePlaceOrder = () => {
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
@@ -525,15 +506,14 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Add guest name input field */}
+              
               {isGuest && (
                 <div className="mt-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Guest Information</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="mb-4">
                       <label htmlFor="guestName" className="block mb-2 text-sm font-medium text-gray-700">
-                        Name <span className="text-red-500">*</span>
+                        Full Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -561,25 +541,6 @@ const Checkout = () => {
                       <p className="mt-1 text-xs text-gray-500">
                         Your order confirmation and tracking details will be sent here if provided
                       </p>
-                    </div>
-                    
-                    <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
-                      <div className="flex">
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-blue-800">Create an account for a better experience!</h3>
-                          <div className="mt-2 text-sm text-blue-700">
-                            <p>Sign up to track your orders easily, save your delivery details, and get exclusive offers.</p>
-                            <div className="mt-3">
-                              <Link 
-                                to="/signup" 
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium inline-block"
-                              >
-                                Create Account
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -628,30 +589,6 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Add the signup prompt component here */}
-              {isGuest && showSignupPrompt && (
-                <div className="mt-6 bg-blue-50 p-6 rounded-lg border border-blue-100 animate-fadeIn">
-                  <h3 className="text-lg font-medium text-blue-800 mb-2">Create an account for a better experience!</h3>
-                  <p className="text-blue-700 mb-4">
-                    Sign up now to easily track your orders, save your delivery information for future orders, and get exclusive deals.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <Link 
-                      to="/signup" 
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                    >
-                      Create Account
-                    </Link>
-                    <button 
-                      onClick={() => setShowSignupPrompt(false)}
-                      className="border border-blue-300 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-md text-sm font-medium"
-                    >
-                      Continue as Guest
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
             
             <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6">

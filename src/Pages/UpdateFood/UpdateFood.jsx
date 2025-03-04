@@ -25,7 +25,6 @@ const UpdateFood = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        // Fetch food details when component mounts
         if (id && token) {
             dispatch(fetchFoodForUpdate({ id, token }))
                 .unwrap()
@@ -35,7 +34,6 @@ const UpdateFood = () => {
                         toast.info('You are editing this food as an admin');
                     }
                     
-                    // Set the existing image URL as preview
                     if (food.foodImage) {
                         setPreviewUrl(food.foodImage);
                     }
@@ -49,7 +47,6 @@ const UpdateFood = () => {
                 });
         }
         
-        // Cleanup when component unmounts
         return () => {
             dispatch(clearFoodForUpdate());
             if (previewUrl && previewUrl.startsWith('blob:')) {
@@ -75,7 +72,6 @@ const UpdateFood = () => {
         const file = e.target.files[0];
         if (file) {
             setImageFile(file);
-            // Create a preview URL for the selected image
             const objectUrl = URL.createObjectURL(file);
             setPreviewUrl(objectUrl);
             setIsUsingUrl(false);
@@ -86,9 +82,7 @@ const UpdateFood = () => {
     const handleToggleUploadMethod = () => {
         setIsUsingUrl(!isUsingUrl);
         if (!isUsingUrl) {
-            // Switching to URL mode
             setImageFile(null);
-            // If foodForUpdate has an image, restore it as preview
             if (foodForUpdate?.foodImage) {
                 setPreviewUrl(foodForUpdate.foodImage);
             } else {
@@ -113,18 +107,16 @@ const UpdateFood = () => {
             foodQuantity: form.quantity.value,
         };
 
-        // If using URL, include it directly
         if (isUsingUrl) {
             updatedFood.foodImage = form.image.value;
             dispatch(updateFood({ id, foodData: updatedFood, token }));
         } else {
-            // If using file upload, handle it similar to AddFood
             try {
                 await dispatch(updateFood({ 
                     id, 
                     foodData: updatedFood, 
                     token,
-                    imageFile // Pass the image file for upload
+                    imageFile
                 })).unwrap();
             } catch (error) {
                 console.error('Error updating food with image:', error);
@@ -134,7 +126,6 @@ const UpdateFood = () => {
         }
     };
 
-    if (loading && !foodForUpdate) return <LoadingSpinner />;
     if (!foodForUpdate) return <div className="text-center py-10 text-white bg-[#121212]">Loading food details...</div>;
 
     return (

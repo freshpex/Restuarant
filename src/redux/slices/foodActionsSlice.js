@@ -276,22 +276,21 @@ export const fetchFoodForUpdate = createAsyncThunk(
       const response = await fetch(
         `${API_URL}/update/${id}`,
         {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch food');
+        const errorData = await response.json();
+        return rejectWithValue(errorData.error || 'Failed to fetch food for update');
       }
-      
-      return await response.json();
+
+      const data = await response.json();
+      return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Failed to fetch food for update');
     }
   }
 );

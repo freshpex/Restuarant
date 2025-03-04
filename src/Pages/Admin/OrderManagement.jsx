@@ -463,6 +463,11 @@ const OrderManagement = () => {
       );
 
       toast.success('Order deleted successfully');
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      
     } catch (error) {
       console.error('Error deleting order:', error);
       toast.error('Failed to delete order: ' + error.message);
@@ -818,6 +823,7 @@ const OrderManagement = () => {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Details</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
@@ -840,8 +846,37 @@ const OrderManagement = () => {
                           #{order._id.substring(order._id.length - 6).toUpperCase()}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
+                          <div className="text-sm font-medium text-gray-900">{order.buyerName || 'Guest'}</div>
                           <div className="text-sm text-gray-500">{order.userEmail}</div>
+                        </td>
+                        {/* Order items */}
+                        <td className="px-6 py-4">
+                          {Array.isArray(order.items) && order.items.length > 1 ? (
+                            <div className="space-y-2">
+                              {order.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center">
+                                  {item.foodImage && (
+                                    <img 
+                                      src={item.foodImage} 
+                                      alt={item.foodName} 
+                                      className="w-8 h-8 rounded object-cover mr-2"
+                                    />
+                                  )}
+                                  <div>
+                                    <div className="text-sm font-medium">{item.foodName}</div>
+                                    <div className="text-xs text-gray-500">Qty: {item.quantity} × {formatPrice(item.price || (item.totalPrice / item.quantity))}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <div>
+                                <div className="text-sm font-medium">{order.foodName}</div>
+                                <div className="text-xs text-gray-500">Qty: {order.quantity} × {formatPrice(order.foodPrice)}</div>
+                              </div>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {moment(order.createdAt).format('MMM DD, YYYY hh:mm A')}

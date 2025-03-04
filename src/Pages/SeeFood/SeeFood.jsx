@@ -125,7 +125,7 @@ const SeeFood = () => {
 
                         {/* Action buttons */}
                         <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                            <Link to={`/foodOrder/${display._id}`} className="inline-block">
+                            {/* <Link to={`/foodOrder/${display._id}`} className="inline-block">
                                 <Button variant="text" className="flex hover:bg-yellow-700 items-center gap-1">
                                     Order Now
                                     <svg
@@ -143,7 +143,7 @@ const SeeFood = () => {
                                         />
                                     </svg>
                                 </Button>
-                            </Link>
+                            </Link> */}
                             <Button 
                                 variant="text" 
                                 color="yellow"
