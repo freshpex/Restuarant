@@ -4,13 +4,17 @@ import storage from 'redux-persist/lib/storage';
 import authReducer from './slices/authSlice';
 import foodReducer from './slices/foodSlice';
 import foodActionsReducer from './slices/foodActionsSlice';
+import drinkReducer from './slices/drinkSlice';
+import drinkActionsReducer from './slices/drinkActionsSlice';
 import uiReducer from './slices/uiSlice';
 import cartReducer from './slices/cartSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
   food: foodReducer,
+  drink: drinkReducer,
   foodActions: foodActionsReducer,
+  drinkActions: drinkActionsReducer,
   ui: uiReducer,
   cart: cartReducer
 });

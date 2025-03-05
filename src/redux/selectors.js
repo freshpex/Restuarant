@@ -16,6 +16,15 @@ export const selectAllFoods = state => state.food?.foods || [];
 export const selectUserFoods = state => state.foodActions?.userFoods || [];
 export const selectTopFoods = state => state.foodActions?.topFoods || [];
 
+// Selectors for drink state
+export const selectdrinks = state => state.food?.foods || [];
+export const selectCurrentDrink = state => state.food?.currentFood;
+export const selectDrinkLoading = state => state.food?.loading || false;
+export const selectDrinkError = state => state.food?.error || null;
+export const selectAllDrinks = state => state.food?.foods || [];
+export const selectUserDrinks = state => state.foodActions?.userFoods || [];
+export const selectTopDrinks = state => state.foodActions?.topFoods || [];
+
 // Loading selectors
 export const selectIsLoading = state => state.ui?.globalLoading || false;
 export const selectApiLoading = (state, endpoint) => state.api?.requests?.[endpoint] || false;
