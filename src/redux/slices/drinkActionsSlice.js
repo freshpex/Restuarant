@@ -55,7 +55,7 @@ export const updateDrink = createAsyncThunk(
           formData.append(key, drinkData[key]);
         });
         
-        response = await fetch(`${API_URL}/update/${id}`, {
+        response = await fetch(`${API_URL}/drink/update/${id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -63,7 +63,7 @@ export const updateDrink = createAsyncThunk(
           body: formData
         });
       } else {
-        response = await fetch(`${API_URL}/update/${id}`, {
+        response = await fetch(`${API_URL}/drink/update/${id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -273,7 +273,7 @@ export const fetchDrinkForUpdate = createAsyncThunk(
   async ({ id, token }, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `${API_URL}/update/${id}`,
+        `${API_URL}/drink/update/${id}`,
         {
         headers: {
           'Authorization': `Bearer ${token}`,

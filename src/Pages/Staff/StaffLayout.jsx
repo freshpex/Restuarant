@@ -5,7 +5,7 @@ import { logoutUser } from '../../redux/slices/authSlice';
 import { 
   FaHome, FaUtensils, FaClipboardList, FaDrumstickBite, FaGlassMartini, 
   FaSignOutAlt, FaBars, FaTimes, FaWarehouse, 
-  FaUserCog, FaCashRegister, FaUserTie, FaUserCheck, FaMinusCircle
+  FaUserCog, FaCashRegister, FaUserTie, FaUserCheck, FaWineBottle
 } from 'react-icons/fa';
 import { selectCurrentUser } from '../../redux/selectors';
 import Logo from "../../assets/Logo.png";
@@ -186,6 +186,21 @@ const StaffLayout = ({ children }) => {
               >
                 <FaUtensils className="mr-3" />
                 Food Items
+              </NavLink>
+
+              <NavLink 
+                to="/staff/drinks" 
+                className={({ isActive }) => 
+                  `flex items-center px-4 py-3 text-sm rounded-lg ${
+                    isActive 
+                      ? 'bg-yellow-100 text-yellow-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`
+                }
+                onClick={() => setSidebarOpen(false)}
+              >
+                <FaWineBottle className="mr-3" />
+                Drink items
               </NavLink>
               
               <NavLink 

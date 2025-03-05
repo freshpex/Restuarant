@@ -5,7 +5,8 @@ import { Helmet } from 'react-helmet';
 import { 
   FaUsers, FaUtensils, FaChartLine, FaShoppingCart, 
   FaTachometerAlt, FaBars, FaTimes, FaSignOutAlt,
-  FaUserClock, FaHome, FaShieldAlt, FaWarehouse, FaPlus, FaGlassMartini, FaDrumstickBite
+  FaUserClock, FaHome, FaShieldAlt, FaWarehouse, FaPlus, FaGlassMartini, FaDrumstickBite,
+  FaWineBottle
 } from 'react-icons/fa';
 import { selectCurrentUser } from '../../redux/selectors';
 import Logo from "../../assets/Logo.png";
@@ -146,6 +147,21 @@ const AdminDashboard = () => {
                 >
                   <FaUtensils className="mr-3" />
                   Food Management
+                </NavLink>
+
+                <NavLink 
+                  to="/admin/drinks" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaWineBottle className="mr-3" />
+                  Drink Management
                 </NavLink>
                 
                 <NavLink 

@@ -42,6 +42,7 @@ import UserManagement from './Pages/Admin/UserManagement';
 import RoleDebugger from './Components/RoleDebugger';
 import Dashboard from './Pages/Admin/Dashboard';
 import FoodManagement from './Pages/Admin/FoodManagement';
+import DrinkManagement from './Pages/Admin/DrinkManagement';
 import OrderManagement from './Pages/Admin/OrderManagement';
 import Analytics from './Pages/Admin/Analytics';
 import TermsAndConditions from './Pages/Terms/TermsAndConditions';
@@ -57,7 +58,8 @@ import StaffOrders from './Pages/Staff/StaffOrders';
 import StaffFoods from './Pages/Staff/StaffFoods';
 import StaffAddOrder from './Pages/Staff/StaffAddOrder';
 import StaffActivities from './Pages/Admin/StaffActivities';
-import RawMaterials from './Pages/Admin/RawMaterials.jsx';
+import RawMaterials from './Pages/Admin/RawMaterials';
+import StaffDrinks from './Pages/Staff/StaffDrinks';
 
 function App() {
     const dispatch = useDispatch();
@@ -217,6 +219,10 @@ function App() {
                     element: <FoodManagement />
                 },
                 {
+                    path: 'drinks',
+                    element: <DrinkManagement />
+                },
+                {
                     path: 'orders',
                     element: <OrderManagement />
                 },
@@ -269,6 +275,10 @@ function App() {
                 {
                     path: 'foods',
                     element: <StaffFoods />
+                },
+                {
+                    path: 'drinks',
+                    element: <StaffDrinks />
                 },
                 {
                     path: 'add-order',
