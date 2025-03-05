@@ -22,6 +22,7 @@ import OrderFood from "./Pages/AddFood/OrderFood";
 import AddFood from "./Pages/AddFood/AddFood";
 import AddDrink from "./Pages/AddDrink/AddDrink";
 import UpdateFood from "./Pages/UpdateFood/UpdateFood";
+import UpdateDrink from './Pages/UpdateDrink/UpdateDrink.jsx';
 import TopSelling from "./Pages/TopSelling/TopSelling";
 import TopFood from "./Pages/TopSelling/TopFood";
 import Error from "./Error/Error";
@@ -144,11 +145,7 @@ function App() {
                 {
                     path: "/myDrink",
                     element: <PrivateRouter><MyDrink /></PrivateRouter>
-                },
-                {
-                    path: "/update/:id",
-                    element: <PrivateRouter><UpdateFood /></PrivateRouter>
-                },
+                },                
                 {
                     path: "/topSelling",
                     element: <TopSelling />
@@ -246,6 +243,14 @@ function App() {
                 {
                     path: "addDrink",
                     element: <AddDrink />
+                },
+                {
+                    path: "update-food/:id",
+                    element: <UpdateFood />
+                },
+                {
+                    path: "update-drink/:id",
+                    element: <UpdateDrink />
                 },
             ]
         },

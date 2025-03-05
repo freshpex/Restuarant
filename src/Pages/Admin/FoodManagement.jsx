@@ -4,10 +4,10 @@ import { Helmet } from 'react-helmet';
 import { 
   FaEdit, FaTrash, FaEye, FaPlus, FaSearch, FaSpinner, 
   FaEllipsisV, FaExclamationTriangle, FaFilter 
-} from 'react-icons/fa'; // Added FaExclamationTriangle and FaFilter
+} from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 
 const FoodManagement = () => {
   const [foods, setFoods] = useState([]);
@@ -46,7 +46,6 @@ const FoodManagement = () => {
       const data = await response.json();
       setFoods(data.foods || []);
       
-      // Extract unique categories
       const uniqueCategories = [...new Set(data.foods.map(food => food.foodCategory))];
       setCategories(uniqueCategories);
     } catch (error) {
@@ -202,7 +201,6 @@ const FoodManagement = () => {
                           </div>
                           <div className="flex justify-between items-center mt-1">
                             <p className="text-xs text-gray-500">Orders: {food.orderCount || 0}</p>
-                            {/* Add stock status */}
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full flex items-center ${stockStatus.color}`}>
                               {stockStatus.status !== 'normal' && <FaExclamationTriangle className="mr-1" />}
                               {food.foodQuantity || 0} left
@@ -218,12 +216,12 @@ const FoodManagement = () => {
                         >
                           <FaEye className="mr-2" /> View
                         </Link>
-                        <Link 
-                          to={`/update/${food._id}`}
+                        <NavLink 
+                          to={`/admin/update/${food._id}`}
                           className="flex-1 flex justify-center items-center py-2 text-indigo-600 hover:bg-indigo-50 rounded"
                         >
                           <FaEdit className="mr-2" /> Edit
-                        </Link>
+                        </NavLink>
                         <button
                           onClick={() => handleDelete(food._id)}
                           disabled={deleting}
@@ -274,7 +272,6 @@ const FoodManagement = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                    {/* Add Quantity column */}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -332,7 +329,7 @@ const FoodManagement = () => {
                                 <FaEye />
                               </Link>
                               <Link 
-                                to={`/update/${food._id}`}
+                                to={`/admin/update-food/${food._id}`}
                                 className="text-indigo-600 hover:text-indigo-900"
                                 title="Edit"
                               >
