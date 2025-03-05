@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { FaSearch, FaSpinner, FaBox, FaCheck, FaTimes, FaShoppingBag, FaUtensils, FaMotorcycle, FaTruck, FaClipboard, FaExclamationTriangle } from 'react-icons/fa';
+import { FaSearch, FaSpinner, FaBox, FaCheck, FaTimes, FaShoppingBag, FaUtensils, FaMotorcycle, FaTruck, FaClipboard, FaExclamationTriangle, FaGlassWhiskey, FaHamburger, FaCocktail } from 'react-icons/fa';
 import { formatPrice } from '../../utils/formatUtils';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
@@ -97,7 +97,50 @@ const OrderTracking = () => {
       handleTrackOrder();
     }
   };
+
+  // Get the appropriate item name based on type (food or drink)
+  const getItemName = (item) => {
+    return item.itemName || item.foodName || item.drinkName || 'Unknown Item';
+  };
   
+  // Get the appropriate item image based on type
+  const getItemImage = (item) => {
+    return item.image || item.foodImage || item.drinkImage || null;
+  };
+  
+  // Determine if an item is a food or drink
+  const getItemType = (item) => {
+    if (item.type) return item.type;
+    if (item.foodId || item.foodName) return 'food';
+    if (item.drinkId || item.drinkName) return 'drink';
+    return 'unknown';
+  };
+  
+  // Get appropriate icon based on item type
+  const getItemIcon = (item) => {
+    const type = getItemType(item);
+    if (type === 'food') return <FaHamburger className="text-yellow-500" />;
+    if (type === 'drink') return <FaGlassWhiskey className="text-blue-500" />;
+    return <FaShoppingBag className="text-gray-500" />;
+  };
+  
+  const getItemTypeCounts = (items) => {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      if (order) {
+        if (order.foodId || order.foodName) return { food: 1, drink: 0 };
+        if (order.drinkId || order.drinkName) return { food: 0, drink: 1 };
+      }
+      return { food: 0, drink: 0 };
+    }
+    
+    return items.reduce((counts, item) => {
+      const type = getItemType(item);
+      if (type === 'food') counts.food += 1;
+      else if (type === 'drink') counts.drink += 1;
+      return counts;
+    }, { food: 0, drink: 0 });
+  };
+
   return (
     <>
       <Helmet>
@@ -191,6 +234,31 @@ const OrderTracking = () => {
                 </div>
               </div>
               
+              {(() => {
+                const { food: foodCount, drink: drinkCount } = getItemTypeCounts(order.items);
+                
+                return (
+                  <div className="px-6 pt-3">
+                    <div className="flex items-center mb-4">
+                      <div className="flex space-x-2">
+                        {foodCount > 0 && (
+                          <div className="flex items-center bg-yellow-50 px-3 py-1 rounded-full">
+                            <FaHamburger className="text-yellow-600 mr-1" />
+                            <span className="text-sm font-medium text-yellow-700">{foodCount} Food</span>
+                          </div>
+                        )}
+                        {drinkCount > 0 && (
+                          <div className="flex items-center bg-blue-50 px-3 py-1 rounded-full">
+                            <FaGlassWhiskey className="text-blue-600 mr-1" />
+                            <span className="text-sm font-medium text-blue-700">{drinkCount} Drink{drinkCount !== 1 ? 's' : ''}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+              
               {/* Order Progress */}
               <div className="px-6 pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Order Progress</h3>
@@ -238,19 +306,34 @@ const OrderTracking = () => {
                   {order.items && order.items.length > 0 ? (
                     order.items.map((item, index) => (
                       <div key={index} className="py-4 flex items-start">
-                        {item.foodImage && (
-                          <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                          {getItemImage(item) ? (
                             <img
-                              src={item.foodImage}
-                              alt={item.foodName}
+                              src={getItemImage(item)}
+                              alt={getItemName(item)}
                               className="h-full w-full object-cover object-center"
                             />
-                          </div>
-                        )}
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center bg-gray-100">
+                              {getItemIcon(item)}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Item details */}
                         <div className="flex-1">
                           <div className="flex justify-between">
                             <div>
-                              <h4 className="text-base font-medium text-gray-900">{item.foodName}</h4>
+                              <h4 className="text-base font-medium text-gray-900">
+                                {getItemName(item)}
+                                <span className="ml-2 text-xs px-2 py-1 rounded-full inline-block align-middle">
+                                  {getItemType(item) === 'food' ? (
+                                    <span className="bg-yellow-100 text-yellow-800">Food</span>
+                                  ) : getItemType(item) === 'drink' ? (
+                                    <span className="bg-blue-100 text-blue-800">Drink</span>
+                                  ) : null}
+                                </span>
+                              </h4>
                               <p className="mt-1 text-sm text-gray-500">Quantity: {item.quantity}</p>
                             </div>
                             <p className="text-sm font-medium text-gray-900">
@@ -264,17 +347,27 @@ const OrderTracking = () => {
                     // Single item order
                     <div className="py-4">
                       <div className="flex items-start">
-                        {order.foodImage && (
+                        {/* Handle both food and drink images */}
+                        {(order.foodImage || order.drinkImage) && (
                           <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
                             <img
-                              src={order.foodImage}
-                              alt={order.foodName}
+                              src={order.foodImage || order.drinkImage}
+                              alt={order.foodName || order.drinkName}
                               className="h-full w-full object-cover object-center"
                             />
                           </div>
                         )}
                         <div className="flex-1">
-                          <h4 className="text-base font-medium text-gray-900">{order.foodName}</h4>
+                          <h4 className="text-base font-medium text-gray-900">
+                            {order.foodName || order.drinkName}
+                            <span className="ml-2 text-xs px-2 py-1 rounded-full inline-block align-middle">
+                              {order.foodName ? (
+                                <span className="bg-yellow-100 text-yellow-800">Food</span>
+                              ) : order.drinkName ? (
+                                <span className="bg-blue-100 text-blue-800">Drink</span>
+                              ) : null}
+                            </span>
+                          </h4>
                           <div className="flex justify-between mt-1">
                             <p className="text-sm text-gray-500">Quantity: {order.quantity}</p>
                             <p className="text-sm font-medium text-gray-900">{formatPrice(order.totalPrice)}</p>

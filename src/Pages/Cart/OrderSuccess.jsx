@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { FaCheckCircle, FaShoppingBag, FaClock, FaMotorcycle, FaUtensils, FaSpinner, FaCopy, FaExclamationTriangle } from 'react-icons/fa';
+import { 
+  FaCheckCircle, FaShoppingBag, FaClock, FaMotorcycle, 
+  FaUtensils, FaSpinner, FaCopy, FaExclamationTriangle, 
+  FaGlassWhiskey, FaHamburger 
+} from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const OrderSuccess = () => {
@@ -12,6 +16,8 @@ const OrderSuccess = () => {
   const [orderStatus, setOrderStatus] = useState('pending');
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
+  const [orderDetails, setOrderDetails] = useState(null);
+  const [orderItems, setOrderItems] = useState([]);
   
   const trackingReference = orderReference || orderId;
 
@@ -28,6 +34,12 @@ const OrderSuccess = () => {
           if (data.success && data.order) {
             setPaymentStatus(data.order.paymentStatus);
             setOrderStatus(data.order.status);
+            setOrderDetails(data.order);
+            
+            // Handle group orders with multiple items
+            if (data.order.items && Array.isArray(data.order.items)) {
+              setOrderItems(data.order.items);
+            }
             
             if (isPaid && (data.order.paymentStatus === 'processing' || data.order.paymentStatus === 'unpaid')) {
               console.warn('Payment status mismatch - Frontend: paid, Backend:', data.order.paymentStatus);
@@ -84,9 +96,34 @@ const OrderSuccess = () => {
       });
   };
 
-  // Helper to determine if payment is actually confirmed
   const isPaymentConfirmed = paymentStatus === 'paid';
   const isPaymentProcessing = paymentStatus === 'processing';
+
+  const getFoodAndDrinkCounts = () => {
+    if (!orderItems || orderItems.length === 0) {
+      return { foodCount: 0, drinkCount: 0 };
+    }
+    
+    const foodCount = orderItems.filter(item => item.type === 'food').length;
+    const drinkCount = orderItems.filter(item => item.type === 'drink').length;
+    
+    return { foodCount, drinkCount };
+  };
+  
+  const { foodCount, drinkCount } = getFoodAndDrinkCounts();
+
+  // Format order summary with food and drink counts
+  const getOrderSummaryText = () => {
+    if (foodCount > 0 && drinkCount > 0) {
+      return `${foodCount} food item${foodCount > 1 ? 's' : ''} and ${drinkCount} drink${drinkCount > 1 ? 's' : ''}`;
+    } else if (foodCount > 0) {
+      return `${foodCount} food item${foodCount > 1 ? 's' : ''}`;
+    } else if (drinkCount > 0) {
+      return `${drinkCount} drink${drinkCount > 1 ? 's' : ''}`;
+    } else {
+      return 'items';
+    }
+  };
   
   return (
     <>
@@ -110,12 +147,17 @@ const OrderSuccess = () => {
               </div>
             ) : (
               <>
+                {/* Payment status icon */}
                 {isPaymentConfirmed ? (
                   <FaCheckCircle className="mx-auto text-green-500 text-6xl mb-6" />
                 ) : isPaymentProcessing ? (
                   <FaSpinner className="mx-auto text-yellow-600 text-6xl mb-6" />
                 ) : (
-                  <FaShoppingBag className="mx-auto text-yellow-500 text-6xl mb-6" />
+                  <div className="flex justify-center space-x-4 mb-6">
+                    {foodCount > 0 && <FaHamburger className="text-yellow-500 text-4xl" />}
+                    <FaShoppingBag className="text-yellow-500 text-6xl" />
+                    {drinkCount > 0 && <FaGlassWhiskey className="text-blue-500 text-4xl" />}
+                  </div>
                 )}
                 
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -127,8 +169,39 @@ const OrderSuccess = () => {
                 </h1>
                 
                 <p className="text-gray-600 mb-6">
-                  Thank you for your order. We've received your request and will begin preparing now.
+                  Thank you for your order of {getOrderSummaryText()}. We've received your request and will begin preparing now.
                 </p>
+                
+                {/* Order Details & Items Display */}
+                {orderItems.length > 0 && (
+                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Your Order</h3>
+                    <div className="divide-y divide-gray-200">
+                      {orderItems.map((item, index) => (
+                        <div key={index} className="py-2 flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full mr-3">
+                            {item.image ? (
+                              <img src={item.image} alt={item.itemName} className="h-full w-full object-cover" />
+                            ) : (
+                              item.type === 'food' ? 
+                                <FaHamburger className="h-full w-full p-2 text-yellow-500" /> : 
+                                <FaGlassWhiskey className="h-full w-full p-2 text-blue-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-medium text-gray-900">{item.itemName}</p>
+                            <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-gray-500">
+                              {item.type === 'food' ? 'Food' : item.type === 'drink' ? 'Drink' : 'Item'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {/* Highlight the tracking reference prominently */}
                 <div className="bg-yellow-50 p-6 rounded-lg mb-6">
