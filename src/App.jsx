@@ -10,13 +10,17 @@ import Hero from "./Pages/Home/Hero";
 import About from "./Pages/About/About";
 import AboutUs from "./AboutUs/AboutUs";
 import Food from "./Pages/Food/Food";
+import Drink from "./Pages/Drink/Drink";
 import Blog from "./Pages/Blog/Blog";
 import SeeFood from "./Pages/SeeFood/SeeFood";
+import SeeDrink from './Pages/SeeDrink/SeeDrink.jsx';
 import PrivateRouter from "./PrivateRouter/PrivateRouter";
 import FoodOrder from "./Pages/FoodOrder/FoodOrder";
 import MyFood from "./Pages/AddFood/MyFood";
+import MyDrink from "./Pages/AddDrink/MyDrink";
 import OrderFood from "./Pages/AddFood/OrderFood";
 import AddFood from "./Pages/AddFood/AddFood";
+import AddDrink from "./Pages/AddDrink/AddDrink";
 import UpdateFood from "./Pages/UpdateFood/UpdateFood";
 import TopSelling from "./Pages/TopSelling/TopSelling";
 import TopFood from "./Pages/TopSelling/TopFood";
@@ -132,6 +136,22 @@ function App() {
                 {
                     path: "/orderFood",
                     element: <PrivateRouter><OrderFood /></PrivateRouter>
+                },
+                {
+                    path: "/drink",
+                    element: <Drink />
+                },
+                {
+                    path: "/seeDrink/:id",
+                    element: <SeeDrink />
+                },
+                {
+                    path: "/myDrink",
+                    element: <PrivateRouter><MyDrink /></PrivateRouter>
+                },
+                {
+                    path: "/addDrink",
+                    element: <PrivateRouter><AddDrink /></PrivateRouter>
                 },
                 {
                     path: "/update/:id",

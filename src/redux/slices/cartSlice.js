@@ -40,13 +40,11 @@ const cartSlice = createSlice({
       const existingItemIndex = state.items.findIndex(cartItem => cartItem._id === item._id);
       
       if (existingItemIndex >= 0) {
-        // Update quantity of existing item
         state.items[existingItemIndex].quantity += quantity;
         state.items[existingItemIndex].totalPrice = (
           state.items[existingItemIndex].quantity * parseFloat(state.items[existingItemIndex].foodPrice)
         ).toFixed(2);
       } else {
-        // Add new item
         state.items.push({
           ...item,
           quantity,

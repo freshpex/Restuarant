@@ -132,6 +132,20 @@ const Header2 = () => {
                     </li>
                     <li>
                         <NavLink
+                            to="/drink"
+                            className={({ isActive }) =>
+                                `block py-2 pr-4 pl-3 duration-200 ${
+                                    isActive
+                                        ? "text-yellow-700  underline-offset-4"
+                                        : "text-gray-700 dark:text-gray-600"
+                                } border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-yellow-800 lg:p-0`
+                            }
+                        >
+                            All Drink
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink
                             to="/blog"
                             className={({ isActive }) =>
                                 `block py-2 pr-4 pl-3 duration-200 ${
@@ -372,6 +386,9 @@ const Header2 = () => {
                         </li>
                         <li onClick={() => setNav(false)} className="py-2 text-base">
                             <Link to="/food">All Food</Link>
+                        </li>
+                        <li onClick={() => setNav(false)} className="py-2 text-base">
+                            <Link to="/drink">All Drinks</Link>
                         </li>
                         <li onClick={() => setNav(false)} className="py-2 text-base">
                             <Link to="/blog">Blog</Link>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchDrink, setCurrentPage } from '../../redux/slices/drinkSlice';
+import { fetchDrinks, setCurrentPage } from '../../redux/slices/drinkSlice';
 import { Helmet } from 'react-helmet';
 import AllDrinkCard from './AllDrinkCard';
 import { AiOutlineRight, AiOutlineLeft } from "react-icons/ai";
@@ -39,7 +39,7 @@ const Drink = () => {
     }, [drinks]);
 
     useEffect(() => {
-        dispatch(fetchDrink({ page: currentPage, size: drinkPerPage }));
+        dispatch(fetchDrinks({ page: currentPage, size: drinkPerPage }));
     }, [dispatch, currentPage, drinkPerPage]);
 
     useEffect(() => {
@@ -196,7 +196,7 @@ const Drink = () => {
             <div className='bg-[#121212] w-full h-screen relative'>
                 <img 
                     className='w-full brightness-75 mx-auto h-[60%] my-auto bg-center bg-cover object-cover' 
-                    src="https://tastyc.bslthemes.com/wp-content/uploads/2021/04/gallery-i-6.jpg" 
+                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmjJSg35uns6TQqok1SUlJW9WVa47jFmD33w&s" 
                     alt="" 
                 />
                 <div className="absolute inset-0"></div>
