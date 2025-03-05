@@ -54,10 +54,10 @@ const Contact = () => {
       setIsSending(true);
       
       await emailjs.sendForm(
-        'your_service_id',
-        'your_template_id',
+        'service_443ptjh',
+        'template_3ze54yy',
         form.current,
-        'your_public_key'
+        'sORcFqmtnWLKiCa2l'
       );
       
       showToast('Message sent successfully! We will get back to you soon.', 'success');
@@ -143,7 +143,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-gray-700">Location</h3>
-                    <p className="text-gray-600">Emaudo Campus, Edo State University</p>
+                    <p className="text-gray-600">No 7, Paradise street, Emaudo, Ekpoma 311554, Edo State</p>
                   </div>
                 </div>
                 
@@ -275,7 +275,7 @@ const Contact = () => {
           <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">Find Us</h2>
           <div className="h-[400px] w-full rounded-lg shadow-md overflow-hidden">
             <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3954.6664949844955!2d6.694073000000001!3d7.612756999999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1044936c27580ccd%3A0x617217b3ccbc4c3e!2sEdo%20State%20University!5e0!3m2!1sen!2sng!4v1706397126783!5m2!1sen!2sng" 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.1077996857452!2d6.1385653!3d6.7567071!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1046955ef46f11bb%3A0xcddda97c492f09b7!2sTims%20kitchen!5e0!3m2!1sen!2sng!4v1741155683818!5m2!1sen!2sng" 
               width="100%" 
               height="100%" 
               style={{ border: 0 }} 
