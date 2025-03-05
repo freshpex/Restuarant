@@ -1,4 +1,4 @@
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from "react-router-dom";
 import { addToCart } from "../../redux/slices/cartSlice";
 import toast from 'react-hot-toast';
@@ -17,10 +17,20 @@ import { formatPrice } from '../../utils/formatUtils';
    
 export default function AllFoodCard({data}) {
   const dispatch = useDispatch();
+  const cartItems = useSelector(state => state.cart.items);
+  
+  const itemInCart = cartItems.find(item => item._id === data._id);
+  const currentCartQty = itemInCart ? itemInCart.quantity : 0;
+  const availableQty = parseInt(data.foodQuantity) || 0;
 
   const handleAddToCart = () => {
-    if (parseInt(data.foodQuantity) <= 0) {
+    if (availableQty <= 0) {
       toast.error(`${data.foodName} is currently out of stock!`);
+      return;
+    }
+    
+    if (currentCartQty >= availableQty) {
+      toast.error(`Cannot add more ${data.foodName}. Only ${availableQty} available in stock!`);
       return;
     }
     
@@ -31,7 +41,9 @@ export default function AllFoodCard({data}) {
     toast.success(`${data.foodName} added to cart!`);
   };
 
-  const isOutOfStock = parseInt(data.foodQuantity) <= 0;
+  const isOutOfStock = availableQty <= 0;
+  const isMaxInCart = currentCartQty >= availableQty;
+  const buttonDisabled = isOutOfStock || isMaxInCart;
 
   return (
     <Card className="w-full max-w-[32rem] shadow-lg">
@@ -96,6 +108,7 @@ export default function AllFoodCard({data}) {
         <Typography className="text-xl" color="gray">
           Quantity: {data.foodQuantity}
           {isOutOfStock && <span className="text-red-600 ml-2 font-bold">Out of Stock</span>}
+          {isMaxInCart && !isOutOfStock && <span className="text-orange-600 ml-2 font-bold">Max In Cart</span>}
         </Typography>
         
       </CardBody>
@@ -105,12 +118,14 @@ export default function AllFoodCard({data}) {
         </Link>
         <Button 
           size="lg" 
-          color={isOutOfStock ? "gray" : "yellow"}
-          className={`flex items-center justify-center gap-2 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : ''}`}
+          color={buttonDisabled ? "gray" : "yellow"}
+          className={`flex items-center justify-center gap-2 ${buttonDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
           onClick={handleAddToCart}
-          disabled={isOutOfStock}
+          disabled={buttonDisabled}
         >
-          <FaShoppingCart /> {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+          <FaShoppingCart /> 
+          {isOutOfStock ? 'Out of Stock' : 
+           isMaxInCart ? 'Max In Cart' : 'Add to Cart'}
         </Button>
       </CardFooter>
     </Card>

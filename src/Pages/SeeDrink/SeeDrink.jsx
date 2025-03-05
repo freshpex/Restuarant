@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
-import { fetchFoodById } from '../../redux/slices/foodSlice';
+import { fetchDrinkById } from '../../redux/slices/drinkSlice';
 import { addToCart } from '../../redux/slices/cartSlice';
 import { Helmet } from 'react-helmet';
 import LoadingSpinner from '../../Components/LoadingSpinner';
@@ -16,10 +16,10 @@ import {
 } from "@material-tailwind/react";
 import { formatPrice } from '../../utils/formatUtils';
 
-const TopFood = () => {
+const SeeDrink = () => {
     const dispatch = useDispatch();
     const { id } = useParams();
-    const { currentFood: display, loading, error } = useSelector(state => state.food);
+    const { currentDrink: display, loading, error } = useSelector(state => state.drink);
     const [quantity, setQuantity] = useState(1);
     const cartItems = useSelector(state => state.cart.items);
     
@@ -28,22 +28,22 @@ const TopFood = () => {
 
     useEffect(() => {
         if (id) {
-            dispatch(fetchFoodById(id));
+            dispatch(fetchDrinkById(id));
         }
     }, [dispatch, id]);
 
     useEffect(() => {
-        if (display && display.foodQuantity) {
-            const maxQuantity = Math.max(1, parseInt(display.foodQuantity) - currentCartQty);
+        if (display && display.drinkQuantity) {
+            const maxQuantity = Math.max(1, parseInt(display.drinkQuantity) - currentCartQty);
             setQuantity(Math.min(quantity, maxQuantity));
         }
     }, [display, currentCartQty]);
 
     const handleAddToCart = () => {
-        const availableQty = parseInt(display?.foodQuantity) || 0;
+        const availableQty = parseInt(display?.drinkQuantity) || 0;
         
         if (availableQty <= 0) {
-            toast.error(`${display.foodName} is currently out of stock!`);
+            toast.error(`${display.drinkName} is currently out of stock!`);
             return;
         }
         
@@ -56,11 +56,10 @@ const TopFood = () => {
             item: display, 
             quantity 
         }));
-        toast.success(`${display.foodName} added to cart!`);
+        toast.success(`${display.drinkName} added to cart!`);
     };
 
-    // Calculate remaining available quantity
-    const remainingQty = display ? Math.max(0, parseInt(display.foodQuantity) - currentCartQty) : 0;
+    const remainingQty = display ? Math.max(0, parseInt(display.drinkQuantity) - currentCartQty) : 0;
     const isOutOfStock = remainingQty <= 0;
 
     if (loading) return <LoadingSpinner />;
@@ -71,7 +70,7 @@ const TopFood = () => {
     );
     if (!display) return (
         <div className="text-white text-center py-10 bg-[#121212]">
-            Loading food details...
+            Loading drink details...
         </div>
     );
 
@@ -79,7 +78,7 @@ const TopFood = () => {
         <>
             {/* <Header2 /> */}
             <Helmet>
-                <title>Tim's Kitchen | See-Food </title>
+                <title>Tim's Kitchen | See-Drink </title>
             </Helmet>
             <div className='bg-[#121212] lg:px-28 px-6 lg:py-0 py-44 lg:pt-20 flex md:h-screen justify-center items-center'>
                 <Card className="w-full max-w-[48rem]  flex flex-col lg:flex-row">
@@ -89,29 +88,29 @@ const TopFood = () => {
                         className="m-0 w-full md:w-2/5 shrink-0 rounded-r-none"
                     >
                         <img
-                            src={display.foodImage}
+                            src={display.drinkImage}
                             alt="card-image"
                             className="lg:h-full  lg:w-full lg:object-cover"
                         />
                     </CardHeader>
                     <CardBody className=' lg:px-10'>
                         <Typography variant="h6" color="gray" className="mb-4 uppercase">
-                            {display.foodCategory}
+                            {display.drinkCategory}
                         </Typography>
                         <Typography variant="h4" color="blue-gray" className="mb-2">
-                            {display.foodName}
+                            {display.drinkName}
                         </Typography>
                         <Typography variant="h6" color="gray" className="mb-2">
-                            Country : {display.foodOrigin}
+                            Country : {display.drinkOrigin}
                         </Typography>
                         <Typography variant="h6" color="gray" className="mb-2">
-                            Price : {formatPrice(parseFloat(display.foodPrice))}
+                            Price : {formatPrice(parseFloat(display.drinkPrice))}
                         </Typography>
                         <Typography variant="h6" color="gray" className="mb-2">
                             Made By : {display.chefName}
                         </Typography>
                         <Typography color="gray" className="mb-8 font-normal">
-                            {display.foodDescription}
+                            {display.drinkDescription}
                         </Typography>
                         
                         {isOutOfStock ? (
@@ -159,18 +158,19 @@ const TopFood = () => {
                                     +
                                 </button>
                                 <span className={`ml-4 text-sm ${isOutOfStock ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
-                                    Available to add: {remainingQty} (Total in stock: {display.foodQuantity})
+                                    Available to add: {remainingQty} (Total in stock: {display.drinkQuantity})
                                 </span>
                             </div>
                         </div>
-                        
+
+                        {/* Action buttons */}
                         <div className="flex flex-col sm:flex-row gap-3 mt-6">
                             <Button 
                                 variant="text" 
                                 color={isOutOfStock ? "gray" : "yellow"}
                                 className={`flex items-center gap-1 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 onClick={handleAddToCart}
-                                disabled={isOutOfStock || quantity <= 0}
+                                disabled={isOutOfStock}
                             >
                                 <FaShoppingCart className="h-4 w-4" />
                                 {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
@@ -183,4 +183,4 @@ const TopFood = () => {
     );
 };
 
-export default TopFood;
+export default SeeDrink;

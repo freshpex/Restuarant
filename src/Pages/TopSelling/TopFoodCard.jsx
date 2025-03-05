@@ -1,4 +1,4 @@
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from "react-router-dom";
 import { addToCart } from "../../redux/slices/cartSlice";
 import toast from 'react-hot-toast';
@@ -15,11 +15,20 @@ import { formatPrice } from '../../utils/formatUtils';
 
 export default function TopFoodCard({ food }) {
   const dispatch = useDispatch();
+  const cartItems = useSelector(state => state.cart.items);
+  
+  const itemInCart = cartItems.find(item => item._id === food._id);
+  const currentCartQty = itemInCart ? itemInCart.quantity : 0;
+  const availableQty = parseInt(food.foodQuantity) || 0;
 
   const handleAddToCart = () => {
-    // Check if item is out of stock
-    if (parseInt(food.foodQuantity) <= 0) {
+    if (availableQty <= 0) {
       toast.error(`${food.foodName} is currently out of stock!`);
+      return;
+    }
+    
+    if (currentCartQty >= availableQty) {
+      toast.error(`Cannot add more ${food.foodName}. Only ${availableQty} available in stock!`);
       return;
     }
     
@@ -30,7 +39,9 @@ export default function TopFoodCard({ food }) {
     toast.success(`${food.foodName} added to cart!`);
   };
 
-  const isOutOfStock = parseInt(food.foodQuantity) <= 0;
+  const isOutOfStock = availableQty <= 0;
+  const isMaxInCart = currentCartQty >= availableQty;
+  const buttonDisabled = isOutOfStock || isMaxInCart;
 
   return (
     <Card className="w-full max-w-[24rem] shadow-lg mx-auto">
@@ -87,13 +98,14 @@ export default function TopFoodCard({ food }) {
         </Link>
         <Button 
           size="sm" 
-          color={isOutOfStock ? "gray" : "yellow"}
-          className={`flex items-center justify-center gap-2 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : ''}`}
+          color={buttonDisabled ? "gray" : "yellow"}
+          className={`flex items-center justify-center gap-2 ${buttonDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
           onClick={handleAddToCart}
-          disabled={isOutOfStock}
+          disabled={buttonDisabled}
         >
           <FaShoppingCart size={14} />
-          {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+          {isOutOfStock ? 'Out of Stock' : 
+           isMaxInCart ? 'Max In Cart' : 'Add to Cart'}
         </Button>
       </CardFooter>
     </Card>

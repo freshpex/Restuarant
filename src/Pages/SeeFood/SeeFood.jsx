@@ -20,7 +20,11 @@ const SeeFood = () => {
     const dispatch = useDispatch();
     const { id } = useParams();
     const { currentFood: display, loading, error } = useSelector(state => state.food);
+    const cartItems = useSelector(state => state.cart.items);
     const [quantity, setQuantity] = useState(1);
+
+    const itemInCart = cartItems.find(item => display && item._id === display._id);
+    const currentCartQty = itemInCart ? itemInCart.quantity : 0;
 
     useEffect(() => {
         if (id) {
@@ -28,9 +32,23 @@ const SeeFood = () => {
         }
     }, [dispatch, id]);
 
+    useEffect(() => {
+        if (display && display.foodQuantity) {
+            const maxQuantity = Math.max(1, parseInt(display.foodQuantity) - currentCartQty);
+            setQuantity(Math.min(quantity, maxQuantity));
+        }
+    }, [display, currentCartQty]);
+
     const handleAddToCart = () => {
-        if (parseInt(display.foodQuantity) <= 0) {
+        const availableQty = parseInt(display?.foodQuantity) || 0;
+        
+        if (availableQty <= 0) {
             toast.error(`${display.foodName} is currently out of stock!`);
+            return;
+        }
+        
+        if (currentCartQty + quantity > availableQty) {
+            toast.error(`Cannot add ${quantity} more. Only ${availableQty - currentCartQty} available to add!`);
             return;
         }
         
@@ -41,8 +59,8 @@ const SeeFood = () => {
         toast.success(`${display.foodName} added to cart!`);
     };
 
-    // Add this variable to check if the item is out of stock
-    const isOutOfStock = parseInt(display?.foodQuantity) <= 0;
+    const remainingQty = display ? Math.max(0, parseInt(display.foodQuantity) - currentCartQty) : 0;
+    const isOutOfStock = remainingQty <= 0;
 
     if (loading) return <LoadingSpinner />;
     if (error) return (
@@ -58,7 +76,6 @@ const SeeFood = () => {
 
     return (
         <>
-            {/* <Header2 /> */}
             <Helmet>
                 <title>Tim's Kitchen | See-Food </title>
             </Helmet>
@@ -95,11 +112,15 @@ const SeeFood = () => {
                             {display.foodDescription}
                         </Typography>
                         
-                        {/* Add out of stock indicator */}
-                        {isOutOfStock && (
+                        {isOutOfStock ? (
                             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
                                 <p className="font-bold">Out of Stock</p>
                                 <p className="text-sm">This item is currently unavailable</p>
+                            </div>
+                        ) : currentCartQty > 0 && (
+                            <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-2 rounded mb-4">
+                                <p className="font-bold">Already In Cart: {currentCartQty}</p>
+                                <p className="text-sm">You can add {remainingQty} more of this item</p>
                             </div>
                         )}
                         
@@ -121,22 +142,22 @@ const SeeFood = () => {
                                     type="number" 
                                     id="quantity" 
                                     min="1"
-                                    max={display.foodQuantity}
+                                    max={remainingQty}
                                     value={quantity} 
-                                    onChange={(e) => setQuantity(Math.min(parseInt(display.foodQuantity), Math.max(1, parseInt(e.target.value) || 1)))}
+                                    onChange={(e) => setQuantity(Math.min(remainingQty, Math.max(1, parseInt(e.target.value) || 1)))}
                                     className="w-16 text-center border-y border-gray-300 py-2"
                                     disabled={isOutOfStock}
                                 />
                                 <button 
                                     type="button" 
                                     className="p-2 border border-gray-300 rounded-r"
-                                    onClick={() => setQuantity(Math.min(parseInt(display.foodQuantity), quantity + 1))}
+                                    onClick={() => setQuantity(Math.min(remainingQty, quantity + 1))}
                                     disabled={isOutOfStock}
                                 >
                                     +
                                 </button>
                                 <span className={`ml-4 text-sm ${isOutOfStock ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
-                                    Available: {display.foodQuantity}
+                                    Available to add: {remainingQty} (Total in stock: {display.foodQuantity})
                                 </span>
                             </div>
                         </div>
