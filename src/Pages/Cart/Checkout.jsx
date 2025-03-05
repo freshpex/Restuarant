@@ -71,14 +71,7 @@ const Checkout = () => {
     
     try {
       const orderData = {
-        items: cartItems.map(item => ({
-          foodId: item._id,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          price: item.foodPrice,
-          totalPrice: item.totalPrice,
-          foodImage: item.foodImage
-        })),
+        items: prepareOrderItems(),
         deliveryLocation,
         deliveryFee,
         fullAddress,
@@ -145,7 +138,7 @@ const Checkout = () => {
 
     const customerName = isGuest ? guestName || 'Guest Customer' : user?.displayName || '';
     
-    const items = cartItems.map(item => `- ${item.foodName} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
+    const items = cartItems.map(item => `- ${getItemName(item)} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
     
     const message = encodeURIComponent(
       `Hello! I'd like to place an order:\n\n${items}\n\n` +
@@ -207,14 +200,7 @@ const Checkout = () => {
         return true;
       } else {
         const orderData = {
-          items: cartItems.map(item => ({
-            foodId: item._id,
-            foodName: item.foodName,
-            quantity: item.quantity,
-            price: item.foodPrice,
-            totalPrice: item.totalPrice,
-            foodImage: item.foodImage
-          })),
+          items: prepareOrderItems(),
           deliveryLocation,
           deliveryFee,
           fullAddress,
@@ -324,14 +310,7 @@ const Checkout = () => {
         
         if (response.status === "successful" || response.status === "completed") {
           const orderData = {
-            items: cartItems.map(item => ({
-              foodId: item._id,
-              foodName: item.foodName,
-              quantity: item.quantity,
-              price: item.foodPrice,
-              totalPrice: item.totalPrice,
-              foodImage: item.foodImage
-            })),
+            items: prepareOrderItems(),
             deliveryLocation,
             deliveryFee,
             fullAddress,
@@ -349,7 +328,6 @@ const Checkout = () => {
             orderReference: orderReference
           };
           
-          // Clear cart and show loading feedback
           dispatch(clearCart());
           toast.promise(
             fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
@@ -415,6 +393,62 @@ const Checkout = () => {
     }
   };
   
+  const getItemName = (item) => {
+    return item.foodName || item.drinkName || 'Unknown Item';
+  };
+  
+  const getItemImage = (item) => {
+    return item.foodImage || item.drinkImage || '/default-product.png';
+  };
+
+  const getItemPrice = (item) => {
+    return item.foodPrice || item.drinkPrice || '0';
+  };
+
+  const getItemType = (item) => {
+    if (item.foodName) return 'food';
+    if (item.drinkName) return 'drink';
+    return 'unknown';
+  };
+  
+  const prepareOrderItems = () => {
+    return cartItems.map(item => {
+      const itemType = getItemType(item);
+      
+      if (itemType === 'food') {
+        return {
+          foodId: item._id,
+          foodName: item.foodName,
+          foodImage: item.foodImage,
+          price: item.foodPrice,
+          quantity: item.quantity,
+          totalPrice: (parseFloat(item.foodPrice) * item.quantity).toFixed(2),
+          itemType: 'food'
+        };
+      } else if (itemType === 'drink') {
+        return {
+          drinkId: item._id,
+          drinkName: item.drinkName,
+          drinkImage: item.drinkImage,
+          price: item.drinkPrice,
+          quantity: item.quantity,
+          totalPrice: (parseFloat(item.drinkPrice) * item.quantity).toFixed(2),
+          itemType: 'drink'
+        };
+      } else {
+        return {
+          itemId: item._id,
+          name: getItemName(item),
+          image: getItemImage(item),
+          price: getItemPrice(item),
+          quantity: item.quantity,
+          totalPrice: (parseFloat(getItemPrice(item)) * item.quantity).toFixed(2),
+          itemType: 'unknown'
+        };
+      }
+    });
+  };
+
   return (
     <>
       <Helmet>
@@ -442,19 +476,23 @@ const Checkout = () => {
                   <div key={item._id} className="py-4 flex items-center">
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                       <img
-                        src={item.foodImage}
-                        alt={item.foodName}
+                        src={getItemImage(item)}
+                        alt={getItemName(item)}
                         className="h-full w-full object-cover object-center"
                       />
                     </div>
                     <div className="ml-4 flex-1">
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="text-base font-medium text-gray-900">{item.foodName}</h3>
-                          <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                          <h3 className="text-base font-medium text-gray-900">
+                            {getItemName(item)}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            Qty: {item.quantity} {item.foodName ? '(Food)' : item.drinkName ? '(Drink)' : ''}
+                          </p>
                         </div>
                         <p className="text-sm font-medium text-gray-900">
-                          {formatPrice(item.totalPrice)}
+                          {formatPrice(parseFloat(getItemPrice(item)) * item.quantity)}
                         </p>
                       </div>
                     </div>
