@@ -8,7 +8,7 @@ import {
     Typography,
     Button,
   } from "@material-tailwind/react";
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { selectIsAdmin } from '../../redux/selectors';
 
 const MyFoodCard = ({display}) => {
@@ -58,7 +58,7 @@ const MyFoodCard = ({display}) => {
           {display.foodDescription}
         </Typography>
         {isAdmin && (
-          <Link to={`/update/${display._id}`}   className="inline-block">
+          <NavLink to={`/admin/update-food/${display._id}`}   className="inline-block">
             <Button variant="text" className="flex hover:bg-yellow-700 items-center gap-1">
               Update Food
               <svg
@@ -76,7 +76,7 @@ const MyFoodCard = ({display}) => {
                 />
               </svg>
             </Button>
-          </Link>
+          </NavLink>
         )}
       </CardBody>
     </Card>

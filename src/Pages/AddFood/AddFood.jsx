@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addFood } from '../../redux/slices/foodActionsSlice';
-import Header2 from '../Header/Header2';
 import { Helmet } from 'react-helmet';
 import toast from 'react-hot-toast';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaImage, FaUpload, FaLink, FaImages } from 'react-icons/fa';
 
 const AddFood = () => {
     const dispatch = useDispatch();
@@ -13,6 +12,7 @@ const AddFood = () => {
     const [previewUrl, setPreviewUrl] = useState('');
     const [isUsingUrl, setIsUsingUrl] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isImageHovered, setIsImageHovered] = useState(false);
 
     // Handle image file selection
     const handleImageChange = (e) => {
@@ -78,197 +78,273 @@ const AddFood = () => {
     return (
         <>
             <Helmet>
-                <title>Chef | Add-Food</title>
+                <title>Tim's Kitchen | Add Food</title>
             </Helmet>
-            {/* <Header2 /> */}
-            <div className='bg-[#121212] lg:px-20 px-6 w-full py-44 flex flex-col justify-center items-center'>
-                <section className="w-full lg:w-[38%] rounded-lg px-4 py-4 mx-auto lg:pb-10 bg-[#F4F3F0]">
-                    <div className="py-8 px-4 mx-auto w-full lg:py-2">
-                        <h2 className="mb-16 text-2xl text-center font-bold text-gray-900">Add a Food Item</h2>
+            
+            <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
+                        {/* Header */}
+                        <div className="bg-yellow-50 border-b border-yellow-100 px-6 py-8">
+                            <h1 className="text-3xl font-bold text-gray-800 text-center">Add New Food Item</h1>
+                            <p className="text-center mt-2 text-gray-600">Enter the details below to add a new food item to the menu</p>
+                        </div>
                         
-                        <form className='w-full' onSubmit={handleAddFood}>
-                            <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
-                                <div className="w-full">
-                                    <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900">Name</label>
-                                    <input 
-                                        defaultValue={user.displayName} 
-                                        type="text" 
-                                        name="name" 
-                                        id="name" 
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter brand name" 
-                                        required
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                
-                                <div className="w-full">
-                                    <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900">Email</label>
-                                    <input 
-                                        defaultValue={user.email} 
-                                        type="email" 
-                                        name="email" 
-                                        id="email" 
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter email" 
-                                        required 
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-
-                                <div className="w-full">
-                                    <label htmlFor="food" className="block mb-2 text-sm font-medium text-gray-900">Food Name*</label>
-                                    <input 
-                                        type="text" 
-                                        name="food" 
-                                        id="food" 
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter food name" 
-                                        required 
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                
-                                <div className="w-full">
-                                    <label htmlFor="price" className="block mb-2 text-sm font-medium text-gray-900">Price*</label>
-                                    <input 
-                                        type="number" 
-                                        name="price" 
-                                        id="price" 
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter food price in naira" 
-                                        required
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                
-                                <div className="w-full">
-                                    <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900">Short Description</label>
-                                    <input 
-                                        type="text" 
-                                        name="description" 
-                                        id="description" 
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter description (optional)" 
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                                
-                                <div className="w-full">
-                                    <label htmlFor="category" className="block mb-2 text-sm font-medium text-gray-900">Food Category</label>
-                                    <input 
-                                        type="text" 
-                                        name="category" 
-                                        id="category" 
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter food category (optional)" 
-                                        disabled={isSubmitting}
-                                    />
+                        <form onSubmit={handleAddFood} className="p-6 space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* User Info Section */}
+                                <div className="space-y-6 col-span-full md:col-span-1">
+                                    <h2 className="text-lg font-medium text-gray-900 border-b pb-2">User Information</h2>
+                                    
+                                    <div>
+                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                                        <input 
+                                            defaultValue={user.displayName} 
+                                            type="text" 
+                                            name="name" 
+                                            id="name" 
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50 disabled:bg-gray-50 disabled:text-gray-500" 
+                                            placeholder="Enter name" 
+                                            required
+                                            disabled={isSubmitting || true}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                        <input 
+                                            defaultValue={user.email} 
+                                            type="email" 
+                                            name="email" 
+                                            id="email" 
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50 disabled:bg-gray-50 disabled:text-gray-500" 
+                                            placeholder="Enter email" 
+                                            required 
+                                            disabled={isSubmitting || true}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="w-full sm:col-span-2">
+                                {/* Image Upload Section */}
+                                <div className="space-y-6 col-span-full md:col-span-1">
+                                    <h2 className="text-lg font-medium text-gray-900 border-b pb-2">Food Image</h2>
+                                    
                                     <div className="flex justify-between items-center mb-2">
-                                        <label className="text-sm font-medium text-gray-900">Food Image</label>
+                                        <div className="flex items-center space-x-2">
+                                            <FaImages className="text-gray-500" />
+                                            <span className="text-sm font-medium text-gray-700">Upload Food Image</span>
+                                        </div>
                                         <button 
                                             type="button"
                                             onClick={handleToggleUploadMethod}
-                                            className="text-xs text-blue-600 hover:text-blue-800"
+                                            className="text-xs text-blue-600 hover:text-blue-800 transition duration-150 flex items-center"
                                             disabled={isSubmitting}
                                         >
-                                            {isUsingUrl ? 'Switch to file upload' : 'Use image URL instead'}
+                                            {isUsingUrl ? (
+                                                <>
+                                                    <FaUpload className="mr-1" />
+                                                    Switch to file upload
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FaLink className="mr-1" />
+                                                    Use image URL instead
+                                                </>
+                                            )}
                                         </button>
                                     </div>
-
+                                    
                                     {isUsingUrl ? (
-                                        <input 
-                                            type="text" 
-                                            name="image" 
-                                            id="image" 
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" 
-                                            placeholder="Enter food image URL" 
-                                            required={isUsingUrl}
-                                            disabled={isSubmitting}
-                                        />
-                                    ) : (
-                                        <>
+                                        <div className="relative rounded-md shadow-sm">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FaLink className="h-5 w-5 text-gray-400" />
+                                            </div>
                                             <input 
-                                                type="file" 
-                                                name="imageFile" 
-                                                id="imageFile" 
-                                                accept="image/*"
-                                                onChange={handleImageChange}
-                                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                                required={!isUsingUrl}
+                                                type="text" 
+                                                name="image" 
+                                                id="image" 
+                                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" 
+                                                placeholder="https://example.com/image.jpg" 
+                                                required={isUsingUrl}
                                                 disabled={isSubmitting}
                                             />
-                                            {previewUrl && (
-                                                <div className="mt-2">
-                                                    <img 
-                                                        src={previewUrl} 
-                                                        alt="Food preview" 
-                                                        className="h-32 w-auto object-cover rounded-lg" 
-                                                    />
-                                                </div>
-                                            )}
-                                        </>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center w-full">
+                                            <label 
+                                                htmlFor="imageFile" 
+                                                className={`flex flex-col items-center justify-center w-full h-40 border-2 ${imageFile ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300 border-dashed bg-gray-50'} rounded-lg cursor-pointer hover:bg-gray-100 transition duration-300 ease-in-out ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                onMouseEnter={() => setIsImageHovered(true)}
+                                                onMouseLeave={() => setIsImageHovered(false)}
+                                            >
+                                                {!previewUrl ? (
+                                                    <div className="flex flex-col items-center justify-center pt-5 pb-6 px-3">
+                                                        <FaUpload className="w-8 h-8 mb-3 text-gray-400" />
+                                                        <p className="mb-2 text-sm text-gray-500 text-center">
+                                                            <span className="font-semibold">Click to upload</span> or drag and drop
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 text-center">PNG, JPG or WEBP (MAX. 2MB)</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative w-full h-full">
+                                                        <img 
+                                                            src={previewUrl} 
+                                                            alt="Food preview" 
+                                                            className="h-full w-full object-contain p-2" 
+                                                        />
+                                                        {isImageHovered && (
+                                                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300">
+                                                                <p className="text-white text-sm font-medium">Change Image</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <input 
+                                                    type="file" 
+                                                    name="imageFile" 
+                                                    id="imageFile" 
+                                                    accept="image/*"
+                                                    onChange={handleImageChange}
+                                                    className="hidden"
+                                                    required={!isUsingUrl && !previewUrl}
+                                                    disabled={isSubmitting}
+                                                />
+                                            </label>
+                                            <p className="mt-2 text-xs text-gray-500">
+                                                {previewUrl ? "Click the image to change it" : ""}
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
-
-                                <div className="w-full">
-                                    <label htmlFor="origin" className="block mb-2 text-sm font-medium text-gray-900">Food Origin</label>
-                                    <input 
-                                        type="text" 
-                                        name="origin" 
-                                        id="origin" 
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter food origin (optional)" 
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
                                 
-                                <div className="sm:col-span-2">
-                                    <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900">Food Quantity*</label>
-                                    <input 
-                                        type='number' 
-                                        name='quantity'
-                                        id="quantity"
-                                        className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:placeholder-gray-400 dark:focus:ring-primary-500 dark:focus:border-primary-500" 
-                                        placeholder="Enter food quantity" 
-                                        required 
-                                        disabled={isSubmitting}
-                                    />
+                                {/* Food Details Section */}
+                                <div className="col-span-full border-t pt-6">
+                                    <h2 className="text-lg font-medium text-gray-900 mb-4">Food Details</h2>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label htmlFor="food" className="block text-sm font-medium text-gray-700">Food Name*</label>
+                                            <input 
+                                                type="text" 
+                                                name="food" 
+                                                id="food" 
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" 
+                                                placeholder="e.g. Grilled Chicken Sandwich" 
+                                                required 
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price (₦)*</label>
+                                            <input 
+                                                type="number" 
+                                                name="price" 
+                                                id="price" 
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" 
+                                                placeholder="e.g. 1500" 
+                                                required
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
+                                            <input 
+                                                type="text" 
+                                                name="category" 
+                                                id="category" 
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" 
+                                                placeholder="e.g. Sandwiches, Rice Dishes" 
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label htmlFor="origin" className="block text-sm font-medium text-gray-700">Origin</label>
+                                            <input 
+                                                type="text" 
+                                                name="origin" 
+                                                id="origin" 
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" 
+                                                placeholder="e.g. Italian, Nigerian" 
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                        
+                                        <div className="col-span-2">
+                                            <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                                            <textarea 
+                                                name="description" 
+                                                id="description" 
+                                                rows="2"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" 
+                                                placeholder="Brief description of this food item" 
+                                                disabled={isSubmitting}
+                                            ></textarea>
+                                        </div>
+                                        
+                                        <div>
+                                            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Available Quantity*</label>
+                                            <input 
+                                                type='number' 
+                                                name='quantity'
+                                                id="quantity"
+                                                min="0"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" 
+                                                placeholder="e.g. 20" 
+                                                required 
+                                                disabled={isSubmitting}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            {/* Submit button with loading spinner */}
-                            <button 
-                                type="submit" 
-                                className={`flex w-full justify-center items-center px-5 py-2.5 mt-4 sm:mt-6 text-lg font-medium text-center hover:bg-gray-800 bg-gray-900 text-white rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary-800'}`}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <FaSpinner className="animate-spin mr-2" />
-                                        Uploading...
-                                    </>
-                                ) : (
-                                    'Add Food Item'
-                                )}
-                            </button>
+                            {/* Submit Button */}
+                            <div className="pt-5 border-t border-gray-200">
+                                <div className="flex justify-end space-x-3">
+                                    <button 
+                                        type="button" 
+                                        className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                                        onClick={() => window.history.back()}
+                                        disabled={isSubmitting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        className={`inline-flex justify-center items-center px-6 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all duration-200 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <FaSpinner className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                                                Adding Food...
+                                            </>
+                                        ) : (
+                                            'Add Food Item'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                             
+                            {/* Progress indicator */}
                             {isSubmitting && (
-                                <div className="mt-4">
-                                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div className="bg-blue-600 h-2.5 rounded-full animate-pulse" style={{width: '100%'}}></div>
+                                <div className="mt-6">
+                                    <div className="relative pt-1">
+                                        <div className="overflow-hidden h-2 text-xs flex rounded bg-yellow-200">
+                                            <div className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-yellow-500 w-full animate-pulse"></div>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-center mt-1 text-gray-500">
-                                        Your image is being uploaded. Please wait...
+                                    <p className="text-center text-xs text-gray-500 mt-2">
+                                        Please wait while we upload your food image and save the information...
                                     </p>
                                 </div>
                             )}
                         </form>
                     </div>
-                </section>
+                </div>
             </div>
         </>
     );

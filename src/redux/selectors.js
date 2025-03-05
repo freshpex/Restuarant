@@ -23,7 +23,7 @@ export const selectDrinkLoading = state => state.food?.loading || false;
 export const selectDrinkError = state => state.food?.error || null;
 export const selectAllDrinks = state => state.food?.foods || [];
 export const selectUserDrinks = state => state.foodActions?.userFoods || [];
-export const selectTopDrinks = state => state.foodActions?.topFoods || [];
+export const selectTopDrinks = state => state.foodActions?.topDrinks || [];
 
 // Loading selectors
 export const selectIsLoading = state => state.ui?.globalLoading || false;

@@ -186,7 +186,7 @@ const Cart = () => {
         setDeliveryLocation(nightEquivalents[deliveryLocation]);
         setDeliveryFee(deliveryFees[nightEquivalents[deliveryLocation]]);
         
-        toast.info('Night delivery hours (7pm-6am) detected. Additional ₦200 fee applies.', {
+        showToast('Night delivery hours (7pm-6am) detected. Additional ₦200 fee applies.', {
           duration: 5000,
           icon: '🌙'
         });

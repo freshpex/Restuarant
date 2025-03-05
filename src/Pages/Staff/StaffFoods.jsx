@@ -98,10 +98,8 @@ const StaffFoods = () => {
   // Handle sorting
   const handleSort = (field) => {
     if (sortField === field) {
-      // Toggle direction if same field
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      // New field, default to ascending
       setSortField(field);
       setSortDirection('asc');
     }
