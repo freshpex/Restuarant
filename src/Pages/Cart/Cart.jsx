@@ -43,11 +43,19 @@ const Cart = () => {
   const [fullAddress, setFullAddress] = useState('');
   const [isAddressModified, setIsAddressModified] = useState(false);
   const addressChangeTimeout = useRef(null);
+  const [isNightDelivery, setIsNightDelivery] = useState(false);
   
   const deliveryFees = {
     emaudo: 500,
     town: 1000,
-    village: 1000
+    village: 1500,
+    irrua: 2500,
+    benin: 10000,
+    auchi: 10000,
+    nightEmaudo: 700,
+    nightTown: 1200,
+    nightVillage: 1700,
+    nightIrrua: 3000
   };
   
   const grandTotal = parseFloat(totalAmount) + deliveryFee;
@@ -75,16 +83,42 @@ const Cart = () => {
     }
     
     addressChangeTimeout.current = setTimeout(() => {
-      const containsEmaudo = fullAddress.toLowerCase().includes('emaudo');
+      const addressLower = fullAddress.toLowerCase();
       
-      if (containsEmaudo && deliveryLocation !== 'emaudo') {
-        setDeliveryLocation('emaudo');
-        setDeliveryFee(deliveryFees.emaudo);
-        showToast('Delivery location automatically set to Emaudo based on your address', 'info');
-      } else if (!containsEmaudo && deliveryLocation === 'emaudo') {
+      // Detect Emaudo campus in address
+      const containsEmaudo = addressLower.includes('emaudo');
+      
+      // Detect Town locations in address
+      const townKeywords = ['market square', 'alli square', 'dublous', 'town'];
+      const containsTown = townKeywords.some(keyword => addressLower.includes(keyword));
+      
+      if (containsEmaudo) {
+        const newLocation = isNightDelivery ? 'nightEmaudo' : 'emaudo';
+        
+        if (deliveryLocation !== newLocation) {
+          setDeliveryLocation(newLocation);
+          setDeliveryFee(deliveryFees[newLocation]);
+          showToast('Delivery location automatically set to Emaudo based on your address', 'info');
+        }
+      } 
+      else if (containsTown) {
+        const newLocation = isNightDelivery ? 'nightTown' : 'town';
+        
+        if (deliveryLocation !== newLocation) {
+          setDeliveryLocation(newLocation);
+          setDeliveryFee(deliveryFees[newLocation]);
+          showToast('Delivery location automatically set to Town based on your address', 'info');
+        }
+      }
+      else if (!isNightDelivery && deliveryLocation === 'emaudo') {
         setDeliveryLocation('town');
         setDeliveryFee(deliveryFees.town);
         showToast('Delivery location set to Town as Emaudo was not detected in your address', 'info');
+      }
+      else if (isNightDelivery && deliveryLocation === 'nightEmaudo') {
+        setDeliveryLocation('nightTown');
+        setDeliveryFee(deliveryFees.nightTown);
+        showToast('Delivery location set to Night Town as Emaudo was not detected in your address', 'info');
       }
     }, 500);
     
@@ -93,16 +127,59 @@ const Cart = () => {
         clearTimeout(addressChangeTimeout.current);
       }
     };
-  }, [fullAddress, isAddressModified, deliveryLocation, deliveryFees]);
+  }, [fullAddress, isAddressModified, deliveryLocation, deliveryFees, isNightDelivery]);
+  
+  useEffect(() => {
+    const checkNightDeliveryHours = () => {
+      const currentHour = new Date().getHours();
+      return currentHour >= 19 || currentHour < 0; // 7pm to 12am
+    };
+    
+    const isNight = checkNightDeliveryHours();
+    setIsNightDelivery(isNight);
+    
+    // If it's night time, automatically switch to night delivery option
+    if (isNight) {
+      // Map regular delivery options to their night equivalents
+      const nightEquivalents = {
+        'emaudo': 'nightEmaudo',
+        'town': 'nightTown',
+        'village': 'nightVillage',
+        'irrua': 'nightIrrua'
+      };
+      
+      if (nightEquivalents[deliveryLocation]) {
+        setDeliveryLocation(nightEquivalents[deliveryLocation]);
+        setDeliveryFee(deliveryFees[nightEquivalents[deliveryLocation]]);
+        
+        toast.info('Night delivery hours (7pm-12am) detected. Additional ₦200 fee applies.', {
+          duration: 5000,
+          icon: '🌙'
+        });
+      }
+    }
+  }, []);
   
   const handleDeliveryLocationChange = (e) => {
     const newLocation = e.target.value;
-    const containsEmaudo = fullAddress.toLowerCase().includes('emaudo');
+    const addressLower = fullAddress.toLowerCase();
     
-    if (newLocation === 'emaudo' && !containsEmaudo && fullAddress.trim() !== '') {
+    // For Emaudo selection validation
+    if (newLocation === 'emaudo' && !addressLower.includes('emaudo') && fullAddress.trim() !== '') {
       showToast(
         "You've selected Emaudo delivery but your address doesn't contain 'Emaudo'. " +
         "Please ensure you're actually delivering to Emaudo or select a different delivery area.", 
+        'warning'
+      );
+    }
+    
+    // For Town selection validation
+    const townKeywords = ['market square', 'alli square', 'dublous', 'town'];
+    if ((newLocation === 'town' || newLocation === 'nightTown') && 
+        !townKeywords.some(keyword => addressLower.includes(keyword)) && 
+        fullAddress.trim() !== '') {
+      showToast(
+        "For Town delivery, please include your specific location such as 'Market Square', 'Alli Square', or 'Dublous' in your address.",
         'warning'
       );
     }
@@ -181,7 +258,6 @@ const Cart = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
               <div className="divide-y divide-gray-200">
                 {cartItems.map((item) => (
@@ -280,6 +356,11 @@ const Cart = () => {
                 <div className="mt-4">
                   <label htmlFor="deliveryLocation" className="block mb-2 text-sm font-medium text-gray-900">
                     Delivery Location
+                    {isNightDelivery && (
+                      <span className="ml-2 text-yellow-600 text-xs font-medium">
+                        (Night Delivery Hours: 7pm-12am)
+                      </span>
+                    )}
                   </label>
                   <select
                     id="deliveryLocation"
@@ -289,15 +370,44 @@ const Cart = () => {
                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                     required
                   >
-                    <option value="emaudo">Emaudo (₦500)</option>
-                    <option value="town">Town (₦1,000)</option>
-                    <option value="village">Village (₦1,000)</option>
+                    {isNightDelivery ? (
+                      <>
+                        <option value="nightEmaudo">Night Emaudo (₦700)</option>
+                        <option value="nightTown">Night Town (₦1,200)</option>
+                        <option value="nightVillage">Night Village (₦1,700)</option>
+                        <option value="nightIrrua">Night Irrua (₦3,000)</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="emaudo">Emaudo (₦500)</option>
+                        <option value="town">Town (₦1,000)</option>
+                        <option value="village">Village (₦1,500)</option>
+                        <option value="irrua">Irrua (₦2,500)</option>
+                        <option value="benin">Benin (₦10,000)</option>
+                        <option value="auchi">Auchi (₦10,000)</option>
+                      </>
+                    )}
                   </select>
+                  
+                  {isNightDelivery && (
+                    <p className="mt-1 text-xs text-yellow-600 bg-yellow-50 p-2 rounded border border-yellow-100">
+                      <strong>Night Delivery:</strong> An additional ₦200 fee applies for deliveries between 7pm and 12am for your safety and convenience.
+                    </p>
+                  )}
+                  
+                  {!isNightDelivery && fullAddress && deliveryLocation === 'town' && 
+                   !['market square', 'alli square', 'dublous', 'town'].some(keyword => fullAddress.toLowerCase().includes(keyword)) && (
+                    <p className="mt-1 text-xs text-yellow-600">
+                      ⚠️ For Town delivery, please include your specific location (Market Square, Alli Square, or Dublous) in your address.
+                    </p>
+                  )}
+                  
                   {fullAddress && deliveryLocation === 'emaudo' && !fullAddress.toLowerCase().includes('emaudo') && (
                     <p className="mt-1 text-xs text-yellow-600">
                       ⚠️ You selected Emaudo but your address doesn't mention Emaudo. Please verify your delivery location.
                     </p>
                   )}
+                  
                   <p className="mt-1 text-xs text-gray-500">
                     Delivery fee will be added to your order total. Delivery location is automatically detected from your address.
                   </p>

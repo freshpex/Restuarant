@@ -71,6 +71,32 @@ const StaffOrders = () => {
     }
   };
 
+  const getAvailableStatuses = (currentStatus) => {
+    const orderStatusSequence = ['pending', 'preparing', 'ready', 'delivered'];
+    
+    // If already cancelled, only show cancelled
+    if (currentStatus === 'cancelled') {
+      return ['cancelled'];
+    }
+    
+    // Find current status index
+    const currentIndex = orderStatusSequence.indexOf(currentStatus);
+    
+    // Get all statuses from current forward, plus cancelled
+    const forwardStatuses = orderStatusSequence.slice(currentIndex);
+    return [...forwardStatuses, 'cancelled'];
+  };
+  
+  const getAvailablePaymentStatuses = (currentPaymentStatus) => {
+    const paymentStatusSequence = ['unpaid', 'processing', 'paid'];
+    
+    // Find current status index
+    const currentIndex = paymentStatusSequence.indexOf(currentPaymentStatus || 'unpaid');
+    
+    // Get all statuses from current forward
+    return paymentStatusSequence.slice(currentIndex);
+  };
+
   const updateOrderStatus = async (orderId, status) => {
     try {
       setUpdatingOrderId(orderId);
@@ -82,9 +108,11 @@ const StaffOrders = () => {
         },
         body: JSON.stringify({ status })
       });
+      
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error('Failed to update order status');
+        throw new Error(data.message || 'Failed to update order status');
       }
 
       toast.success(`Order status updated to ${status}`);
@@ -356,8 +384,11 @@ const StaffOrders = () => {
                               onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
                               disabled={updatingPaymentId === order._id}
                             >
-                              <option value="unpaid">Unpaid</option>
-                              <option value="paid">Paid</option>
+                              {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
+                                <option key={statusOption} value={statusOption}>
+                                  {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                                </option>
+                              ))}
                             </select>
                             
                             {updatingPaymentId === order._id && (
@@ -376,11 +407,11 @@ const StaffOrders = () => {
                               onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                               disabled={updatingOrderId === order._id}
                             >
-                              <option value="pending">Pending</option>
-                              <option value="preparing">Preparing</option>
-                              <option value="ready">Ready</option>
-                              <option value="delivered">Delivered</option>
-                              <option value="cancelled">Cancelled</option>
+                              {getAvailableStatuses(order.status).map(statusOption => (
+                                <option key={statusOption} value={statusOption}>
+                                  {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                                </option>
+                              ))}
                             </select>
                             
                             {updatingOrderId === order._id && (
@@ -473,8 +504,11 @@ const StaffOrders = () => {
                             onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
                             disabled={updatingPaymentId === order._id}
                           >
-                            <option value="unpaid">Unpaid</option>
-                            <option value="paid">Paid</option>
+                            {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
+                              <option key={statusOption} value={statusOption}>
+                                {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                              </option>
+                            ))}
                           </select>
                           {updatingPaymentId === order._id && (
                             <div className="mt-2 flex items-center">
@@ -490,11 +524,11 @@ const StaffOrders = () => {
                             onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                             disabled={updatingOrderId === order._id}
                           >
-                            <option value="pending">Pending</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="ready">Ready</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
+                            {getAvailableStatuses(order.status).map(statusOption => (
+                              <option key={statusOption} value={statusOption}>
+                                {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                              </option>
+                            ))}
                           </select>
                           {updatingOrderId === order._id && (
                             <div className="mt-2 flex items-center">
