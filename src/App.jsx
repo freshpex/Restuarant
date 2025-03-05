@@ -223,6 +223,10 @@ function App() {
                     path: "material",
                     element: <RawMaterials />
                 },
+                {
+                    path: 'add-order',
+                    element: <StaffAddOrder />
+                },
             ]
         },
         {

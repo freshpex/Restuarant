@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 import { 
   FaUsers, FaUtensils, FaChartLine, FaShoppingCart, 
   FaTachometerAlt, FaBars, FaTimes, FaSignOutAlt,
-  FaUserClock, FaHome, FaShieldAlt, FaWarehouse
+  FaUserClock, FaHome, FaShieldAlt, FaWarehouse, FaPlus,
 } from 'react-icons/fa';
 import { selectCurrentUser } from '../../redux/selectors';
 import Logo from "../../assets/Logo.png";
@@ -161,6 +161,21 @@ const AdminDashboard = () => {
                 >
                   <FaShoppingCart className="mr-3" />
                   Orders
+                </NavLink>
+
+                <NavLink 
+                  to="/admin/add-order" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaPlus className="mr-3" />
+                  Add Orders
                 </NavLink>
                 
                 <NavLink 
