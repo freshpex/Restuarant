@@ -34,8 +34,8 @@ const StaffOrders = () => {
   const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [dateFilter, setDateFilter] = useState('');
-  const [itemTypeFilter, setItemTypeFilter] = useState(''); // 'food', 'drink', or '' (all)
-  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+  const [itemTypeFilter, setItemTypeFilter] = useState('');
+  const [sortDirection, setSortDirection] = useState('desc');
   const [stats, setStats] = useState({ foodCount: 0, drinkCount: 0, mixedCount: 0 });
 
   useEffect(() => {
@@ -56,7 +56,6 @@ const StaffOrders = () => {
     try {
       setLoading(true);
       
-      // Build query parameters
       let queryParams = new URLSearchParams();
       queryParams.append('sort', sortDirection);
       
@@ -101,16 +100,24 @@ const StaffOrders = () => {
     }
   };
 
-  const getAvailableStatuses = (currentStatus) => {
+  const getAvailableStatuses = (currentStatus, paymentStatus) => {
     const orderStatusSequence = ['pending', 'preparing', 'ready', 'delivered'];
     
     if (currentStatus === 'cancelled') {
       return ['cancelled'];
+    } 
+    
+    if (currentStatus === 'delivered') {
+      return ['delivered'];
     }
     
     const currentIndex = orderStatusSequence.indexOf(currentStatus);
-    
     const forwardStatuses = orderStatusSequence.slice(currentIndex);
+    
+    if (paymentStatus === 'paid') {
+      return forwardStatuses;
+    }
+    
     return [...forwardStatuses, 'cancelled'];
   };
   
@@ -529,7 +536,7 @@ const StaffOrders = () => {
                               onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                               disabled={updatingOrderId === order._id}
                             >
-                              {getAvailableStatuses(order.status).map(statusOption => (
+                              {getAvailableStatuses(order.status, order.paymentStatus).map(statusOption => (
                                 <option key={statusOption} value={statusOption}>
                                   {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
                                 </option>
@@ -635,7 +642,7 @@ const StaffOrders = () => {
                           onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                           disabled={updatingOrderId === order._id}
                           >
-                          {getAvailableStatuses(order.status).map(statusOption => (
+                          {getAvailableStatuses(order.status, order.paymentStatus).map(statusOption => (
                             <option key={statusOption} value={statusOption}>
                             {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
                             </option>

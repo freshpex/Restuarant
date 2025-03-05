@@ -19,11 +19,12 @@ const TopSelling = () => {
 
     useEffect(() => {
         dispatch(fetchTopFoods());
-        dispatch(fetchTopDrinks());
     }, [dispatch]);
 
-    const isLoading = foodsLoading || drinksLoading;
-    const hasError = foodsError || drinksError;
+    useEffect(() => {
+        dispatch(fetchTopDrinks());
+        console.log("Dispatched fetchTopDrinks");
+      }, [dispatch]);
 
     return (
         <>

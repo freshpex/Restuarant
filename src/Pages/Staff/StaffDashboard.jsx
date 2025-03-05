@@ -7,9 +7,26 @@ import {
   FaCashRegister, FaUserTie, FaMoneyBillWave, FaTruck,
   FaCheck, FaExclamationCircle, FaShoppingBag, FaHistory
 } from 'react-icons/fa';
-import { selectToken, selectCurrentUser } from '../../redux/selectors';
+import { selectToken, selectCurrentUser, selectUserRole } from '../../redux/selectors';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'react-hot-toast';
+
+const showToast = (message, type) => {
+  if (type === 'success') {
+    toast.success(message);
+  } else if (type === 'error') {
+    toast.error(message);
+  } else {
+    toast(message, {
+      icon: type === 'warning' ? '⚠️' : 'ℹ️',
+      style: {
+        borderRadius: '10px',
+        background: type === 'warning' ? '#FEF3C7' : '#E0F2FE',
+        color: type === 'warning' ? '#92400E' : '#1E40AF',
+      },
+    });
+  }
+};
 
 const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -20,19 +37,30 @@ const StaffDashboard = () => {
     orders: 5,
     updates: 6
   });
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [totalActivities, setTotalActivities] = useState(null);
+  const [showAllStaff, setShowAllStaff] = useState(false);
   
   const token = useSelector(selectToken);
   const currentUser = useSelector(selectCurrentUser);
+  const userRole = useSelector(selectUserRole);
   const API_URL = import.meta.env.VITE_API_URL;
+  
+  const isAdminOrManager = userRole === 'admin' || userRole === 'manager';
   
   useEffect(() => {
     fetchDashboardData();
     recordSignIn();
     
+    if (isAdminOrManager) {
+      fetchTeamData();
+      fetchTotalActivities();
+    }
+    
     return () => {
       recordSignOut();
     };
-  }, []);
+  }, [isAdminOrManager]);
   
   const fetchDashboardData = async () => {
     try {
@@ -56,6 +84,60 @@ const StaffDashboard = () => {
       setError(error.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Fetch list of all staff members (admin/manager only)
+  const fetchTeamData = async () => {
+    try {
+      const endpoint = userRole === 'admin' 
+        ? `${API_URL}/admin/users?role=staff` 
+        : `${API_URL}/staff/members`;
+        
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch team data');
+      }
+
+      const data = await response.json();
+      const staffUsers = userRole === 'admin' 
+        ? data.users.filter(user => ['admin', 'manager', 'chef', 'cashier'].includes(user.role))
+        : data.users;
+        
+      setTeamMembers(staffUsers);
+    } catch (error) {
+      console.error('Error fetching team data:', error);
+    }
+  };
+  
+  // Fetch total activities across all staff (admin/manager only)
+  const fetchTotalActivities = async () => {
+    try {
+      const endpoint = userRole === 'admin' 
+        ? `${API_URL}/admin/activities/summary` 
+        : `${API_URL}/staff/activities/summary`;
+        
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity summary');
+      }
+
+      const data = await response.json();
+      setTotalActivities(data);
+    } catch (error) {
+      console.error('Error fetching activity summary:', error);
     }
   };
   
@@ -152,6 +234,11 @@ const StaffDashboard = () => {
     }));
   };
   
+  const viewStaffMember = (email) => {
+    if (!isAdminOrManager) return;
+    showToast(`Viewing details for ${email}`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -176,7 +263,6 @@ const StaffDashboard = () => {
       </Helmet>
       
       <div className="container mx-auto px-4 py-6">
-        {/* Staff Info Header */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
             <div className="bg-yellow-100 rounded-full p-4">
@@ -195,9 +281,127 @@ const StaffDashboard = () => {
           </div>
         </div>
         
-        {/* Activity Stats */}
+        {/* Admin/Manager Team Overview Section */}
+        {isAdminOrManager && (
+          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 className="font-bold text-lg text-gray-800 mb-4 flex items-center">
+              <FaUserTie className="mr-2 text-yellow-600" /> Team Overview
+            </h2>
+            
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-md font-medium text-gray-700">Staff Members ({teamMembers.length})</h3>
+              <button 
+                onClick={() => setShowAllStaff(!showAllStaff)}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                {showAllStaff ? 'Show Summary' : 'Show All Staff'}
+              </button>
+            </div>
+            
+            {showAllStaff ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {teamMembers.map((member, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{member.name || member.displayName}</div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${member.role === 'admin' ? 'bg-purple-100 text-purple-800' : 
+                              member.role === 'manager' ? 'bg-blue-100 text-blue-800' : 
+                              member.role === 'chef' ? 'bg-green-100 text-green-800' : 
+                              'bg-yellow-100 text-yellow-800'}`}>
+                            {getRoleDisplayName(member.role)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {member.email}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {member.lastSignIn ? formatDistanceToNow(new Date(member.lastSignIn), { addSuffix: true }) : 'Unknown'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                          <button 
+                            onClick={() => viewStaffMember(member.email)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            View Activity
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <div className="font-medium text-blue-800">Admins</div>
+                  <div className="text-2xl font-bold text-blue-900">
+                    {teamMembers.filter(m => m.role === 'admin').length}
+                  </div>
+                </div>
+                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                  <div className="font-medium text-indigo-800">Managers</div>
+                  <div className="text-2xl font-bold text-indigo-900">
+                    {teamMembers.filter(m => m.role === 'manager').length}
+                  </div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                  <div className="font-medium text-green-800">Chefs</div>
+                  <div className="text-2xl font-bold text-green-900">
+                    {teamMembers.filter(m => m.role === 'chef').length}
+                  </div>
+                </div>
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                  <div className="font-medium text-yellow-800">Cashiers</div>
+                  <div className="text-2xl font-bold text-yellow-900">
+                    {teamMembers.filter(m => m.role === 'cashier').length}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Global activity metrics for admin/manager */}
+            {totalActivities && (
+              <div className="mt-6">
+                <h3 className="text-md font-medium text-gray-700 mb-3">Total Team Activity (Last 30 days)</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="bg-gray-50 p-3 rounded-md text-center">
+                    <div className="text-gray-500 text-xs uppercase">Orders Created</div>
+                    <div className="text-xl font-bold text-gray-800">{totalActivities.ordersCreated || 0}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-md text-center">
+                    <div className="text-gray-500 text-xs uppercase">Food Items Added</div>
+                    <div className="text-xl font-bold text-gray-800">{totalActivities.foodAdded || 0}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-md text-center">
+                    <div className="text-gray-500 text-xs uppercase">Order Updates</div>
+                    <div className="text-xl font-bold text-gray-800">{totalActivities.statusUpdates || 0}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-md text-center">
+                    <div className="text-gray-500 text-xs uppercase">Active Staff</div>
+                    <div className="text-xl font-bold text-gray-800">{totalActivities.activeUsers || 0}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Activity Stats - Personal or for all staff (admin/manager) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {/* Today's Stats */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="font-semibold text-gray-700 mb-4 flex items-center">
               <FaCalendarAlt className="mr-2 text-yellow-600" /> Today's Activity
