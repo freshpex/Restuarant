@@ -3,9 +3,9 @@ import { NavLink, Link, Outlet, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../../redux/slices/authSlice';
 import { 
-  FaHome, FaUtensils, FaClipboardList, FaUsers, 
+  FaHome, FaUtensils, FaClipboardList, FaDrumstickBite, FaGlassMartini, 
   FaSignOutAlt, FaBars, FaTimes, FaWarehouse, 
-  FaUserCog, FaCashRegister, FaUserTie, FaUserCheck
+  FaUserCog, FaCashRegister, FaUserTie, FaUserCheck, FaMinusCircle
 } from 'react-icons/fa';
 import { selectCurrentUser } from '../../redux/selectors';
 import Logo from "../../assets/Logo.png";
@@ -203,14 +203,35 @@ const StaffLayout = ({ children }) => {
                 Add Order
               </NavLink>
               
-              <Link 
-                to="/addFood"
-                className="flex items-center px-4 py-3 text-sm rounded-lg text-gray-700 hover:bg-gray-100"
+              <NavLink 
+                to="/staff/addFood" 
+                className={({ isActive }) => 
+                  `flex items-center px-4 py-3 text-sm rounded-lg ${
+                    isActive 
+                      ? 'bg-yellow-100 text-yellow-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`
+                }
                 onClick={() => setSidebarOpen(false)}
               >
-                <FaUtensils className="mr-3" />
-                Add New Food
-              </Link>
+                <FaDrumstickBite className="mr-3" />
+                Add Food
+              </NavLink>
+
+              <NavLink 
+                to="/staff/addDrink" 
+                className={({ isActive }) => 
+                  `flex items-center px-4 py-3 text-sm rounded-lg ${
+                    isActive 
+                      ? 'bg-yellow-100 text-yellow-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`
+                }
+                onClick={() => setSidebarOpen(false)}
+              >
+                <FaGlassMartini className="mr-3" />
+                Add Drink
+              </NavLink>
 
               {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
                 <NavLink 

@@ -21,7 +21,8 @@ const saveCartToStorage = (items) => {
 
 const calculateTotals = (items) => {
   return items.reduce((total, item) => {
-    return total + (parseFloat(item.foodPrice) * item.quantity);
+    const price = item.foodPrice || item.drinkPrice || 0;
+    return total + (parseFloat(price) * item.quantity);
   }, 0).toFixed(2);
 };
 
@@ -41,14 +42,23 @@ const cartSlice = createSlice({
       
       if (existingItemIndex >= 0) {
         state.items[existingItemIndex].quantity += quantity;
+        
+        const price = item.foodPrice || item.drinkPrice;
         state.items[existingItemIndex].totalPrice = (
-          state.items[existingItemIndex].quantity * parseFloat(state.items[existingItemIndex].foodPrice)
+          state.items[existingItemIndex].quantity * parseFloat(price)
         ).toFixed(2);
       } else {
+        const isFood = item.hasOwnProperty('foodName');
+        const isDrink = item.hasOwnProperty('drinkName');
+        const itemType = isFood ? 'food' : isDrink ? 'drink' : 'unknown';
+        
+        const price = item.foodPrice || item.drinkPrice;
+        
         state.items.push({
           ...item,
           quantity,
-          totalPrice: (quantity * parseFloat(item.foodPrice)).toFixed(2)
+          totalPrice: (quantity * parseFloat(price)).toFixed(2),
+          itemType
         });
       }
       
@@ -64,8 +74,10 @@ const cartSlice = createSlice({
       
       if (itemIndex >= 0) {
         state.items[itemIndex].quantity = quantity;
+        
+        const price = state.items[itemIndex].foodPrice || state.items[itemIndex].drinkPrice;
         state.items[itemIndex].totalPrice = (
-          quantity * parseFloat(state.items[itemIndex].foodPrice)
+          quantity * parseFloat(price)
         ).toFixed(2);
       }
       

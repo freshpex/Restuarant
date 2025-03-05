@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 import { 
   FaUsers, FaUtensils, FaChartLine, FaShoppingCart, 
   FaTachometerAlt, FaBars, FaTimes, FaSignOutAlt,
-  FaUserClock, FaHome, FaShieldAlt, FaWarehouse, FaPlus,
+  FaUserClock, FaHome, FaShieldAlt, FaWarehouse, FaPlus, FaGlassMartini, FaDrumstickBite
 } from 'react-icons/fa';
 import { selectCurrentUser } from '../../redux/selectors';
 import Logo from "../../assets/Logo.png";
@@ -176,6 +176,36 @@ const AdminDashboard = () => {
                 >
                   <FaPlus className="mr-3" />
                   Add Orders
+                </NavLink>
+
+                <NavLink 
+                  to="/admin/addFood" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaDrumstickBite className="mr-3" />
+                  Add Food
+                </NavLink>
+
+                <NavLink 
+                  to="/admin/addDrink" 
+                  className={({ isActive }) => 
+                    `flex items-center px-4 py-3 text-sm rounded-lg ${
+                      isActive 
+                        ? 'bg-yellow-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <FaGlassMartini className="mr-3" />
+                  Add Drink
                 </NavLink>
                 
                 <NavLink 

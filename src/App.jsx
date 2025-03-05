@@ -128,11 +128,7 @@ function App() {
                 {
                     path: "/myFood",
                     element: <PrivateRouter><MyFood /></PrivateRouter>
-                },
-                {
-                    path: "/addFood",
-                    element: <PrivateRouter><AddFood /></PrivateRouter>
-                },
+                },                
                 {
                     path: "/orderFood",
                     element: <PrivateRouter><OrderFood /></PrivateRouter>
@@ -148,10 +144,6 @@ function App() {
                 {
                     path: "/myDrink",
                     element: <PrivateRouter><MyDrink /></PrivateRouter>
-                },
-                {
-                    path: "/addDrink",
-                    element: <PrivateRouter><AddDrink /></PrivateRouter>
                 },
                 {
                     path: "/update/:id",
@@ -247,6 +239,14 @@ function App() {
                     path: 'add-order',
                     element: <StaffAddOrder />
                 },
+                {
+                    path: "addFood",
+                    element: <AddFood />
+                },                
+                {
+                    path: "addDrink",
+                    element: <AddDrink />
+                },
             ]
         },
         {
@@ -272,6 +272,14 @@ function App() {
                 {
                     path: "material",
                     element: <RawMaterials />
+                },
+                {
+                    path: "addFood",
+                    element: <AddFood />
+                },                
+                {
+                    path: "addDrink",
+                    element: <AddDrink />
                 },
             ]
         }

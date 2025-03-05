@@ -274,10 +274,6 @@ const Header2 = () => {
                                     <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood">My Added Food Items</Link>
                                     </li>
                                     )}
-                                    {isStaff && (
-                                        <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood">Add a Food Item</Link>
-                                        </li>
-                                    )}
                                     <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/orderFood">My Ordered Food Items</Link>
                                     </li>
                                 </ul> }
@@ -407,10 +403,6 @@ const Header2 = () => {
                             {isStaff && (
                             <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/myFood" onClick={() => setNav(false)}>My Added Food Items</Link>
                             </li>
-                            )}
-                            {isStaff && (
-                                <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/addFood" onClick={() => setNav(false)}>Add a Food Item</Link>
-                                </li>
                             )}
                             <li className="text-center border-2 border-white w-full hover:border-2 hover:border-yellow-700 py-3 px-3 rounded-md"> <Link to="/orderFood" onClick={() => setNav(false)}>My Ordered Food Items</Link>
                             </li>

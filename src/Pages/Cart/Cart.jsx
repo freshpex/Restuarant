@@ -132,15 +132,13 @@ const Cart = () => {
   useEffect(() => {
     const checkNightDeliveryHours = () => {
       const currentHour = new Date().getHours();
-      return currentHour >= 19 || currentHour < 0; // 7pm to 12am
+      return currentHour >= 19 || currentHour < 0;
     };
     
     const isNight = checkNightDeliveryHours();
     setIsNightDelivery(isNight);
     
-    // If it's night time, automatically switch to night delivery option
     if (isNight) {
-      // Map regular delivery options to their night equivalents
       const nightEquivalents = {
         'emaudo': 'nightEmaudo',
         'town': 'nightTown',
