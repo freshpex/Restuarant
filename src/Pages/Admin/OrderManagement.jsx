@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
-import { FaSpinner, FaSearch, FaFilter, FaChevronDown, FaPhoneAlt, FaMapMarkerAlt, FaCalendarAlt, FaTrash, FaEye, FaExclamationTriangle } from 'react-icons/fa';
+import { 
+  FaSpinner, FaSearch, FaFilter, FaChevronDown, FaPhoneAlt, FaMapMarkerAlt, 
+  FaCalendarAlt, FaTrash, FaExclamationTriangle, FaHamburger, FaGlassMartini,
+  FaSortAmountDown, FaSortAmountUpAlt, FaClock
+} from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import moment from 'moment';
 import { formatPrice, capitalizeWords } from '../../utils/formatUtils';
-import { NavLink } from 'react-router-dom';
+import Pagination from '../../Components/Pagination';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -32,18 +36,41 @@ const OrderManagement = () => {
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [deleteAllConfirmation, setDeleteAllConfirmation] = useState(false);
+  const [sortDirection, setSortDirection] = useState('desc'); // default to newest first
+  const [itemTypeFilter, setItemTypeFilter] = useState(''); // '', 'food', or 'drink'
+  const [stats, setStats] = useState({ foodCount: 0, drinkCount: 0, mixedCount: 0 });
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [sortDirection, itemTypeFilter]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/admin/orders`, {
+      
+      // Build query parameters
+      let queryParams = new URLSearchParams();
+      queryParams.append('sort', sortDirection);
+      
+      if (itemTypeFilter) {
+        queryParams.append('itemType', itemTypeFilter);
+      }
+      
+      if (statusFilter) {
+        queryParams.append('status', statusFilter);
+      }
+      
+      if (paymentStatusFilter) {
+        queryParams.append('payment', paymentStatusFilter);
+      }
+      
+      if (dateRange.start) queryParams.append('dateStart', dateRange.start);
+      if (dateRange.end) queryParams.append('dateEnd', dateRange.end);
+      
+      const response = await fetch(`${API_URL}/admin/orders?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -56,6 +83,7 @@ const OrderManagement = () => {
 
       const data = await response.json();
       setOrders(data.orders || []);
+      setStats(data.stats || { foodCount: 0, drinkCount: 0, mixedCount: 0 });
     } catch (error) {
       setError(error.message || 'Error fetching orders');
       toast.error(error.message || 'Error fetching orders');
@@ -138,6 +166,55 @@ const OrderManagement = () => {
     }
   };
 
+  // Item helper functions
+  const getItemName = (order) => {
+    if (order.foodName) return order.foodName;
+    if (order.drinkName) return order.drinkName;
+    return 'Unknown Item';
+  };
+  
+  const getItemImage = (order) => {
+    if (order.foodImage) return order.foodImage;
+    if (order.drinkImage) return order.drinkImage;
+    return null;
+  };
+  
+  const getItemPrice = (order) => {
+    if (order.foodPrice) return order.foodPrice;
+    if (order.drinkPrice) return order.drinkPrice;
+    return 0;
+  };
+  
+  const getOrderType = (order) => {
+    const hasFood = !!order.foodId || !!order.foodName;
+    const hasDrink = !!order.drinkId || !!order.drinkName;
+    
+    if (hasFood && hasDrink) return 'mixed';
+    if (hasFood) return 'food';
+    if (hasDrink) return 'drink';
+    return 'unknown';
+  };
+  
+  const getOrderTypeIcon = (order) => {
+    const type = getOrderType(order);
+    
+    switch(type) {
+      case 'food':
+        return <FaHamburger className="text-yellow-600" />;
+      case 'drink':
+        return <FaGlassMartini className="text-blue-600" />;
+      case 'mixed':
+        return (
+          <div className="flex">
+            <FaHamburger className="text-yellow-600 mr-1" />
+            <FaGlassMartini className="text-blue-600" />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,6 +253,7 @@ const OrderManagement = () => {
     setStatusFilter('');
     setPaymentStatusFilter('');
     setDateRange({ start: '', end: '' });
+    setItemTypeFilter('');
     setCurrentPage(1);
   };
 
@@ -253,6 +331,47 @@ const OrderManagement = () => {
     setDeleteAllConfirmation(true);
   };
 
+  // Toggle sort direction
+  const toggleSortDirection = () => {
+    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+  };
+  
+  // Handle item type filter change
+  const handleItemTypeFilterChange = (e) => {
+    setItemTypeFilter(e.target.value);
+    setCurrentPage(1);
+  };
+
+  // Filter recent orders (24 hours)
+  const filterRecentOrders = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const formattedDate = yesterday.toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    
+    setDateRange({
+      start: formattedDate,
+      end: today
+    });
+    
+    setCurrentPage(1);
+    toast.success("Filtered to show orders from the past 24 hours");
+  };
+
+  // Filter today's orders
+  const filterTodayOrders = () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    setDateRange({
+      start: today,
+      end: today
+    });
+    
+    setCurrentPage(1);
+    toast.success("Filtered to show today's orders");
+  };
+
   return (
     <>
       <Helmet>
@@ -262,12 +381,6 @@ const OrderManagement = () => {
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h1 className="text-2xl font-bold mb-4 md:mb-0">Order Management</h1>
           <div className="flex space-x-3">
-            {/* <NavLink 
-              to="/admin/add-order" 
-              className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg px-4 py-2 flex items-center"
-            >
-              Add Orders
-            </NavLink> */}
             {orders.length > 0 && (
               <button 
                 onClick={confirmDeleteAll} 
@@ -282,18 +395,12 @@ const OrderManagement = () => {
                 Delete All
               </button>
             )}
-            <button 
-              onClick={resetFilters} 
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2"
-            >
-              Reset Filters
-            </button>
           </div>
         </div>
-
-        {/* Search and Filters - make them stacked on mobile */}
+        
+        {/* Search and Filters */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="relative">
               <input
                 type="text"
@@ -332,6 +439,19 @@ const OrderManagement = () => {
               </select>
             </div>
 
+            {/* Item type filter */}
+            <div>
+              <select
+                className="w-full border rounded-lg px-4 py-2 bg-white"
+                value={itemTypeFilter}
+                onChange={handleItemTypeFilterChange}
+              >
+                <option value="">All Items</option>
+                <option value="food">Food Only</option>
+                <option value="drink">Drinks Only</option>
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
@@ -347,6 +467,47 @@ const OrderManagement = () => {
                 value={dateRange.end}
                 onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
               />
+            </div>
+          </div>
+          
+          <div className="flex justify-between mt-4">
+            <div>
+              <button 
+                onClick={toggleSortDirection} 
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 text-sm flex items-center mr-2"
+                title={sortDirection === 'desc' ? 'Newest first' : 'Oldest first'}
+              >
+                {sortDirection === 'desc' ? (
+                  <>
+                    <FaSortAmountDown className="mr-2" /> Newest First
+                  </>
+                ) : (
+                  <>
+                    <FaSortAmountUpAlt className="mr-2" /> Oldest First
+                  </>
+                )}
+              </button>
+            </div>
+            
+            <div className="flex space-x-2">
+              <button 
+                onClick={filterRecentOrders}
+                className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded flex items-center text-sm"
+              >
+                <FaClock className="mr-2" /> Last 24 Hours
+              </button>
+              <button 
+                onClick={filterTodayOrders}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center text-sm"
+              >
+                <FaCalendarAlt className="mr-2" /> Today's Orders
+              </button>
+              <button 
+                onClick={resetFilters} 
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 text-sm flex items-center"
+              >
+                <FaFilter className="mr-2" /> Reset Filters
+              </button>
             </div>
           </div>
         </div>
@@ -370,14 +531,16 @@ const OrderManagement = () => {
               ) : (
                 currentItems.map((order) => (
                   <div key={order._id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                    {/* Order header */}
                     <div 
                       className="p-4 flex justify-between items-center cursor-pointer"
                       onClick={() => toggleOrderDetails(order._id)}
                     >
-                      <div>
-                        <p className="font-medium">#{order._id.substring(order._id.length - 6).toUpperCase()}</p>
-                        <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
+                      <div className="flex items-center">
+                        {getOrderTypeIcon(order)}
+                        <div className="ml-2">
+                          <p className="font-medium">#{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}</p>
+                          <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${statusColors[order.status]}`}>
@@ -391,10 +554,9 @@ const OrderManagement = () => {
                       </div>
                     </div>
                     
-                    {/* Order details (expandable) */}
+                    {/* Mobile expanded view - keep existing with modifications for food/drink */}
                     {expandedOrder === order._id && (
                       <div className="px-4 pb-4 border-t border-gray-100">
-                        {/* Customer info */}
                         <div className="py-3">
                           <h3 className="font-medium text-gray-700">Customer</h3>
                           <p className="text-sm">{order.buyerName || 'N/A'}</p>
@@ -409,14 +571,19 @@ const OrderManagement = () => {
                               {order.items.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center">
                                   <div className="flex items-center">
-                                    {item.foodImage && (
+                                    {item.type === 'food' ? (
+                                      <FaHamburger className="text-yellow-600 mr-2 flex-shrink-0" />
+                                    ) : (
+                                      <FaGlassMartini className="text-blue-600 mr-2 flex-shrink-0" />
+                                    )}
+                                    {item.image && (
                                       <img 
-                                        src={item.foodImage} 
-                                        alt={item.foodName} 
+                                        src={item.image} 
+                                        alt={item.itemName} 
                                         className="w-8 h-8 rounded object-cover mr-2"
                                       />
                                     )}
-                                    <span className="text-sm">{item.foodName} x {item.quantity}</span>
+                                    <span className="text-sm">{item.itemName} x {item.quantity}</span>
                                   </div>
                                   <span className="text-sm font-medium">{formatPrice(item.totalPrice)}</span>
                                 </div>
@@ -427,7 +594,8 @@ const OrderManagement = () => {
                           <div className="py-3">
                             <h3 className="font-medium text-gray-700 mb-2">Item</h3>
                             <div className="flex justify-between items-center">
-                              <span className="text-sm">{order.foodName} x {order.quantity}</span>
+                              {getOrderTypeIcon(order)}
+                              <span className="text-sm ml-2">{getItemName(order)} x {order.quantity}</span>
                               <span className="text-sm font-medium">{formatPrice(order.totalPrice)}</span>
                             </div>
                           </div>
@@ -531,33 +699,17 @@ const OrderManagement = () => {
               
               {/* Mobile pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center mt-4 space-x-1">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`px-3 py-2 rounded ${
-                      currentPage === 1 ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Prev
-                  </button>
-                  <span className="flex items-center px-3 py-2 bg-yellow-600 text-white rounded">
-                    {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`px-3 py-2 rounded ${
-                      currentPage === totalPages ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Next
-                  </button>
-                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredOrders.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={paginate}
+                  maxPagesToShow={3} // Use fewer pages on mobile for better fit
+                />
               )}
             </div>
             
-            {/* Desktop Table View - keep the existing table */}
+            {/* Desktop Table View - update for food/drink */}
             <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -576,7 +728,7 @@ const OrderManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
                         No orders found
                       </td>
                     </tr>
@@ -584,37 +736,43 @@ const OrderManagement = () => {
                     currentItems.map((order) => (
                       <tr key={order._id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          #{order._id.substring(order._id.length - 6).toUpperCase()}
+                          #{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900">{order.buyerName || 'Guest'}</div>
-                          <div className="text-sm text-gray-500">{order.userEmail}</div>
+                          <div className="text-sm text-gray-500">{order.userEmail || order.email}</div>
                         </td>
-                        {/* Order items */}
+                        {/* Update Order items */}
                         <td className="px-6 py-4">
                           {Array.isArray(order.items) && order.items.length > 1 ? (
                             <div className="space-y-2">
                               {order.items.map((item, idx) => (
                                 <div key={idx} className="flex items-center">
-                                  {item.foodImage && (
+                                  {item.type === 'food' ? (
+                                    <FaHamburger className="text-yellow-600 mr-2 flex-shrink-0" />
+                                  ) : (
+                                    <FaGlassMartini className="text-blue-600 mr-2 flex-shrink-0" />
+                                  )}
+                                  {item.image && (
                                     <img 
-                                      src={item.foodImage} 
-                                      alt={item.foodName} 
+                                      src={item.image} 
+                                      alt={item.itemName} 
                                       className="w-8 h-8 rounded object-cover mr-2"
                                     />
                                   )}
                                   <div>
-                                    <div className="text-sm font-medium">{item.foodName}</div>
-                                    <div className="text-xs text-gray-500">Qty: {item.quantity} × {formatPrice(item.price || (item.totalPrice / item.quantity))}</div>
+                                    <div className="text-sm font-medium">{item.itemName}</div>
+                                    <div className="text-xs text-gray-500">Qty: {item.quantity} × {formatPrice(item.price)}</div>
                                   </div>
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <div className="flex items-center">
-                              <div>
-                                <div className="text-sm font-medium">{order.foodName}</div>
-                                <div className="text-xs text-gray-500">Qty: {order.quantity} × {formatPrice(order.foodPrice)}</div>
+                              {getOrderTypeIcon(order)}
+                              <div className="ml-2">
+                                <div className="text-sm font-medium">{getItemName(order)}</div>
+                                <div className="text-xs text-gray-500">Qty: {order.quantity} × {formatPrice(getItemPrice(order))}</div>
                               </div>
                             </div>
                           )}
@@ -625,7 +783,7 @@ const OrderManagement = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{formatPrice(order.totalPrice)}</div>
                           <div className="text-xs text-gray-500">
-                            Items: {formatPrice(order.itemsSubtotal || (order.foodPrice * order.quantity))}
+                            {Array.isArray(order.items) ? 'Multiple items' : 'Single item'}
                           </div>
                           <div className="text-xs text-gray-500">
                             Delivery: {formatPrice(order.deliveryFee || 0)}
@@ -699,52 +857,21 @@ const OrderManagement = () => {
               
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="px-6 py-3 bg-white flex items-center justify-between border-t border-gray-200 sm:px-6">
-                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div className="px-6 py-3 bg-white border-t border-gray-200">
+                  <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-700">
-                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
-                        <span className="font-medium">
-                          {Math.min(indexOfLastItem, filteredOrders.length)}
-                        </span>{' '}
-                        of <span className="font-medium">{filteredOrders.length}</span> results
+                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                        <span className="font-medium">{Math.min(indexOfLastItem, filteredOrders.length)}</span> of{" "}
+                        <span className="font-medium">{filteredOrders.length}</span> results
                       </p>
                     </div>
-                    <div>
-                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <button
-                          onClick={() => paginate(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                            currentPage === 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          Previous
-                        </button>
-                        {[...Array(totalPages)].map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => paginate(i + 1)}
-                            className={`relative inline-flex items-center px-4 py-2 border ${
-                              currentPage === i + 1
-                                ? 'bg-yellow-600 text-white border-yellow-600'
-                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                            } text-sm font-medium`}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => paginate(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                            currentPage === totalPages ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          Next
-                        </button>
-                      </nav>
-                    </div>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalItems={filteredOrders.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={paginate}
+                    />
                   </div>
                 </div>
               )}
@@ -781,7 +908,7 @@ const OrderManagement = () => {
               
               <p className="mb-4 text-gray-700">Are you absolutely sure you want to delete all {orders.length} orders? This action cannot be undone.</p>
               
-              <div className="flex justify-end space-x-3 mt-6 border-t border-gray-200 pt-4">
+              <div className="flex justify-end space-x-3 mt-6 border-t border-gray-200 pt-4"></div>
                 <button
                   type="button"
                   onClick={() => setDeleteAllConfirmation(false)}
@@ -806,7 +933,6 @@ const OrderManagement = () => {
                   )}
                 </button>
               </div>
-            </div>
           </div>
         </div>
       )}
