@@ -23,10 +23,9 @@ const CustomPaymentModal = ({
   const intervalRef = useRef(null);
   const timerRef = useRef(null);
   
-  // Example Bank details (matching your screenshots)
   const bankDetails = {
-    bankName: "Mock Bank",
-    accountNumber: "0067010155",
+    bankName: "Standard Chartered Bank",
+    accountNumber: "5004521821",
     accountName: "Tim's Kitchen Cart Checkout",
     amount: amount
   };
@@ -147,12 +146,7 @@ const CustomPaymentModal = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           className="bg-white rounded-lg shadow-2xl max-w-3xl w-full mx-2 md:mx-4 overflow-hidden"
-        >
-          {/* Test Mode Banner (Desktop + Mobile) */}
-          <div className="bg-orange-100 text-orange-700 p-2 text-center text-xs md:text-sm">
-            You're currently in test mode. All transactions are mocked in this environment.
-          </div>
-          
+        >          
           {/* Stage-based rendering */}
           {stage === 'initial' && (
             <>

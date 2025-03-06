@@ -160,7 +160,7 @@ const StaffOrders = () => {
   const getAvailablePaymentStatuses = (currentPaymentStatus) => {
     const paymentStatusSequence = ['unpaid', 'processing', 'paid'];
     
-    const currentIndex = paymentStatusSequence.indexOf(currentPaymentStatus || 'unpaid');
+    const currentIndex = paymentStatusSequence.indexOf(currentPaymentStatus);
     
     return paymentStatusSequence.slice(currentIndex);
   };
@@ -549,17 +549,22 @@ const StaffOrders = () => {
                           <div className="mb-3">
                             <label className="block text-sm text-gray-600 mb-1">Payment Status:</label>
                             <select
-                              className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
+                              className={`w-full border border-gray-300 rounded px-3 py-2 text-sm ${
+                                order.paymentStatus === 'paid' ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+                              }`}
                               value={order.paymentStatus || 'unpaid'}
                               onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
-                              disabled={updatingPaymentId === order._id}
+                              disabled={updatingPaymentId === order._id || order.paymentStatus === 'paid'}
                             >
-                              {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
-                                <option key={statusOption} value={statusOption}>
-                                  {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
-                                </option>
-                              ))}
+                              <option value="unpaid">Unpaid</option>
+                              <option value="paid">Paid</option>
                             </select>
+                            
+                            {order.paymentStatus === 'paid' && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Payment already completed and cannot be changed, For any issue tell the Admin
+                              </p>
+                            )}
                             
                             {updatingPaymentId === order._id && (
                               <div className="flex items-center justify-center py-2">
@@ -701,11 +706,8 @@ const StaffOrders = () => {
                             onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
                             disabled={updatingPaymentId === order._id}
                           >
-                            {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
-                            <option key={statusOption} value={statusOption}>
-                            {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
-                            </option>
-                          ))}
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
                           </select>
                           {updatingPaymentId === order._id && (
                             <div className="mt-2 flex items-center">
