@@ -6,8 +6,8 @@ import { FaArrowLeft, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { clearCart } from '../../redux/slices/cartSlice';
 import { formatPrice } from '../../utils/formatUtils';
-import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { selectCurrentUser } from '../../redux/selectors';
+import CustomPaymentModal from '../../components/Payment/CustomPaymentModal';
 
 const Checkout = () => {
   const location = useLocation();
@@ -21,6 +21,12 @@ const Checkout = () => {
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
   const [phoneError, setPhoneError] = useState('');
   const [lastOrderId, setLastOrderId] = useState(null);
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  
+  // Custom Payment Modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState(null);
   
   const { 
     cartItems, 
@@ -28,7 +34,8 @@ const Checkout = () => {
     deliveryLocation, 
     deliveryFee, 
     fullAddress,
-    grandTotal
+    grandTotal,
+    isGuest = false
   } = location.state || {};
   
   if (!cartItems || cartItems.length === 0) {
@@ -59,17 +66,16 @@ const Checkout = () => {
       setLoading(false);
       return;
     }
+
+    if (isGuest && !guestName.trim()) {
+      toast.error('Please enter your name');
+      setLoading(false);
+      return;
+    }
     
     try {
       const orderData = {
-        items: cartItems.map(item => ({
-          foodId: item._id,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          price: item.foodPrice,
-          totalPrice: item.totalPrice,
-          foodImage: item.foodImage
-        })),
+        items: prepareOrderItems(),
         deliveryLocation,
         deliveryFee,
         fullAddress,
@@ -78,42 +84,13 @@ const Checkout = () => {
         paymentMethod,
         paymentStatus: transactionDetails ? 'paid' : 'unpaid',
         transactionRef: transactionDetails?.transaction_id || null,
-        buyerName: user?.displayName || '',
-        email: user?.email || '',
-        userEmail: user?.email || '',
+        buyerName: isGuest ? guestName : user?.displayName || '',
+        email: isGuest ? guestEmail : user?.email || '',
+        userEmail: isGuest ? guestEmail : user?.email || '',
         phone: phoneNumber.trim(),
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        isGuestOrder: isGuest
       };
-      
-      if (transactionDetails && paymentMethod === 'online') {
-        dispatch(clearCart());
-        
-        const tempId = `temp-${Date.now()}`;
-        navigate('/order-success', { 
-          state: { 
-            orderId: tempId,
-            isPaid: true,
-            contactPhone: phoneNumber.trim(),
-            isProcessing: true
-          }
-        });
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(orderData)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to place order');
-        }
-        
-        return;
-      }
       
       const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
         method: 'POST',
@@ -130,12 +107,14 @@ const Checkout = () => {
       }
       
       const data = await response.json();
+      setLastOrderId(data.orderId);
       
       dispatch(clearCart());
       
       navigate('/order-success', { 
         state: { 
           orderId: data.orderId,
+          orderReference: data.orderReference,
           isPaid: !!transactionDetails,
           contactPhone: phoneNumber.trim()
         }
@@ -151,7 +130,6 @@ const Checkout = () => {
   };
   
   const handlePayWithWhatsApp = () => {
-    
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
       return;
@@ -161,15 +139,17 @@ const Checkout = () => {
       setPhoneError('Please enter a valid phone number');
       return;
     }
+
+    const customerName = isGuest ? guestName || 'Guest Customer' : user?.displayName || '';
     
-    const items = cartItems.map(item => `- ${item.foodName} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
+    const items = cartItems.map(item => `- ${getItemName(item)} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
     
     const message = encodeURIComponent(
       `Hello! I'd like to place an order:\n\n${items}\n\n` +
       `Subtotal: ₦${totalAmount}\n` +
       `Delivery to ${deliveryLocation} (${fullAddress}): ₦${deliveryFee}\n` +
       `Total: ₦${grandTotal}\n\n` +
-      `My name is ${user.displayName}.\n` +
+      `My name is ${customerName}.\n` +
       `My contact number: ${phoneNumber}\n` + 
       `Please confirm if these items are available.`
     );
@@ -178,105 +158,8 @@ const Checkout = () => {
     
     processOrder();
   };
-  
-  const handlePaymentSuccess = (response) => {
-    toast.promise(
-      updateOrderPaymentStatus(response),
-      {
-        loading: 'Confirming payment...',
-        success: 'Payment confirmed! Redirecting...',
-        error: 'Payment verification issue. Your payment may still be processing.',
-      }
-    );
-  };
 
-  const updateOrderPaymentStatus = async (paymentResponse) => {
-    try {
-      const orderData = {
-        items: cartItems.map(item => ({
-          foodId: item._id,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          price: item.foodPrice,
-          totalPrice: item.totalPrice,
-          foodImage: item.foodImage
-        })),
-        deliveryLocation,
-        deliveryFee,
-        fullAddress,
-        subtotal: totalAmount,
-        total: grandTotal,
-        paymentMethod: 'online',
-        paymentStatus: paymentResponse?.status === 'successful' || paymentResponse?.status === 'completed' ? 'paid' : 'processing',
-        transactionRef: paymentResponse?.transaction_id || null,
-        buyerName: user?.displayName || '',
-        email: user?.email || '',
-        userEmail: user?.email || '',
-        phone: phoneNumber.trim(),
-        date: new Date().toISOString().split('T')[0]
-      };
-      
-      dispatch(clearCart());
-      
-      const orderResponse = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(orderData)
-      });
-      
-      if (!orderResponse.ok) {
-        throw new Error('Failed to create order');
-      }
-      
-      const orderResult = await orderResponse.json();
-      const { orderId, orderReference } = orderResult;
-      
-      const paymentUpdateResponse = await fetch(`${import.meta.env.VITE_API_URL}/orders/${orderId}/payment`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          paymentStatus: 'paid',
-          transactionRef: paymentResponse.transaction_id
-        })
-      });
-      
-      if (!paymentUpdateResponse.ok) {
-        console.error('Payment status update failed but order was created');
-      }
-      
-      navigate('/order-success', { 
-        state: { 
-          orderId: orderId,
-          orderReference: orderReference,
-          isPaid: true,
-          contactPhone: phoneNumber.trim()
-        }
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Payment processing error:', error);
-      
-      navigate('/order-success', { 
-        state: { 
-          orderId: `temp-${Date.now()}`,
-          isPaid: false,
-          paymentPending: true,
-          contactPhone: phoneNumber.trim()
-        }
-      });
-      
-      throw error;
-    }
-  };
-
-  const handlePayOnline = () => {
+  const handlePayOnline = async () => {
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
       return;
@@ -287,102 +170,96 @@ const Checkout = () => {
       return;
     }
     
+    if (isGuest && !guestName.trim()) {
+      toast.error('Please enter your name');
+      return;
+    }
+    
     setProcessingPayment(true);
     
-    const createOrderFirst = async () => {
-      try {
-        const orderData = {
-          items: cartItems.map(item => ({
-            foodId: item._id,
-            foodName: item.foodName,
-            quantity: item.quantity,
-            price: item.foodPrice,
-            totalPrice: item.totalPrice,
-            foodImage: item.foodImage
-          })),
-          deliveryLocation,
-          deliveryFee,
-          fullAddress,
-          subtotal: totalAmount,
-          total: grandTotal,
-          paymentStatus: 'processing',
-          paymentMethod: 'online',
-          buyerName: user?.displayName || '',
-          email: user?.email || '',
-          userEmail: user?.email || '',
-          phone: phoneNumber.trim(),
-          date: new Date().toISOString().split('T')[0]
-        };
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(orderData)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create order');
-        }
-        
-        const data = await response.json();
-        
-        initiatePayment(data.orderId, data.orderReference);
-      } catch (error) {
-        toast.error(error.message || 'Failed to initialize order');
-        setProcessingPayment(false);
-      }
-    };
-    
-    const initiatePayment = (orderId, orderReference) => {
-      const config = {
-        public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref: orderReference,
-        amount: parseFloat(grandTotal),
-        currency: 'NGN',
-        payment_options: 'card,mobilemoney,ussd,banktransfer',
-        customer: {
-          email: user?.email || '',
-          phone_number: phoneNumber.trim(),
-          name: user?.displayName || '',
-        },
-        customizations: {
-          title: "Tim's Kitchen Cart Checkout",
-          description: `Payment for ${cartItems.length} items`,
-          logo: "/logo.png",
-        },
-        meta: {
-          orderId: orderId,
-          orderReference: orderReference
-        }
+    try {
+      const orderReference = `TK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      const orderData = {
+        items: prepareOrderItems(),
+        deliveryLocation,
+        deliveryFee,
+        fullAddress,
+        subtotal: totalAmount,
+        total: grandTotal,
+        paymentMethod: 'bank_transfer',
+        paymentStatus: 'pending',
+        transactionRef: null,
+        buyerName: isGuest ? guestName : user?.displayName || 'Guest',
+        email: isGuest ? guestEmail : user?.email || 'guest@gmail.com',
+        userEmail: isGuest ? guestEmail : user?.email || '',
+        phone: phoneNumber.trim(),
+        date: new Date().toISOString().split('T')[0],
+        isGuestOrder: isGuest,
+        orderReference: orderReference
       };
       
-      const handleFlutterPayment = useFlutterwave(config);
-      
-      handleFlutterPayment({
-        callback: (response) => {
-          closePaymentModal();
-          
-          if (response.status === "successful" || response.status === "completed") {
-            handlePaymentSuccess(response);
-          } else {
-            toast.error('Payment was not completed successfully.');
-            setProcessingPayment(false);
-          }
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        onClose: () => {
-          setProcessingPayment(false);
-          toast.info('Payment cancelled');
-        },
+        body: JSON.stringify(orderData)
       });
-    };
-    
-    createOrderFirst();
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
+      }
+      
+      const data = await response.json();
+      
+      setPaymentDetails({
+        orderId: data.orderId,
+        orderReference: data.orderReference || orderReference,
+        amount: grandTotal
+      });
+      
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast.error(error.message || 'Failed to initialize payment');
+      setProcessingPayment(false);
+    }
   };
   
+  const handlePaymentSuccess = () => {
+    dispatch(clearCart());
+    navigate('/order-success', { 
+      state: { 
+        orderId: paymentDetails.orderId,
+        orderReference: paymentDetails.orderReference,
+        isPaid: true,
+        contactPhone: phoneNumber.trim()
+      }
+    });
+    setShowPaymentModal(false);
+    setProcessingPayment(false);
+  };
+  
+  const handlePaymentModalClose = () => {
+    setShowPaymentModal(false);
+    setProcessingPayment(false);
+    
+    if (paymentDetails) {
+      navigate('/order-success', { 
+        state: { 
+          orderId: paymentDetails.orderId,
+          orderReference: paymentDetails.orderReference,
+          isPaid: false,
+          paymentPending: true,
+          contactPhone: phoneNumber.trim()
+        }
+      });
+    }
+  };
+
   const handlePlaceOrder = () => {
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
@@ -403,6 +280,62 @@ const Checkout = () => {
     }
   };
   
+  const getItemName = (item) => {
+    return item.foodName || item.drinkName || 'Unknown Item';
+  };
+  
+  const getItemImage = (item) => {
+    return item.foodImage || item.drinkImage || '/default-product.png';
+  };
+
+  const getItemPrice = (item) => {
+    return item.foodPrice || item.drinkPrice || '0';
+  };
+
+  const getItemType = (item) => {
+    if (item.foodName) return 'food';
+    if (item.drinkName) return 'drink';
+    return 'unknown';
+  };
+  
+  const prepareOrderItems = () => {
+    return cartItems.map(item => {
+      const itemType = getItemType(item);
+      
+      if (itemType === 'food') {
+        return {
+          foodId: item._id,
+          foodName: item.foodName,
+          foodImage: item.foodImage,
+          price: item.foodPrice,
+          quantity: item.quantity,
+          totalPrice: (parseFloat(item.foodPrice) * item.quantity).toFixed(2),
+          itemType: 'food'
+        };
+      } else if (itemType === 'drink') {
+        return {
+          drinkId: item._id,
+          drinkName: item.drinkName,
+          drinkImage: item.drinkImage,
+          price: item.drinkPrice,
+          quantity: item.quantity,
+          totalPrice: (parseFloat(item.drinkPrice) * item.quantity).toFixed(2),
+          itemType: 'drink'
+        };
+      } else {
+        return {
+          itemId: item._id,
+          name: getItemName(item),
+          image: getItemImage(item),
+          price: getItemPrice(item),
+          quantity: item.quantity,
+          totalPrice: (parseFloat(getItemPrice(item)) * item.quantity).toFixed(2),
+          itemType: 'unknown'
+        };
+      }
+    });
+  };
+
   return (
     <>
       <Helmet>
@@ -430,19 +363,23 @@ const Checkout = () => {
                   <div key={item._id} className="py-4 flex items-center">
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                       <img
-                        src={item.foodImage}
-                        alt={item.foodName}
+                        src={getItemImage(item)}
+                        alt={getItemName(item)}
                         className="h-full w-full object-cover object-center"
                       />
                     </div>
                     <div className="ml-4 flex-1">
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="text-base font-medium text-gray-900">{item.foodName}</h3>
-                          <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                          <h3 className="text-base font-medium text-gray-900">
+                            {getItemName(item)}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            Qty: {item.quantity} {item.foodName ? '(Food)' : item.drinkName ? '(Drink)' : ''}
+                          </p>
                         </div>
                         <p className="text-sm font-medium text-gray-900">
-                          {formatPrice(item.totalPrice)}
+                          {formatPrice(parseFloat(getItemPrice(item)) * item.quantity)}
                         </p>
                       </div>
                     </div>
@@ -495,6 +432,45 @@ const Checkout = () => {
                 </div>
               </div>
               
+              {isGuest && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Guest Information</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="mb-4">
+                      <label htmlFor="guestName" className="block mb-2 text-sm font-medium text-gray-700">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="guestName"
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5"
+                        placeholder="Enter your full name"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label htmlFor="guestEmail" className="block mb-2 text-sm font-medium text-gray-700">
+                        Email Address <span className="text-gray-500">(optional)</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="guestEmail"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5"
+                        placeholder="Enter your email address"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Your order confirmation and tracking details will be sent here if provided
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -513,9 +489,14 @@ const Checkout = () => {
                         className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
                       />
                       <label htmlFor="online" className="ml-3 block text-sm font-medium text-gray-700">
-                        Pay Online (Card, Transfer, USSD)
+                        Pay Online (Bank Transfer)
                       </label>
                     </div>
+                    {paymentMethod === 'online' && (
+                      <p className="mt-2 text-xs text-gray-500 pl-7">
+                        We'll provide account details for direct bank transfer. Payment is confirmed quickly.
+                      </p>
+                    )}
                   </div>
                   <div
                     className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'whatsapp' ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}
@@ -535,6 +516,11 @@ const Checkout = () => {
                         Pay via WhatsApp Chat
                       </label>
                     </div>
+                    {paymentMethod === 'whatsapp' && (
+                      <p className="mt-2 text-xs text-gray-500 pl-7">
+                        Chat directly with our staff to arrange payment and confirm order details.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -578,6 +564,19 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && paymentDetails && (
+        <CustomPaymentModal
+          isOpen={showPaymentModal}
+          onClose={handlePaymentModalClose}
+          amount={paymentDetails.amount}
+          orderId={paymentDetails.orderId}
+          orderReference={paymentDetails.orderReference}
+          onConfirmSuccess={handlePaymentSuccess}
+          apiUrl={import.meta.env.VITE_API_URL}
+        />
+      )}
     </>
   );
 };

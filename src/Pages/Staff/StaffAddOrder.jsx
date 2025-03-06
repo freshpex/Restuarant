@@ -29,7 +29,7 @@ const StaffAddOrder = () => {
   const searchRef = useRef(null);
   
   // Set to control whether we're searching for foods or drinks
-  const [itemType, setItemType] = useState('food'); // 'food' or 'drink'
+  const [itemType, setItemType] = useState('food');
   const [fuseFoods, setFuseFoods] = useState(null);
   const [fuseDrinks, setFuseDrinks] = useState(null);
   

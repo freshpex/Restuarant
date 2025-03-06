@@ -11,7 +11,6 @@ const PaymentModal = ({
   orderDetails,
   isPaymentLoading
 }) => {
-  // Handle ESC key to close modal
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape' && !isPaymentLoading) {
@@ -43,7 +42,8 @@ const PaymentModal = ({
   // Calculate the total price correctly
   const unitPrice = parseFloat(orderDetails.foodPrice);
   const quantity = parseInt(orderDetails.quantity);
-  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
+  const deliveryFee = parseFloat(orderDetails.deliveryFee || 0);
+  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2) + deliveryFee;
 
   return (
     <div 

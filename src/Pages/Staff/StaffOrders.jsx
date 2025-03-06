@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import moment from 'moment';
 import { formatPrice, capitalizeWords } from '../../utils/formatUtils';
+import Pagination from '../../Components/Pagination';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -124,8 +125,8 @@ const StaffOrders = () => {
       const data = await response.json();
       setOrders(data.orders || []);
       
-      // Process and group orders
       const grouped = groupOrdersByReference(data.orders || []);
+
       setGroupedOrders(grouped);
     } catch (error) {
       setError(error.message || 'Error fetching orders');
@@ -135,67 +136,167 @@ const StaffOrders = () => {
     }
   };
 
+  const getAvailableStatuses = (currentStatus, paymentStatus) => {
+    const orderStatusSequence = ['pending', 'preparing', 'ready', 'delivered'];
+    
+    if (currentStatus === 'cancelled') {
+      return ['cancelled'];
+    } 
+    
+    if (currentStatus === 'delivered') {
+      return ['delivered'];
+    }
+    
+    const currentIndex = orderStatusSequence.indexOf(currentStatus);
+    const forwardStatuses = orderStatusSequence.slice(currentIndex);
+    
+    if (paymentStatus === 'paid') {
+      return forwardStatuses;
+    }
+    
+    return [...forwardStatuses, 'cancelled'];
+  };
+  
+  const getAvailablePaymentStatuses = (currentPaymentStatus) => {
+    const paymentStatusSequence = ['unpaid', 'processing', 'paid'];
+    
+    const currentIndex = paymentStatusSequence.indexOf(currentPaymentStatus || 'unpaid');
+    
+    return paymentStatusSequence.slice(currentIndex);
+  };
+
   const updateOrderStatus = async (orderId, status) => {
     try {
       setUpdatingOrderId(orderId);
-      const response = await fetch(`${API_URL}/staff/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update order status');
+      
+      const orderGroup = groupedOrders.find(group => group._id === orderId);
+      
+      if (orderGroup && orderGroup.items && orderGroup.items.length > 0) {
+        const updatePromises = orderGroup.items.map(async (item) => {
+          const response = await fetch(`${API_URL}/staff/orders/${item._id}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+          });
+  
+          if (!response.ok) {
+            throw new Error(`Failed to update order item ${item._id}`);
+          }
+          return item._id;
+        });
+        
+        await Promise.all(updatePromises);
+        toast.success(`All items in order updated to ${status}`);
+        
+        setGroupedOrders(groupedOrders.map(group => 
+          group._id === orderId ? { ...group, status } : group
+        ));
+        
+      } else {
+        const response = await fetch(`${API_URL}/staff/orders/${orderId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status })
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to update order status');
+        }
+  
+        toast.success(`Order status updated to ${status}`);
+        
+        setOrders(orders.map(order => 
+          order._id === orderId ? { ...order, status } : order
+        ));
       }
-
-      toast.success(`Order status updated to ${status}`);
-      setOrders(orders.map(order => 
-        order._id === orderId ? { ...order, status } : order
-      ));
+      
+      fetchOrders();
     } catch (error) {
       toast.error(error.message || 'Error updating order status');
     } finally {
       setUpdatingOrderId(null);
     }
   };
-
+  
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
       setUpdatingPaymentId(orderId);
-      const response = await fetch(`${API_URL}/staff/orders/${orderId}/payment-status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ paymentStatus })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update payment status');
-      }
-
-      toast.success(`Payment status updated to ${paymentStatus}`);
       
-      // Update local state
-      setOrders(orders.map(order => {
-        if (order._id === orderId) {
-          const updatedOrder = { 
-            ...order, 
-            paymentStatus 
-          };
-          
-          if (paymentStatus === 'paid' && order.status === 'pending') {
-            updatedOrder.status = 'preparing';
+      const orderGroup = groupedOrders.find(group => group._id === orderId);
+      
+      if (orderGroup && orderGroup.items && orderGroup.items.length > 0) {
+        const updatePromises = orderGroup.items.map(async (item) => {
+          const response = await fetch(`${API_URL}/staff/orders/${item._id}/payment-status`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ paymentStatus })
+          });
+  
+          if (!response.ok) {
+            throw new Error(`Failed to update payment for item ${item._id}`);
           }
-          
-          return updatedOrder;
+          return item._id;
+        });
+        
+        await Promise.all(updatePromises);
+        toast.success(`Payment status for all items updated to ${paymentStatus}`);
+        
+        setGroupedOrders(groupedOrders.map(group => {
+          if (group._id === orderId) {
+            const updatedGroup = { ...group, paymentStatus };
+            
+            if (paymentStatus === 'paid' && group.status === 'pending') {
+              updatedGroup.status = 'preparing';
+            }
+            
+            return updatedGroup;
+          }
+          return group;
+        }));
+        
+      } else {
+        const response = await fetch(`${API_URL}/staff/orders/${orderId}/payment-status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ paymentStatus })
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to update payment status');
         }
-        return order;
-      }));
+  
+        toast.success(`Payment status updated to ${paymentStatus}`);
+        
+        setOrders(orders.map(order => {
+          if (order._id === orderId) {
+            const updatedOrder = { 
+              ...order, 
+              paymentStatus 
+            };
+            
+            if (paymentStatus === 'paid' && order.status === 'pending') {
+              updatedOrder.status = 'preparing';
+            }
+            
+            return updatedOrder;
+          }
+          return order;
+        }));
+      }
+      
+      fetchOrders();
     } catch (error) {
       toast.error(error.message || 'Error updating payment status');
     } finally {
@@ -203,7 +304,6 @@ const StaffOrders = () => {
     }
   };
 
-  // Update filteredOrders to use groupedOrders
   const filteredOrders = groupedOrders.filter(order => {
     const matchesSearch = 
       order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -361,7 +461,6 @@ const StaffOrders = () => {
               ) : (
                 currentItems.map((order) => (
                   <div key={order._id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                    {/* Order header - remains mostly the same */}
                     <div 
                       className="p-4 flex justify-between items-center cursor-pointer"
                       onClick={() => toggleOrderDetails(order._id)}
@@ -376,6 +475,7 @@ const StaffOrders = () => {
                           )}
                         </p>
                         <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
+                        <span className="text-sm text-gray-500">{moment(order.createdAt).format('hh:mm A')}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${statusColors[order.status]}`}>
@@ -385,10 +485,9 @@ const StaffOrders = () => {
                       </div>
                     </div>
                     
-                    {/* Order details (expandable) - updated to show proper pricing */}
+                    {/* Order details (expandable) */}
                     {expandedOrder === order._id && (
                       <div className="px-4 pb-4 border-t border-gray-100">
-                        {/* Customer info section */}
                         <div className="py-3">
                           <h3 className="font-medium text-gray-700">Customer</h3>
                           <p className="text-sm">{order.buyerName || 'N/A'}</p>
@@ -397,12 +496,7 @@ const StaffOrders = () => {
                         </div>
                         
                         {/* Order items - updated to handle bulk orders */}
-                        <div className="py-3">
-                          <h3 className="font-medium text-gray-700 mb-2">
-                            {order.isBulkOrder ? `Items (${order.items.length})` : 'Item'}
-                          </h3>
-                          
-                          {order.isBulkOrder ? (
+                        <div className="py-3">    
                             <div className="max-h-40 overflow-y-auto">
                               {order.items.map((item, idx) => (
                                 <div key={`${item._id}-${idx}`} className="flex justify-between items-center mb-2">
@@ -417,20 +511,6 @@ const StaffOrders = () => {
                                 </div>
                               ))}
                             </div>
-                          ) : (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">
-                                {order.items && order.items.length > 0 ? 
-                                  `${getItemName(order.items[0])} x ${order.items[0].quantity}` :
-                                  `${getItemName(order)} x ${order.quantity}`
-                                }
-                              </span>
-                              <span className="text-sm font-medium">
-                                {formatPrice(order.items && order.items.length > 0 ? 
-                                  order.items[0].totalPrice : order.totalPrice)}
-                              </span>
-                            </div>
-                          )}
                         </div>
                         
                         {/* Delivery Info */}
@@ -449,7 +529,7 @@ const StaffOrders = () => {
                         <div className="py-3 border-t border-gray-100">
                           <div className="flex justify-between text-sm mb-1">
                             <span>Items Subtotal:</span>
-                            <span>{formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
+                            <span>{formatPrice(order.totalAmount)}</span>
                           </div>
                           <div className="flex justify-between text-sm mb-1">
                             <span>Delivery Fee:</span>
@@ -457,9 +537,7 @@ const StaffOrders = () => {
                           </div>
                           <div className="flex justify-between font-medium mt-2">
                             <span>Total:</span>
-                            <span>{formatPrice(order.isBulkOrder ? 
-                              order.grandTotal : 
-                              (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}</span>
+                            <span>{formatPrice(order.grandTotal)}</span>
                           </div>
                         </div>
                         
@@ -476,8 +554,11 @@ const StaffOrders = () => {
                               onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
                               disabled={updatingPaymentId === order._id}
                             >
-                              <option value="unpaid">Unpaid</option>
-                              <option value="paid">Paid</option>
+                              {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
+                                <option key={statusOption} value={statusOption}>
+                                  {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                                </option>
+                              ))}
                             </select>
                             
                             {updatingPaymentId === order._id && (
@@ -497,11 +578,11 @@ const StaffOrders = () => {
                               onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                               disabled={updatingOrderId === order._id}
                             >
-                              <option value="pending">Pending</option>
-                              <option value="preparing">Preparing</option>
-                              <option value="ready">Ready</option>
-                              <option value="delivered">Delivered</option>
-                              <option value="cancelled">Cancelled</option>
+                              {getAvailableStatuses(order.status, order.paymentStatus).map(statusOption => (
+                                <option key={statusOption} value={statusOption}>
+                                  {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                                </option>
+                              ))}
                             </select>
                             
                             {updatingOrderId === order._id && (
@@ -518,31 +599,15 @@ const StaffOrders = () => {
                 ))
               )}
               
-              {/* Mobile pagination - remains the same */}
+              {/* Mobile pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center mt-4 space-x-1">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`px-3 py-2 rounded ${
-                      currentPage === 1 ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Prev
-                  </button>
-                  <span className="flex items-center px-3 py-2 bg-yellow-600 text-white rounded">
-                    {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`px-3 py-2 rounded ${
-                      currentPage === totalPages ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Next
-                  </button>
-                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredOrders.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={paginate}
+                  maxPagesToShow={3}
+                />
               )}
             </div>
             
@@ -571,7 +636,6 @@ const StaffOrders = () => {
                   ) : (
                     currentItems.map((order) => (
                       <tr key={order._id}>
-                        {/* Order ID column */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}
@@ -598,9 +662,7 @@ const StaffOrders = () => {
                         
                         {/* Items column - updated for bulk orders */}
                         <td className="px-6 py-4">
-                          {order.isBulkOrder ? (
                             <div>
-                              <div className="text-sm text-gray-900 font-medium mb-1">Multiple Items ({order.items.length})</div>
                               <div className="max-h-100 overflow-y-auto text-xs space-y-1">
                                 {order.items.slice(0, 10).map((item, idx) => (
                                   <div key={idx} className="flex items-center">
@@ -616,32 +678,18 @@ const StaffOrders = () => {
                                 )}
                               </div>
                             </div>
-                          ) : (
-                            <div className="flex items-center">
-                              <div>
-                                <div className="text-sm text-gray-900">
-                                  {order.items && order.items.length > 0 ? 
-                                    getItemName(order.items[0]) : getItemName(order)}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  Qty: {order.items && order.items.length > 0 ? 
-                                    order.items[0].quantity : order.quantity}
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </td>
                         
-                        {/* Order Total column - new structured pricing */}
+                        {/* Order Total column*/}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-medium">
-                            {formatPrice(order.isBulkOrder ? 
-                              order.grandTotal : 
-                              (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}
-                          </div>
-                          <div className="text-xs text-gray-500 flex flex-col">
-                            <span>Subtotal: {formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
-                            <span>Delivery: {formatPrice(order.deliveryFee || 0)}</span>
+                          <div>
+                            <div className="text-sm text-gray-900 font-medium">
+                              {formatPrice(order.grandTotal)}
+                            </div>
+                            <div className="text-xs text-gray-500 flex flex-col">
+                              <span>Subtotal: {formatPrice(order.totalAmount || 0)}</span>
+                              <span>Delivery: {formatPrice(order.deliveryFee || 0)}</span>
+                            </div>
                           </div>
                         </td>
                         
@@ -653,8 +701,11 @@ const StaffOrders = () => {
                             onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
                             disabled={updatingPaymentId === order._id}
                           >
-                            <option value="unpaid">Unpaid</option>
-                            <option value="paid">Paid</option>
+                            {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
+                            <option key={statusOption} value={statusOption}>
+                            {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                            </option>
+                          ))}
                           </select>
                           {updatingPaymentId === order._id && (
                             <div className="mt-2 flex items-center">
@@ -672,11 +723,11 @@ const StaffOrders = () => {
                             onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                             disabled={updatingOrderId === order._id}
                           >
-                            <option value="pending">Pending</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="ready">Ready</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
+                            {getAvailableStatuses(order.status, order.paymentStatus).map(statusOption => (
+                            <option key={statusOption} value={statusOption}>
+                            {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                            </option>
+                          ))}
                           </select>
                           {updatingOrderId === order._id && (
                             <div className="mt-2 flex items-center">
@@ -703,68 +754,23 @@ const StaffOrders = () => {
                 </tbody>
               </table>
               
-              {/* Pagination - remains the same */}
+              {/* Pagination*/}
               {totalPages > 1 && (
-                <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200">
-                  <div className="flex-1 flex justify-between sm:hidden">
-                    <button
-                      onClick={() => paginate(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50
-                        ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => paginate(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50
-                        ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      Next
-                    </button>
-                  </div>
-                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div className="px-6 py-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-700">
-                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, filteredOrders.length)}</span> of <span className="font-medium">{filteredOrders.length}</span> results
+                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                        <span className="font-medium">{Math.min(indexOfLastItem, filteredOrders.length)}</span> of{" "}
+                        <span className="font-medium">{filteredOrders.length}</span> results
                       </p>
                     </div>
-                    <div>
-                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <button
-                          onClick={() => paginate(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                            currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          Previous
-                        </button>
-                        {[...Array(totalPages)].map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => paginate(i + 1)}
-                            className={`relative inline-flex items-center px-4 py-2 border
-                              ${currentPage === i + 1
-                                ? 'bg-yellow-600 text-white border-yellow-600'
-                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                              }`}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => paginate(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                            currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          Next
-                        </button>
-                      </nav>
-                    </div>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalItems={filteredOrders.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={paginate}
+                    />
                   </div>
                 </div>
               )}
