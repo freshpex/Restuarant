@@ -24,9 +24,9 @@ const CustomPaymentModal = ({
   const timerRef = useRef(null);
   
   const bankDetails = {
-    bankName: "Standard Chartered Bank",
-    accountNumber: "5004521821",
-    accountName: "Tim's Kitchen Cart Checkout",
+    bankName: "Monie Point Microfinance Bank",
+    accountNumber: "5466515889",
+    accountName: "Tim's Kitchen4U",
     amount: amount
   };
   
