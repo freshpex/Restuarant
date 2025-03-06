@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { clearCart } from '../../redux/slices/cartSlice';
 import { formatPrice } from '../../utils/formatUtils';
 import { selectCurrentUser } from '../../redux/selectors';
-import CustomPaymentModal from '../../components/Payment/CustomPaymentModal';
+import CustomPaymentModal from '../../Components/Payment/CustomPaymentModal';
 
 const Checkout = () => {
   const location = useLocation();

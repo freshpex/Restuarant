@@ -164,7 +164,12 @@ const OrderManagement = () => {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ status })
-          }).then(res => res.json())
+          }).then(res => {
+            if (!res.ok) {
+              throw new Error(`Failed to update order status for ${item._id}`);
+            }
+            return res.json();
+          })
         );
         
         await Promise.all(updatePromises);
@@ -180,7 +185,10 @@ const OrderManagement = () => {
             ? { ...order, status } : order
         ));
       } else {
-        const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
+        const orderItem = orders.find(o => o._id === orderId);
+        const actualId = orderItem ? orderItem._id : orderId;
+        
+        const response = await fetch(`${API_URL}/admin/orders/${actualId}/status`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -190,37 +198,41 @@ const OrderManagement = () => {
         });
         
         if (!response.ok) {
-          throw new Error('Failed to update order status');
+          const errorData = await response.json();
+          const errorMsg = errorData.message || `Error ${response.status}: Failed to update order status`;
+          console.error('Order update error:', errorData);
+          throw new Error(errorMsg);
         }
-  
-        toast.success(`Order status updated to ${status}`);
+
+        const responseData = await response.json();
+        toast.success(responseData.message || `Order status updated to ${status}`);
         
-        if (true) {
-          setOrders(orders.map(order => 
-            order._id === orderId ? { ...order, status } : order
-          ));
-          
-          // Update grouped orders if this order is part of a group
-          const updatedGroupedOrders = [...groupedOrders];
-          for (let i = 0; i < updatedGroupedOrders.length; i++) {
-            const group = updatedGroupedOrders[i];
-            if (group._id === orderId) {
+        setOrders(orders.map(order => 
+          order._id === actualId ? { ...order, status } : order
+        ));
+        
+        const updatedGroupedOrders = [...groupedOrders];
+        for (let i = 0; i < updatedGroupedOrders.length; i++) {
+          const group = updatedGroupedOrders[i];
+          if (group._id === orderId) {
+            group.status = status;
+          }
+          const itemIndex = group.items.findIndex(item => item._id === actualId);
+          if (itemIndex !== -1) {
+            group.items[itemIndex].status = status;
+            const allSameStatus = group.items.every(item => item.status === status);
+            if (allSameStatus) {
               group.status = status;
             }
-            const itemIndex = group.items.findIndex(item => item._id === orderId);
-            if (itemIndex !== -1) {
-              group.items[itemIndex].status = status;
-              const allSameStatus = group.items.every(item => item.status === status);
-              if (allSameStatus) {
-                group.status = status;
-              }
-            }
           }
-          setGroupedOrders(updatedGroupedOrders);
         }
+        setGroupedOrders(updatedGroupedOrders);
       }
+      
+      fetchOrders();
     } catch (error) {
       toast.error(error.message || 'Error updating order status');
+      console.error('Order status update error:', error);
     } finally {
       setUpdatingOrderId(null);
     }
@@ -244,7 +256,12 @@ const OrderManagement = () => {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ paymentStatus })
-          }).then(res => res.json())
+          }).then(res => {
+            if (!res.ok) {
+              throw new Error(`Failed to update payment status for ${item._id}`);
+            }
+            return res.json();
+          })
         );
         
         await Promise.all(updatePromises);
@@ -272,7 +289,10 @@ const OrderManagement = () => {
           return order;
         }));
       } else {
-        const response = await fetch(`${API_URL}/admin/orders/${orderId}/payment-status`, {
+        const orderItem = orders.find(o => o._id === orderId);
+        const actualId = orderItem ? orderItem._id : orderId;
+        
+        const response = await fetch(`${API_URL}/admin/orders/${actualId}/payment-status`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -282,14 +302,15 @@ const OrderManagement = () => {
         });
   
         if (!response.ok) {
-          throw new Error('Failed to update payment status');
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update payment status');
         }
   
         toast.success(`Payment status updated to ${paymentStatus}`);
         
-        // Update local state
+        // Update orders state
         setOrders(orders.map(order => {
-          if (order._id === orderId) {
+          if (order._id === actualId) {
             const updatedOrder = { 
               ...order, 
               paymentStatus 
@@ -297,7 +318,6 @@ const OrderManagement = () => {
             
             if (paymentStatus === 'paid' && order.status === 'pending') {
               updatedOrder.status = 'preparing';
-              updateOrderStatus(orderId, 'preparing', false);
             }
             
             return updatedOrder;
@@ -315,7 +335,7 @@ const OrderManagement = () => {
               group.status = 'preparing';
             }
           }
-          const itemIndex = group.items.findIndex(item => item._id === orderId);
+          const itemIndex = group.items.findIndex(item => item._id === actualId);
           if (itemIndex !== -1) {
             group.items[itemIndex].paymentStatus = paymentStatus;
             if (paymentStatus === 'paid' && group.items[itemIndex].status === 'pending') {
@@ -330,8 +350,11 @@ const OrderManagement = () => {
         }
         setGroupedOrders(updatedGroupedOrders);
       }
+      
+      fetchOrders();
     } catch (error) {
       toast.error(error.message || 'Error updating payment status');
+      console.error('Payment status update error:', error);
     } finally {
       setUpdatingPaymentId(null);
     }
@@ -423,10 +446,24 @@ const OrderManagement = () => {
 
   const deleteOrder = async (orderId, isBulkOrder = false, orderGroupId = null) => {
     try {
-      // For bulk orders, ensure we delete the entire group
-      const deleteEndpoint = isBulkOrder ? 
-        `${API_URL}/admin/orders/${orderId}` : 
-        `${API_URL}/admin/orders/${orderId}`;
+      let deleteEndpoint;
+      let idToUse;
+      
+      if (isBulkOrder) {
+        if (orderGroupId) {
+          idToUse = orderGroupId;
+        } else {
+          idToUse = orderId;
+        }
+        
+        console.log(`Deleting bulk order with ID: ${idToUse}`);
+      } else {
+        const orderItem = orders.find(o => o._id === orderId);
+        idToUse = orderItem ? orderItem._id : orderId;
+      }
+      
+      deleteEndpoint = `${API_URL}/admin/orders/${idToUse}`;
+      console.log(`Making delete request to: ${deleteEndpoint}`);
       
       const response = await fetch(deleteEndpoint, {
         method: 'DELETE',
@@ -437,11 +474,14 @@ const OrderManagement = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete order');
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to delete order (Status: ${response.status})`);
       }
 
+      const responseData = await response.json();
+      console.log('Delete response:', responseData);
+      
       if (isBulkOrder) {
-        // Remove all related orders from state
         setOrders(prevOrders => 
           prevOrders.filter(order => 
             !(order.orderGroupId === orderGroupId || order.orderReference === orderId)
@@ -452,37 +492,33 @@ const OrderManagement = () => {
           prevGroups.filter(group => group._id !== orderId)
         );
         
-        toast.success('Bulk order deleted successfully');
+        toast.success(responseData.message || 'Bulk order deleted successfully');
       } else {
-        // Single order deletion
+        const actualId = orders.find(o => o._id === orderId)?._id || orderId;
+        
         setOrders(prevOrders => 
-          prevOrders.filter(order => order._id !== orderId)
+          prevOrders.filter(order => order._id !== actualId)
         );
         
         setGroupedOrders(prevGroups => {
-          // Find if order is part of a group
           const updatedGroups = prevGroups.map(group => {
-            if (group.items.some(item => item._id === orderId)) {
+            if (group.items.some(item => item._id === actualId)) {
               return {
                 ...group,
-                items: group.items.filter(item => item._id !== orderId),
-                // If this was the only item, this will become false
-                isBulkOrder: group.items.filter(item => item._id !== orderId).length > 1
+                items: group.items.filter(item => item._id !== actualId),
+                isBulkOrder: group.items.filter(item => item._id !== actualId).length > 1
               };
             }
             return group;
           });
-          // Filter out any groups that now have no items
           return updatedGroups.filter(group => group.items.length > 0);
         });
         
-        toast.success('Order deleted successfully');
+        toast.success(responseData.message || 'Order deleted successfully');
       }
       
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-      
+      // Refresh orders after deletion
+      fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
       toast.error('Failed to delete order: ' + error.message);
@@ -670,25 +706,7 @@ const OrderManagement = () => {
             </div>
           </div>
           
-          <div className="flex justify-between mt-4">
-            <div>
-              <button 
-                onClick={toggleSortDirection} 
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 text-sm flex items-center mr-2"
-                title={sortDirection === 'desc' ? 'Newest first' : 'Oldest first'}
-              >
-                {sortDirection === 'desc' ? (
-                  <>
-                    <FaSortAmountDown className="mr-2" /> Newest First
-                  </>
-                ) : (
-                  <>
-                    <FaSortAmountUpAlt className="mr-2" /> Oldest First
-                  </>
-                )}
-              </button>
-            </div>
-            
+          <div className="flex justify-between mt-4">            
             <div className="flex space-x-2">
               <button 
                 onClick={filterRecentOrders}
@@ -752,6 +770,7 @@ const OrderManagement = () => {
                             )}
                           </p>
                           <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
+                          <p className="text-sm text-gray-500">{moment(order.createdAt).format('hh:mm A')}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -762,7 +781,7 @@ const OrderManagement = () => {
                       </div>
                     </div>
                     
-                    {/* Mobile expanded view - keep existing with modifications for food/drink */}
+                    {/* Mobile expanded view */}
                     {expandedOrder === order._id && (
                       <div className="px-4 pb-4 border-t border-gray-100">
                         <div className="py-3">
@@ -776,10 +795,7 @@ const OrderManagement = () => {
                           <h3 className="font-medium text-gray-700 mb-2">
                             {order.isBulkOrder ? `Items (${order.items.length})` : 'Item'}
                           </h3>
-                          
-                          {order.isBulkOrder ? (
-                            <>
-                              <div className="mb-2 border-b border-gray-100 pb-2">
+                          <div className="mb-2 border-b border-gray-100 pb-2">
                                 <span className="text-sm font-medium">Total: {formatPrice(order.totalAmount)}</span>
                               </div>
                               <div className="max-h-40 overflow-y-auto">
@@ -793,29 +809,7 @@ const OrderManagement = () => {
                                   </div>
                                 ))}
                               </div>
-                            </>
-                          ) : (
-                            <div className="flex justify-between items-center">
-                              {order.items && order.items.length > 0 ? (
-                                <>
-                                  <span className="text-sm flex items-center">
-                                    {getOrderTypeIcon(order.items[0])}
-                                    <span className="ml-1">{getItemName(order.items[0])} x {order.items[0].quantity}</span>
-                                  </span>
-                                  <span className="text-sm font-medium">{formatPrice(order.items[0].totalPrice)}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="text-sm flex items-center">
-                                    {getOrderTypeIcon(order)}
-                                    <span className="ml-1">{getItemName(order)} x {order.quantity}</span>
-                                  </span>
-                                  <span className="text-sm font-medium">{formatPrice(order.totalPrice)}</span>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                          </div>
                         
                         {/* Delivery information */}
                         <div className="py-3">
@@ -839,7 +833,7 @@ const OrderManagement = () => {
                         <div className="py-3 border-t border-gray-100">
                           <div className="flex justify-between text-sm mb-1">
                             <span>Items Subtotal:</span>
-                            <span>{formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
+                            <span>{formatPrice(order.totalAmount)}</span>
                           </div>
                           <div className="flex justify-between text-sm mb-1">
                             <span>Delivery Fee:</span>
@@ -847,7 +841,7 @@ const OrderManagement = () => {
                           </div>
                           <div className="flex justify-between font-medium mt-2">
                             <span>Total:</span>
-                            <span>{formatPrice(order.isBulkOrder ? order.grandTotal : (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}</span>
+                            <span>{formatPrice(order.grandTotal)}</span>
                           </div>
                         </div>
                         
@@ -979,7 +973,6 @@ const OrderManagement = () => {
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium text-gray-900">Multiple Items</span>
-                                <span className="font-medium text-gray-900">{formatPrice(order.totalAmount)}</span>
                               </div>
                               <div className="max-h-100 overflow-y-auto pr-2 text-xs">
                                 {order.items.slice(0, 10).map((item, idx) => (
@@ -1027,10 +1020,10 @@ const OrderManagement = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 font-medium">
-                            {formatPrice(order.isBulkOrder ? order.grandTotal : (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}
+                            {formatPrice(order.grandTotal)}
                           </div>
                           <div className="text-xs text-gray-500 flex flex-col">
-                            <span>Subtotal: {formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
+                            <span>Subtotal: {formatPrice(order.totalAmount)}</span>
                             <span>Delivery: {formatPrice(order.deliveryFee || 0)}</span>
                           </div>
                         </td>

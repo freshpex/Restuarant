@@ -66,7 +66,7 @@ const Cart = () => {
   };
   
   const getItemImage = (item) => {
-    return item.foodImage || item.drinkImage || '/default-product.png';
+    return item.foodImage || item.drinkImage || '/logo.png';
   };
 
   const getItemPrice = (item) => {
