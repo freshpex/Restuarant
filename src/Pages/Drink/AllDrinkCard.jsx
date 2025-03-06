@@ -46,13 +46,13 @@ export default function AllDrinkCard({data}) {
 
   return (
     <Card className="w-full max-w-[32rem] shadow-lg">
-      <CardHeader floated={false} color="blue-gray">
+      <CardHeader floated={false} color="blue-gray" className="h-64 overflow-hidden">
         <img
-          className="h-[250px] w-full"
+          className="h-full w-full object-cover object-center"
           src={data.drinkImage}
-          alt="ui/ux review check"
+          alt={data.drinkName}
         />
-        <div className="to-bg-black-10 absolute inset-0 h-full w-full bg-gradient-to-tr from-transparent via-transparent to-black/60 " />
+        <div className="to-bg-black-10 absolute inset-0 h-full w-full bg-gradient-to-tr from-transparent via-transparent to-black/60" />
         <IconButton
           size="sm"
           color="red"
@@ -76,8 +76,7 @@ export default function AllDrinkCard({data}) {
           </Typography>
           <Typography variant="h5" color="blue-gray" className="font-semibold">
           {formatPrice(parseFloat(data.drinkPrice))}
-          </Typography>
-          
+          </Typography>          
          
         </div>
         <div className=" flex justify-between pt-2 pb-3">

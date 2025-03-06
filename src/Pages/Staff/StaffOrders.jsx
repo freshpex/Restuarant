@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet';
 import { 
-  FaSpinner, FaSearch, FaChevronDown, FaFilter, 
-  FaMapMarkerAlt, FaCalendarAlt, FaSortAmountDown, 
-  FaSortAmountUpAlt, FaGlassMartini, FaHamburger 
+  FaSpinner, FaSearch, FaChevronDown, 
+  FaMapMarkerAlt, FaCalendarAlt, FaHamburger, FaGlassMartini
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
 import moment from 'moment';
 import { formatPrice, capitalizeWords } from '../../utils/formatUtils';
-import Pagination from '../../Components/Pagination';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -34,9 +32,7 @@ const StaffOrders = () => {
   const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [dateFilter, setDateFilter] = useState('');
-  const [itemTypeFilter, setItemTypeFilter] = useState('');
-  const [sortDirection, setSortDirection] = useState('desc');
-  const [stats, setStats] = useState({ foodCount: 0, drinkCount: 0, mixedCount: 0 });
+  const [groupedOrders, setGroupedOrders] = useState([]);
 
   useEffect(() => {
     if (dateFilter) {
@@ -50,35 +46,71 @@ const StaffOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [sortDirection, itemTypeFilter]);
+  }, []);
+
+  const groupOrdersByReference = (ordersList) => {
+    const groupedOrdersMap = {};
+    
+    ordersList.forEach(order => {
+      const groupIdentifier = order.orderGroupId || order.orderReference || order._id;
+      
+      if (!groupedOrdersMap[groupIdentifier]) {
+        groupedOrdersMap[groupIdentifier] = {
+          items: [],
+          orderReference: order.orderReference,
+          orderGroupId: order.orderGroupId,
+          buyerName: order.buyerName,
+          userEmail: order.userEmail || order.email,
+          phone: order.phone,
+          createdAt: order.createdAt,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          deliveryLocation: order.deliveryLocation,
+          fullAddress: order.fullAddress,
+          deliveryFee: parseFloat(order.deliveryFee || 0),
+          _id: groupIdentifier, 
+          isBulkOrder: false,
+          totalAmount: 0
+        };
+      }
+      
+      groupedOrdersMap[groupIdentifier].items.push(order);
+      groupedOrdersMap[groupIdentifier].totalAmount += parseFloat(order.totalPrice || 0);
+      
+      if (groupedOrdersMap[groupIdentifier].items.length > 1) {
+        groupedOrdersMap[groupIdentifier].isBulkOrder = true;
+      }
+    });
+    
+    // Calculate the grand total for each order group
+    Object.values(groupedOrdersMap).forEach(group => {
+      group.grandTotal = group.totalAmount + group.deliveryFee;
+    });
+    
+    // Convert to array and sort
+    return Object.values(groupedOrdersMap).sort((a, b) => {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  };
+  
+  // Helper function to get item type
+  const getItemType = (order) => {
+    if (order.foodId) return 'food';
+    if (order.drinkId) return 'drink';
+    return 'unknown';
+  };
+  
+  // Helper function to get item name
+  const getItemName = (order) => {
+    if (order.foodName) return order.foodName;
+    if (order.drinkName) return order.drinkName;
+    return 'Unknown Item';
+  };
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      
-      let queryParams = new URLSearchParams();
-      queryParams.append('sort', sortDirection);
-      
-      if (itemTypeFilter) {
-        queryParams.append('itemType', itemTypeFilter);
-      }
-      
-      if (statusFilter) {
-        queryParams.append('status', statusFilter);
-      }
-      
-      if (paymentStatusFilter) {
-        queryParams.append('payment', paymentStatusFilter);
-      }
-      
-      if (dateFilter) {
-        queryParams.append('date', dateFilter);
-      } else if (dateRange.start || dateRange.end) {
-        if (dateRange.start) queryParams.append('dateStart', dateRange.start);
-        if (dateRange.end) queryParams.append('dateEnd', dateRange.end);
-      }
-      
-      const response = await fetch(`${API_URL}/staff/orders?${queryParams.toString()}`, {
+      const response = await fetch(`${API_URL}/staff/orders`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -91,42 +123,16 @@ const StaffOrders = () => {
 
       const data = await response.json();
       setOrders(data.orders || []);
-      setStats(data.stats || { foodCount: 0, drinkCount: 0, mixedCount: 0 });
+      
+      // Process and group orders
+      const grouped = groupOrdersByReference(data.orders || []);
+      setGroupedOrders(grouped);
     } catch (error) {
       setError(error.message || 'Error fetching orders');
       toast.error(error.message || 'Error fetching orders');
     } finally {
       setLoading(false);
     }
-  };
-
-  const getAvailableStatuses = (currentStatus, paymentStatus) => {
-    const orderStatusSequence = ['pending', 'preparing', 'ready', 'delivered'];
-    
-    if (currentStatus === 'cancelled') {
-      return ['cancelled'];
-    } 
-    
-    if (currentStatus === 'delivered') {
-      return ['delivered'];
-    }
-    
-    const currentIndex = orderStatusSequence.indexOf(currentStatus);
-    const forwardStatuses = orderStatusSequence.slice(currentIndex);
-    
-    if (paymentStatus === 'paid') {
-      return forwardStatuses;
-    }
-    
-    return [...forwardStatuses, 'cancelled'];
-  };
-  
-  const getAvailablePaymentStatuses = (currentPaymentStatus) => {
-    const paymentStatusSequence = ['unpaid', 'processing', 'paid'];
-    
-    const currentIndex = paymentStatusSequence.indexOf(currentPaymentStatus || 'unpaid');
-    
-    return paymentStatusSequence.slice(currentIndex);
   };
 
   const updateOrderStatus = async (orderId, status) => {
@@ -140,11 +146,9 @@ const StaffOrders = () => {
         },
         body: JSON.stringify({ status })
       });
-      
-      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to update order status');
+        throw new Error('Failed to update order status');
       }
 
       toast.success(`Order status updated to ${status}`);
@@ -161,7 +165,7 @@ const StaffOrders = () => {
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
       setUpdatingPaymentId(orderId);
-      const response = await fetch(`${API_URL}/admin/orders/${orderId}/payment-status`, {
+      const response = await fetch(`${API_URL}/staff/orders/${orderId}/payment-status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -199,11 +203,10 @@ const StaffOrders = () => {
     }
   };
 
-  // Filter orders based on filters
-  const filteredOrders = orders.filter(order => {
+  // Update filteredOrders to use groupedOrders
+  const filteredOrders = groupedOrders.filter(order => {
     const matchesSearch = 
       order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.buyerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order._id?.toString().includes(searchTerm) ||
       order.orderReference?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -227,7 +230,7 @@ const StaffOrders = () => {
     return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
   });
 
-  // Pagination logic
+  // Pagination logic remains the same
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
@@ -256,70 +259,7 @@ const StaffOrders = () => {
   const toggleOrderDetails = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
-
-  // Get item name from order (food or drink)
-  const getItemName = (order) => {
-    if (order.foodName) return order.foodName;
-    if (order.drinkName) return order.drinkName;
-    return 'Unknown Item';
-  };
   
-  // Get item image from order
-  const getItemImage = (order) => {
-    if (order.foodImage) return order.foodImage;
-    if (order.drinkImage) return order.drinkImage;
-    return null;
-  };
-  
-  // Get item price from order
-  const getItemPrice = (order) => {
-    if (order.foodPrice) return order.foodPrice;
-    if (order.drinkPrice) return order.drinkPrice;
-    return 0;
-  };
-  
-  // Determine order type (food, drink or both)
-  const getOrderType = (order) => {
-    const hasFood = !!order.foodId || !!order.foodName;
-    const hasDrink = !!order.drinkId || !!order.drinkName;
-    
-    if (hasFood && hasDrink) return 'mixed';
-    if (hasFood) return 'food';
-    if (hasDrink) return 'drink';
-    return 'unknown';
-  };
-  
-  // Get icon for order type
-  const getOrderTypeIcon = (order) => {
-    const type = getOrderType(order);
-    
-    switch(type) {
-      case 'food':
-        return <FaHamburger className="text-yellow-600" />;
-      case 'drink':
-        return <FaGlassMartini className="text-blue-600" />;
-      case 'mixed':
-        return (
-          <div className="flex">
-            <FaHamburger className="text-yellow-600 mr-1" />
-            <FaGlassMartini className="text-blue-600" />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Toggle sort direction
-  const toggleSortDirection = () => {
-    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-  };
-  
-  // Handle item type filter change
-  const handleItemTypeFilterChange = (e) => {
-    setItemTypeFilter(e.target.value);
-    setCurrentPage(1); // Reset to first page
-  };
 
   return (
     <>
@@ -331,7 +271,7 @@ const StaffOrders = () => {
         
         {/* Search and Filters */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
               <input
                 type="text"
@@ -367,66 +307,38 @@ const StaffOrders = () => {
                 <option value="">All Payment Statuses</option>
                 <option value="paid">Paid</option>
                 <option value="unpaid">Unpaid</option>
-                <option value="processing">Processing</option>
-              </select>
-            </div>
-            
-            {/* New item type filter */}
-            <div>
-              <select
-                className="w-full border rounded-lg px-4 py-2 bg-white"
-                value={itemTypeFilter}
-                onChange={handleItemTypeFilterChange}
-              >
-                <option value="">All Items</option>
-                <option value="food">Food Only</option>
-                <option value="drink">Drinks Only</option>
               </select>
             </div>
 
-            <div>
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
                 className="w-full border rounded-lg px-4 py-2"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                value={dateRange.start}
+                onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+              />
+              <input
+                type="date"
+                className="w-full border rounded-lg px-4 py-2"
+                value={dateRange.end}
+                onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
               />
             </div>
           </div>
           
-          <div className="flex justify-between mt-4">
-            <div>
-              <button 
-                onClick={toggleSortDirection} 
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 text-sm flex items-center"
-                title={sortDirection === 'desc' ? 'Newest first' : 'Oldest first'}
-              >
-                {sortDirection === 'desc' ? (
-                  <>
-                    <FaSortAmountDown className="mr-2" /> Newest First
-                  </>
-                ) : (
-                  <>
-                    <FaSortAmountUpAlt className="mr-2" /> Oldest First
-                  </>
-                )}
-              </button>
-            </div>
-            
-            <div className="flex space-x-2">
-              <button 
-                onClick={filterTodayOrders}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center text-sm"
-              >
-                <FaCalendarAlt className="mr-2" /> Today's Orders
-              </button>
-              <button 
-                onClick={resetFilters} 
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 text-sm flex items-center"
-              >
-                <FaFilter className="mr-2" /> Reset Filters
-              </button>
-            </div>
+          <div className="flex justify-end mt-4">
+          <button 
+              onClick={filterTodayOrders}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center text-sm"
+            >
+              <FaCalendarAlt className="mr-2" /> Today's Orders
+            </button>
+            <button 
+              onClick={resetFilters} 
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 text-sm"
+            >
+              Reset Filters
+            </button>
           </div>
         </div>
 
@@ -440,7 +352,7 @@ const StaffOrders = () => {
           </div>
         ) : (
           <>
-            {/* Mobile Card View */}
+            {/* Mobile Card View - Updated to show price breakdown */}
             <div className="md:hidden space-y-4">
               {currentItems.length === 0 ? (
                 <div className="bg-white p-4 text-center text-gray-500 rounded-lg shadow">
@@ -449,17 +361,21 @@ const StaffOrders = () => {
               ) : (
                 currentItems.map((order) => (
                   <div key={order._id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                    {/* Order header */}
+                    {/* Order header - remains mostly the same */}
                     <div 
                       className="p-4 flex justify-between items-center cursor-pointer"
                       onClick={() => toggleOrderDetails(order._id)}
                     >
-                      <div className="flex items-center">
-                        {getOrderTypeIcon(order)}
-                        <div className="ml-2">
-                          <p className="font-medium">#{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}</p>
-                          <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
-                        </div>
+                      <div>
+                        <p className="font-medium">
+                          #{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}
+                          {order.isBulkOrder && (
+                            <span className="ml-1 text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                              Bulk ({order.items.length})
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${statusColors[order.status]}`}>
@@ -469,9 +385,10 @@ const StaffOrders = () => {
                       </div>
                     </div>
                     
-                    {/* Order details (expandable) */}
+                    {/* Order details (expandable) - updated to show proper pricing */}
                     {expandedOrder === order._id && (
                       <div className="px-4 pb-4 border-t border-gray-100">
+                        {/* Customer info section */}
                         <div className="py-3">
                           <h3 className="font-medium text-gray-700">Customer</h3>
                           <p className="text-sm">{order.buyerName || 'N/A'}</p>
@@ -479,17 +396,44 @@ const StaffOrders = () => {
                           <p className="text-sm text-gray-500">{order.phone}</p>
                         </div>
                         
+                        {/* Order items - updated to handle bulk orders */}
                         <div className="py-3">
-                          <h3 className="font-medium text-gray-700 mb-2">Item</h3>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm flex items-center">
-                              {getOrderTypeIcon(order)}
-                              <span className="ml-1">{getItemName(order)} x {order.quantity}</span>
-                            </span>
-                            <span className="text-sm font-medium">{formatPrice(order.totalPrice)}</span>
-                          </div>
+                          <h3 className="font-medium text-gray-700 mb-2">
+                            {order.isBulkOrder ? `Items (${order.items.length})` : 'Item'}
+                          </h3>
+                          
+                          {order.isBulkOrder ? (
+                            <div className="max-h-40 overflow-y-auto">
+                              {order.items.map((item, idx) => (
+                                <div key={`${item._id}-${idx}`} className="flex justify-between items-center mb-2">
+                                  <span className="text-sm flex items-center">
+                                    {getItemType(item) === 'food' ? 
+                                      <FaHamburger className="text-yellow-600 mr-1" /> : 
+                                      <FaGlassMartini className="text-blue-600 mr-1" />
+                                    }
+                                    <span className="ml-1">{getItemName(item)} x {item.quantity}</span>
+                                  </span>
+                                  <span className="text-sm">{formatPrice(item.totalPrice)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">
+                                {order.items && order.items.length > 0 ? 
+                                  `${getItemName(order.items[0])} x ${order.items[0].quantity}` :
+                                  `${getItemName(order)} x ${order.quantity}`
+                                }
+                              </span>
+                              <span className="text-sm font-medium">
+                                {formatPrice(order.items && order.items.length > 0 ? 
+                                  order.items[0].totalPrice : order.totalPrice)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         
+                        {/* Delivery Info */}
                         <div className="py-3">
                           <h3 className="font-medium text-gray-700 mb-1">Delivery Info</h3>
                           <div className="flex items-start space-x-2">
@@ -501,10 +445,29 @@ const StaffOrders = () => {
                           </div>
                         </div>
                         
+                        {/* Price breakdown - new section */}
+                        <div className="py-3 border-t border-gray-100">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Items Subtotal:</span>
+                            <span>{formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Delivery Fee:</span>
+                            <span>{formatPrice(order.deliveryFee || 0)}</span>
+                          </div>
+                          <div className="flex justify-between font-medium mt-2">
+                            <span>Total:</span>
+                            <span>{formatPrice(order.isBulkOrder ? 
+                              order.grandTotal : 
+                              (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}</span>
+                          </div>
+                        </div>
+                        
                         {/* Action buttons */}
                         <div className="pt-3 border-t border-gray-100">
                           <h3 className="font-medium text-gray-700 mb-2">Update Order</h3>
                           
+                          {/* Payment status dropdown */}
                           <div className="mb-3">
                             <label className="block text-sm text-gray-600 mb-1">Payment Status:</label>
                             <select
@@ -513,11 +476,8 @@ const StaffOrders = () => {
                               onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
                               disabled={updatingPaymentId === order._id}
                             >
-                              {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
-                                <option key={statusOption} value={statusOption}>
-                                  {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
-                                </option>
-                              ))}
+                              <option value="unpaid">Unpaid</option>
+                              <option value="paid">Paid</option>
                             </select>
                             
                             {updatingPaymentId === order._id && (
@@ -528,6 +488,7 @@ const StaffOrders = () => {
                             )}
                           </div>
                           
+                          {/* Order status dropdown */}
                           <div>
                             <label className="block text-sm text-gray-600 mb-1">Order Status:</label>
                             <select
@@ -536,11 +497,11 @@ const StaffOrders = () => {
                               onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                               disabled={updatingOrderId === order._id}
                             >
-                              {getAvailableStatuses(order.status, order.paymentStatus).map(statusOption => (
-                                <option key={statusOption} value={statusOption}>
-                                  {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
-                                </option>
-                              ))}
+                              <option value="pending">Pending</option>
+                              <option value="preparing">Preparing</option>
+                              <option value="ready">Ready</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
                             </select>
                             
                             {updatingOrderId === order._id && (
@@ -557,139 +518,253 @@ const StaffOrders = () => {
                 ))
               )}
               
-              {/* Mobile pagination */}
+              {/* Mobile pagination - remains the same */}
               {totalPages > 1 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalItems={filteredOrders.length}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={paginate}
-                  maxPagesToShow={3}
-                />
+                <div className="flex justify-center mt-4 space-x-1">
+                  <button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === 1 ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Prev
+                  </button>
+                  <span className="flex items-center px-3 py-2 bg-yellow-600 text-white rounded">
+                    {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === totalPages ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
               )}
             </div>
             
-            {/* Desktop Table View */}
-                  <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
-                    <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {currentItems.length === 0 ? (
-                      <tr>
-                        <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+            {/* Desktop Table View - Updated for proper pricing */}
+            <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentItems.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                         No orders found
-                        </td>
-                      </tr>
-                      ) : (
-                      currentItems.map((order) => (
-                        <tr key={order._id}>
+                      </td>
+                    </tr>
+                  ) : (
+                    currentItems.map((order) => (
+                      <tr key={order._id}>
+                        {/* Order ID column */}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}</div>
+                          <div className="text-sm text-gray-900">
+                            {order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}
+                            {order.isBulkOrder && (
+                              <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                Bulk ({order.items.length})
+                              </span>
+                            )}
+                          </div>
                         </td>
+                        
+                        {/* Customer info */}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{order.buyerName || 'Guest'}</div>
+                          <div className="text-sm font-medium text-gray-900">{order.buyerName || 'N/A'}</div>
                           <div className="text-xs text-gray-500">{order.userEmail || order.email}</div>
                           <div className="text-xs text-gray-500">{order.phone}</div>
                         </td>
+                        
+                        {/* Date column */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</div>
                           <div className="text-xs text-gray-500">{moment(order.createdAt).format('hh:mm A')}</div>
                         </td>
+                        
+                        {/* Items column - updated for bulk orders */}
                         <td className="px-6 py-4">
-                          <div className="flex items-center">
-                          {getOrderTypeIcon(order)}
-                          <div className="ml-2">
-                            <div className="text-sm text-gray-900">{getItemName(order)}</div>
-                            <div className="text-xs text-gray-500">Qty: {order.quantity}</div>
-                            <div className="text-xs font-medium">{formatPrice(parseFloat(getItemPrice(order)) * order.quantity)}</div>
+                          {order.isBulkOrder ? (
+                            <div>
+                              <div className="text-sm text-gray-900 font-medium mb-1">Multiple Items ({order.items.length})</div>
+                              <div className="max-h-100 overflow-y-auto text-xs space-y-1">
+                                {order.items.slice(0, 10).map((item, idx) => (
+                                  <div key={idx} className="flex items-center">
+                                    {getItemType(item) === 'food' ? 
+                                      <FaHamburger className="text-yellow-600 mr-1 text-xs" /> : 
+                                      <FaGlassMartini className="text-blue-600 mr-1 text-xs" />
+                                    }
+                                    <span>{getItemName(item)} x{item.quantity}</span>
+                                  </div>
+                                ))}
+                                {order.items.length > 10 && (
+                                  <div className="text-gray-500">+{order.items.length - 3} more items</div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <div>
+                                <div className="text-sm text-gray-900">
+                                  {order.items && order.items.length > 0 ? 
+                                    getItemName(order.items[0]) : getItemName(order)}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  Qty: {order.items && order.items.length > 0 ? 
+                                    order.items[0].quantity : order.quantity}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        
+                        {/* Order Total column - new structured pricing */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 font-medium">
+                            {formatPrice(order.isBulkOrder ? 
+                              order.grandTotal : 
+                              (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}
                           </div>
+                          <div className="text-xs text-gray-500 flex flex-col">
+                            <span>Subtotal: {formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
+                            <span>Delivery: {formatPrice(order.deliveryFee || 0)}</span>
                           </div>
                         </td>
+                        
+                        {/* Payment status */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <select
-                          className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
-                          value={order.paymentStatus || 'unpaid'}
-                          onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
-                          disabled={updatingPaymentId === order._id}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                            value={order.paymentStatus || 'unpaid'}
+                            onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
+                            disabled={updatingPaymentId === order._id}
                           >
-                          {getAvailablePaymentStatuses(order.paymentStatus).map(statusOption => (
-                            <option key={statusOption} value={statusOption}>
-                            {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
-                            </option>
-                          ))}
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
                           </select>
                           {updatingPaymentId === order._id && (
-                          <div className="mt-2 flex items-center">
-                            <FaSpinner className="animate-spin text-yellow-600 mr-1 text-xs" />
-                            <span className="text-xs text-gray-500">Updating</span>
-                          </div>
+                            <div className="mt-2 flex items-center">
+                              <FaSpinner className="animate-spin text-yellow-600 mr-1 text-xs" />
+                              <span className="text-xs text-gray-500">Updating</span>
+                            </div>
                           )}
                         </td>
+                        
+                        {/* Order status */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <select
-                          className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
-                          value={order.status}
-                          onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                          disabled={updatingOrderId === order._id}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                            value={order.status}
+                            onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                            disabled={updatingOrderId === order._id}
                           >
-                          {getAvailableStatuses(order.status, order.paymentStatus).map(statusOption => (
-                            <option key={statusOption} value={statusOption}>
-                            {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
-                            </option>
-                          ))}
+                            <option value="pending">Pending</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready">Ready</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
                           </select>
                           {updatingOrderId === order._id && (
-                          <div className="mt-2 flex items-center">
-                            <FaSpinner className="animate-spin text-yellow-600 mr-1 text-xs" />
-                            <span className="text-xs text-gray-500">Updating</span>
-                          </div>
+                            <div className="mt-2 flex items-center">
+                              <FaSpinner className="animate-spin text-yellow-600 mr-1 text-xs" />
+                              <span className="text-xs text-gray-500">Updating</span>
+                            </div>
                           )}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col space-y-1">
-                          {order.fullAddress && (
-                            <div className="text-xs bg-gray-100 px-2 py-1 rounded">
-                            {capitalizeWords(order.deliveryLocation)}
-                            </div>
-                          )}                            
-                          <p className="text-xs text-gray-500">
-                            {order.fullAddress || 'No address provided'}
-                          </p>
+                        
+                        {/* Location info */}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex space-x-2">
+                            {order.deliveryLocation && (
+                              <div className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                {capitalizeWords(order.deliveryLocation)}
+                              </div>
+                            )}                            
+                            <p className="text-xs text-gray-500">{order.fullAddress || 'No address provided'}</p>
                           </div>
                         </td>
-                        </tr>
-                      ))
-                      )}
-                    </tbody>
-                    </table>
-                    
-                    {/* Pagination */}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              
+              {/* Pagination - remains the same */}
               {totalPages > 1 && (
-                <div className="px-6 py-3 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
+                <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200">
+                  <div className="flex-1 flex justify-between sm:hidden">
+                    <button
+                      onClick={() => paginate(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50
+                        ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => paginate(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50
+                        ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm text-gray-700">
-                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
-                        <span className="font-medium">{Math.min(indexOfLastItem, filteredOrders.length)}</span> of{" "}
-                        <span className="font-medium">{filteredOrders.length}</span> results
+                        Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, filteredOrders.length)}</span> of <span className="font-medium">{filteredOrders.length}</span> results
                       </p>
                     </div>
-                    <Pagination
-                      currentPage={currentPage}
-                      totalItems={filteredOrders.length}
-                      itemsPerPage={itemsPerPage}
-                      onPageChange={paginate}
-                    />
+                    <div>
+                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <button
+                          onClick={() => paginate(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                            currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          Previous
+                        </button>
+                        {[...Array(totalPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => paginate(i + 1)}
+                            className={`relative inline-flex items-center px-4 py-2 border
+                              ${currentPage === i + 1
+                                ? 'bg-yellow-600 text-white border-yellow-600'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                              }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => paginate(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                            currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          Next
+                        </button>
+                      </nav>
+                    </div>
                   </div>
                 </div>
               )}

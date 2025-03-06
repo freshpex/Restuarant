@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet';
 import { 
   FaSpinner, FaSearch, FaFilter, FaChevronDown, FaPhoneAlt, FaMapMarkerAlt, 
   FaCalendarAlt, FaTrash, FaExclamationTriangle, FaHamburger, FaGlassMartini,
-  FaSortAmountDown, FaSortAmountUpAlt, FaClock
+  FaSortAmountDown, FaSortAmountUpAlt, FaClock, FaLayerGroup
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { selectToken } from '../../redux/selectors';
@@ -36,9 +36,10 @@ const OrderManagement = () => {
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [deleteAllConfirmation, setDeleteAllConfirmation] = useState(false);
-  const [sortDirection, setSortDirection] = useState('desc'); // default to newest first
-  const [itemTypeFilter, setItemTypeFilter] = useState(''); // '', 'food', or 'drink'
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [itemTypeFilter, setItemTypeFilter] = useState('');
   const [stats, setStats] = useState({ foodCount: 0, drinkCount: 0, mixedCount: 0 });
+  const [groupedOrders, setGroupedOrders] = useState([]);
   
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -47,11 +48,59 @@ const OrderManagement = () => {
     fetchOrders();
   }, [sortDirection, itemTypeFilter]);
 
+  const groupOrdersByReference = (ordersList) => {
+    const groupedOrdersMap = {};
+    
+    // Grouping orders by their reference
+    ordersList.forEach(order => {
+      const groupIdentifier = order.orderGroupId || order.orderReference || order._id;
+      
+      if (!groupedOrdersMap[groupIdentifier]) {
+        groupedOrdersMap[groupIdentifier] = {
+          items: [],
+          orderReference: order.orderReference,
+          orderGroupId: order.orderGroupId,
+          buyerName: order.buyerName,
+          userEmail: order.userEmail || order.email,
+          phone: order.phone,
+          createdAt: order.createdAt,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          deliveryLocation: order.deliveryLocation,
+          fullAddress: order.fullAddress,
+          deliveryFee: parseFloat(order.deliveryFee || 0),
+          _id: groupIdentifier, 
+          isBulkOrder: false,
+          totalAmount: 0
+        };
+      }
+      
+      groupedOrdersMap[groupIdentifier].items.push(order);
+      groupedOrdersMap[groupIdentifier].totalAmount += parseFloat(order.totalPrice || 0);
+      
+      if (groupedOrdersMap[groupIdentifier].items.length > 1) {
+        groupedOrdersMap[groupIdentifier].isBulkOrder = true;
+      }
+    });
+    
+    // Calculate the grand total for each order group
+    Object.values(groupedOrdersMap).forEach(group => {
+      group.grandTotal = group.totalAmount + group.deliveryFee;
+    });
+    
+    return Object.values(groupedOrdersMap).sort((a, b) => {
+      if (sortDirection === 'desc') {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      } else {
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      }
+    });
+  };
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
       
-      // Build query parameters
       let queryParams = new URLSearchParams();
       queryParams.append('sort', sortDirection);
       
@@ -82,7 +131,12 @@ const OrderManagement = () => {
       }
 
       const data = await response.json();
+      
       setOrders(data.orders || []);
+      
+      const grouped = groupOrdersByReference(data.orders || []);
+      setGroupedOrders(grouped);
+      
       setStats(data.stats || { foodCount: 0, drinkCount: 0, mixedCount: 0 });
     } catch (error) {
       setError(error.message || 'Error fetching orders');
@@ -92,30 +146,78 @@ const OrderManagement = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId, status, showToast = true) => {
+  const updateOrderStatus = async (orderId, status, isBulkOrder = false, orderGroupId = null) => {
     try {
       setUpdatingOrderId(orderId);
-      const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update order status');
-      }
-
-      if (showToast) {
-        toast.success(`Order status updated to ${status}`);
-      }
       
-      if (showToast) {
-        setOrders(orders.map(order => 
-          order._id === orderId ? { ...order, status } : order
+      if (isBulkOrder && orderGroupId) {
+        const groupItems = orders.filter(order => 
+          order.orderGroupId === orderGroupId || 
+          (order.orderReference === orderId && !order.orderGroupId)
+        );
+        
+        const updatePromises = groupItems.map(item => 
+          fetch(`${API_URL}/admin/orders/${item._id}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+          }).then(res => res.json())
+        );
+        
+        await Promise.all(updatePromises);
+        toast.success(`All items in bulk order updated to ${status}`);
+        
+        setGroupedOrders(groupedOrders.map(group => 
+          group._id === orderId ? { ...group, status } : group
         ));
+        
+        setOrders(orders.map(order => 
+          (order.orderGroupId === orderGroupId || 
+           (order.orderReference === orderId && !order.orderGroupId)) 
+            ? { ...order, status } : order
+        ));
+      } else {
+        const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update order status');
+        }
+  
+        toast.success(`Order status updated to ${status}`);
+        
+        if (true) {
+          setOrders(orders.map(order => 
+            order._id === orderId ? { ...order, status } : order
+          ));
+          
+          // Update grouped orders if this order is part of a group
+          const updatedGroupedOrders = [...groupedOrders];
+          for (let i = 0; i < updatedGroupedOrders.length; i++) {
+            const group = updatedGroupedOrders[i];
+            if (group._id === orderId) {
+              group.status = status;
+            }
+            const itemIndex = group.items.findIndex(item => item._id === orderId);
+            if (itemIndex !== -1) {
+              group.items[itemIndex].status = status;
+              const allSameStatus = group.items.every(item => item.status === status);
+              if (allSameStatus) {
+                group.status = status;
+              }
+            }
+          }
+          setGroupedOrders(updatedGroupedOrders);
+        }
       }
     } catch (error) {
       toast.error(error.message || 'Error updating order status');
@@ -124,41 +226,110 @@ const OrderManagement = () => {
     }
   };
 
-  const updatePaymentStatus = async (orderId, paymentStatus) => {
+  const updatePaymentStatus = async (orderId, paymentStatus, isBulkOrder = false, orderGroupId = null) => {
     try {
       setUpdatingPaymentId(orderId);
-      const response = await fetch(`${API_URL}/admin/orders/${orderId}/payment-status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ paymentStatus })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update payment status');
-      }
-
-      toast.success(`Payment status updated to ${paymentStatus}`);
       
-      // Update local state
-      setOrders(orders.map(order => {
-        if (order._id === orderId) {
-          const updatedOrder = { 
-            ...order, 
-            paymentStatus 
-          };
-          
-          if (paymentStatus === 'paid' && order.status === 'pending') {
-            updatedOrder.status = 'preparing';
-            updateOrderStatus(orderId, 'preparing', false);
+      if (isBulkOrder && orderGroupId) {
+        const groupItems = orders.filter(order => 
+          order.orderGroupId === orderGroupId || 
+          (order.orderReference === orderId && !order.orderGroupId)
+        );
+        
+        const updatePromises = groupItems.map(item => 
+          fetch(`${API_URL}/admin/orders/${item._id}/payment-status`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ paymentStatus })
+          }).then(res => res.json())
+        );
+        
+        await Promise.all(updatePromises);
+        toast.success(`All items in bulk order updated to ${paymentStatus}`);
+        
+        setGroupedOrders(groupedOrders.map(group => {
+          if (group._id === orderId) {
+            return { 
+              ...group, 
+              paymentStatus,
+              status: paymentStatus === 'paid' && group.status === 'pending' ? 'preparing' : group.status
+            };
           }
-          
-          return updatedOrder;
+          return group;
+        }));
+        
+        setOrders(orders.map(order => {
+          if (order.orderGroupId === orderGroupId || (order.orderReference === orderId && !order.orderGroupId)) {
+            return { 
+              ...order, 
+              paymentStatus,
+              status: paymentStatus === 'paid' && order.status === 'pending' ? 'preparing' : order.status
+            };
+          }
+          return order;
+        }));
+      } else {
+        const response = await fetch(`${API_URL}/admin/orders/${orderId}/payment-status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ paymentStatus })
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to update payment status');
         }
-        return order;
-      }));
+  
+        toast.success(`Payment status updated to ${paymentStatus}`);
+        
+        // Update local state
+        setOrders(orders.map(order => {
+          if (order._id === orderId) {
+            const updatedOrder = { 
+              ...order, 
+              paymentStatus 
+            };
+            
+            if (paymentStatus === 'paid' && order.status === 'pending') {
+              updatedOrder.status = 'preparing';
+              updateOrderStatus(orderId, 'preparing', false);
+            }
+            
+            return updatedOrder;
+          }
+          return order;
+        }));
+        
+        // Update grouped orders if this order is part of a group
+        const updatedGroupedOrders = [...groupedOrders];
+        for (let i = 0; i < updatedGroupedOrders.length; i++) {
+          const group = updatedGroupedOrders[i];
+          if (group._id === orderId) {
+            group.paymentStatus = paymentStatus;
+            if (paymentStatus === 'paid' && group.status === 'pending') {
+              group.status = 'preparing';
+            }
+          }
+          const itemIndex = group.items.findIndex(item => item._id === orderId);
+          if (itemIndex !== -1) {
+            group.items[itemIndex].paymentStatus = paymentStatus;
+            if (paymentStatus === 'paid' && group.items[itemIndex].status === 'pending') {
+              group.items[itemIndex].status = 'preparing';
+            }
+            
+            const allSamePaymentStatus = group.items.every(item => item.paymentStatus === paymentStatus);
+            if (allSamePaymentStatus) {
+              group.paymentStatus = paymentStatus;
+            }
+          }
+        }
+        setGroupedOrders(updatedGroupedOrders);
+      }
     } catch (error) {
       toast.error(error.message || 'Error updating payment status');
     } finally {
@@ -171,18 +342,6 @@ const OrderManagement = () => {
     if (order.foodName) return order.foodName;
     if (order.drinkName) return order.drinkName;
     return 'Unknown Item';
-  };
-  
-  const getItemImage = (order) => {
-    if (order.foodImage) return order.foodImage;
-    if (order.drinkImage) return order.drinkImage;
-    return null;
-  };
-  
-  const getItemPrice = (order) => {
-    if (order.foodPrice) return order.foodPrice;
-    if (order.drinkPrice) return order.drinkPrice;
-    return 0;
   };
   
   const getOrderType = (order) => {
@@ -215,7 +374,7 @@ const OrderManagement = () => {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = groupedOrders.filter(order => {
     const matchesSearch = order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         order._id?.toString().includes(searchTerm);
@@ -262,10 +421,14 @@ const OrderManagement = () => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
-  // Delete order
-  const deleteOrder = async (orderId) => {
+  const deleteOrder = async (orderId, isBulkOrder = false, orderGroupId = null) => {
     try {
-      const response = await fetch(`${API_URL}/admin/orders/${orderId}`, {
+      // For bulk orders, ensure we delete the entire group
+      const deleteEndpoint = isBulkOrder ? 
+        `${API_URL}/admin/orders/${orderId}` : 
+        `${API_URL}/admin/orders/${orderId}`;
+      
+      const response = await fetch(deleteEndpoint, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -277,11 +440,44 @@ const OrderManagement = () => {
         throw new Error('Failed to delete order');
       }
 
-      setOrders(prevOrders => 
-        prevOrders.filter(order => order._id !== orderId)
-      );
-
-      toast.success('Order deleted successfully');
+      if (isBulkOrder) {
+        // Remove all related orders from state
+        setOrders(prevOrders => 
+          prevOrders.filter(order => 
+            !(order.orderGroupId === orderGroupId || order.orderReference === orderId)
+          )
+        );
+        
+        setGroupedOrders(prevGroups =>
+          prevGroups.filter(group => group._id !== orderId)
+        );
+        
+        toast.success('Bulk order deleted successfully');
+      } else {
+        // Single order deletion
+        setOrders(prevOrders => 
+          prevOrders.filter(order => order._id !== orderId)
+        );
+        
+        setGroupedOrders(prevGroups => {
+          // Find if order is part of a group
+          const updatedGroups = prevGroups.map(group => {
+            if (group.items.some(item => item._id === orderId)) {
+              return {
+                ...group,
+                items: group.items.filter(item => item._id !== orderId),
+                // If this was the only item, this will become false
+                isBulkOrder: group.items.filter(item => item._id !== orderId).length > 1
+              };
+            }
+            return group;
+          });
+          // Filter out any groups that now have no items
+          return updatedGroups.filter(group => group.items.length > 0);
+        });
+        
+        toast.success('Order deleted successfully');
+      }
       
       setTimeout(() => {
         window.location.reload();
@@ -296,7 +492,11 @@ const OrderManagement = () => {
   };
 
   const confirmDelete = (order) => {
-    setDeleteConfirmation(order);
+    setDeleteConfirmation({
+      ...order,
+      isBulkOrder: order.isBulkOrder,
+      orderGroupId: order.orderGroupId
+    });
   };
 
   // Delete all orders
@@ -536,19 +736,27 @@ const OrderManagement = () => {
                       onClick={() => toggleOrderDetails(order._id)}
                     >
                       <div className="flex items-center">
-                        {getOrderTypeIcon(order)}
+                        {order.isBulkOrder ? (
+                          <div className="bg-purple-100 text-purple-800 p-1 rounded-full mr-2">
+                            <FaLayerGroup className="text-purple-600" />
+                          </div>
+                        ) : getOrderTypeIcon(order)}
+                        
                         <div className="ml-2">
-                          <p className="font-medium">#{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}</p>
+                          <p className="font-medium">
+                            #{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}
+                            {order.isBulkOrder && (
+                              <span className="ml-1 text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                                Bulk ({order.items.length})
+                              </span>
+                            )}
+                          </p>
                           <p className="text-sm text-gray-500">{moment(order.createdAt).format('MMM DD, YYYY')}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${statusColors[order.status]}`}>
                           {capitalizeWords(order.status)}
-                        </span>
-                        <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full 
-                          ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                          {capitalizeWords(order.paymentStatus)}
                         </span>
                         <FaChevronDown className={`text-gray-400 transition-transform ${expandedOrder === order._id ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -564,42 +772,50 @@ const OrderManagement = () => {
                         </div>
                         
                         {/* Order items */}
-                        {Array.isArray(order.items) && order.items.length > 0 ? (
-                          <div className="py-3">
-                            <h3 className="font-medium text-gray-700 mb-2">Items</h3>
-                            <div className="space-y-2">
-                              {order.items.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center">
-                                  <div className="flex items-center">
-                                    {item.type === 'food' ? (
-                                      <FaHamburger className="text-yellow-600 mr-2 flex-shrink-0" />
-                                    ) : (
-                                      <FaGlassMartini className="text-blue-600 mr-2 flex-shrink-0" />
-                                    )}
-                                    {item.image && (
-                                      <img 
-                                        src={item.image} 
-                                        alt={item.itemName} 
-                                        className="w-8 h-8 rounded object-cover mr-2"
-                                      />
-                                    )}
-                                    <span className="text-sm">{item.itemName} x {item.quantity}</span>
+                        <div className="py-3">
+                          <h3 className="font-medium text-gray-700 mb-2">
+                            {order.isBulkOrder ? `Items (${order.items.length})` : 'Item'}
+                          </h3>
+                          
+                          {order.isBulkOrder ? (
+                            <>
+                              <div className="mb-2 border-b border-gray-100 pb-2">
+                                <span className="text-sm font-medium">Total: {formatPrice(order.totalAmount)}</span>
+                              </div>
+                              <div className="max-h-40 overflow-y-auto">
+                                {order.items.map((item, idx) => (
+                                  <div key={`${item._id}-${idx}`} className="flex justify-between items-center mb-2">
+                                    <span className="text-sm flex items-center">
+                                      {item.foodId ? <FaHamburger className="text-yellow-600 mr-1" /> : <FaGlassMartini className="text-blue-600 mr-1" />}
+                                      <span className="ml-1">{getItemName(item)} x {item.quantity}</span>
+                                    </span>
+                                    <span className="text-sm">{formatPrice(item.totalPrice)}</span>
                                   </div>
-                                  <span className="text-sm font-medium">{formatPrice(item.totalPrice)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="py-3">
-                            <h3 className="font-medium text-gray-700 mb-2">Item</h3>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
                             <div className="flex justify-between items-center">
-                              {getOrderTypeIcon(order)}
-                              <span className="text-sm ml-2">{getItemName(order)} x {order.quantity}</span>
-                              <span className="text-sm font-medium">{formatPrice(order.totalPrice)}</span>
+                              {order.items && order.items.length > 0 ? (
+                                <>
+                                  <span className="text-sm flex items-center">
+                                    {getOrderTypeIcon(order.items[0])}
+                                    <span className="ml-1">{getItemName(order.items[0])} x {order.items[0].quantity}</span>
+                                  </span>
+                                  <span className="text-sm font-medium">{formatPrice(order.items[0].totalPrice)}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-sm flex items-center">
+                                    {getOrderTypeIcon(order)}
+                                    <span className="ml-1">{getItemName(order)} x {order.quantity}</span>
+                                  </span>
+                                  <span className="text-sm font-medium">{formatPrice(order.totalPrice)}</span>
+                                </>
+                              )}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                         
                         {/* Delivery information */}
                         <div className="py-3">
@@ -623,7 +839,7 @@ const OrderManagement = () => {
                         <div className="py-3 border-t border-gray-100">
                           <div className="flex justify-between text-sm mb-1">
                             <span>Items Subtotal:</span>
-                            <span>{formatPrice(order.itemsSubtotal || (order.foodPrice * order.quantity) || order.totalPrice)}</span>
+                            <span>{formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
                           </div>
                           <div className="flex justify-between text-sm mb-1">
                             <span>Delivery Fee:</span>
@@ -631,7 +847,7 @@ const OrderManagement = () => {
                           </div>
                           <div className="flex justify-between font-medium mt-2">
                             <span>Total:</span>
-                            <span>{formatPrice(order.total || order.totalPrice)}</span>
+                            <span>{formatPrice(order.isBulkOrder ? order.grandTotal : (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}</span>
                           </div>
                         </div>
                         
@@ -650,7 +866,7 @@ const OrderManagement = () => {
                               <select
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
                                 value={order.paymentStatus || 'unpaid'}
-                                onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
+                                onChange={(e) => updatePaymentStatus(order._id, e.target.value, order.isBulkOrder, order.orderGroupId)}
                               >
                                 <option value="unpaid">Unpaid</option>
                                 <option value="paid">Paid</option>
@@ -669,7 +885,7 @@ const OrderManagement = () => {
                               <select
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
                                 value={order.status}
-                                onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                                onChange={(e) => updateOrderStatus(order._id, e.target.value, order.isBulkOrder, order.orderGroupId)}
                               >
                                 <option value="pending">Pending</option>
                                 <option value="preparing">Preparing</option>
@@ -688,7 +904,8 @@ const OrderManagement = () => {
                               }}
                               className="w-full flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
                             >
-                              <FaTrash className="mr-2" /> Delete Order
+                              <FaTrash className="mr-2" /> 
+                              {order.isBulkOrder ? 'Delete Bulk Order' : 'Delete Order'}
                             </button>
                           </div>
                       </div>
@@ -704,12 +921,12 @@ const OrderManagement = () => {
                   totalItems={filteredOrders.length}
                   itemsPerPage={itemsPerPage}
                   onPageChange={paginate}
-                  maxPagesToShow={3} // Use fewer pages on mobile for better fit
+                  maxPagesToShow={3}
                 />
               )}
             </div>
             
-            {/* Desktop Table View - update for food/drink */}
+            {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -718,7 +935,7 @@ const OrderManagement = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Details</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Total</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Info</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -734,46 +951,74 @@ const OrderManagement = () => {
                     </tr>
                   ) : (
                     currentItems.map((order) => (
-                      <tr key={order._id}>
+                      <tr key={order._id} className={order.isBulkOrder ? "bg-purple-50" : ""}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          #{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}
+                          <div className="flex items-center">
+                            {order.isBulkOrder && (
+                              <span className="mr-2 bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full flex items-center">
+                                <FaLayerGroup className="mr-1 text-purple-600" />
+                                Bulk
+                              </span>
+                            )}
+                            <div>
+                              <div className="text-sm text-gray-900">{order.orderReference || order._id.substring(order._id.length - 6).toUpperCase()}</div>
+                              {order.isBulkOrder && (
+                                <div className="text-xs text-gray-500">{order.items.length} items</div>
+                              )}
+                            </div>
+                          </div>
                         </td>
+                        
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900">{order.buyerName || 'Guest'}</div>
                           <div className="text-sm text-gray-500">{order.userEmail || order.email}</div>
                         </td>
                         {/* Update Order items */}
                         <td className="px-6 py-4">
-                          {Array.isArray(order.items) && order.items.length > 1 ? (
-                            <div className="space-y-2">
-                              {order.items.map((item, idx) => (
-                                <div key={idx} className="flex items-center">
-                                  {item.type === 'food' ? (
-                                    <FaHamburger className="text-yellow-600 mr-2 flex-shrink-0" />
-                                  ) : (
-                                    <FaGlassMartini className="text-blue-600 mr-2 flex-shrink-0" />
-                                  )}
-                                  {item.image && (
-                                    <img 
-                                      src={item.image} 
-                                      alt={item.itemName} 
-                                      className="w-8 h-8 rounded object-cover mr-2"
-                                    />
-                                  )}
-                                  <div>
-                                    <div className="text-sm font-medium">{item.itemName}</div>
-                                    <div className="text-xs text-gray-500">Qty: {item.quantity} × {formatPrice(item.price)}</div>
+                          {order.isBulkOrder ? (
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-900">Multiple Items</span>
+                                <span className="font-medium text-gray-900">{formatPrice(order.totalAmount)}</span>
+                              </div>
+                              <div className="max-h-100 overflow-y-auto pr-2 text-xs">
+                                {order.items.slice(0, 10).map((item, idx) => (
+                                  <div key={idx} className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center">
+                                      {item.foodId ? <FaHamburger className="text-yellow-600 mr-1" /> : <FaGlassMartini className="text-blue-600 mr-1" />}
+                                      <span>{getItemName(item)} x{item.quantity}</span>
+                                    </div>
+                                    <span>{formatPrice(item.totalPrice)}</span>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                                {order.items.length > 10 && (
+                                  <div className="text-gray-500 text-center mt-1">
+                                    +{order.items.length - 3} more items
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ) : (
                             <div className="flex items-center">
-                              {getOrderTypeIcon(order)}
-                              <div className="ml-2">
-                                <div className="text-sm font-medium">{getItemName(order)}</div>
-                                <div className="text-xs text-gray-500">Qty: {order.quantity} × {formatPrice(getItemPrice(order))}</div>
-                              </div>
+                              {order.items && order.items.length > 0 ? (
+                                <div className="flex items-center">
+                                  {getOrderTypeIcon(order.items[0])}
+                                  <div className="ml-2">
+                                    <div className="text-sm text-gray-900">{getItemName(order.items[0])}</div>
+                                    <div className="text-xs text-gray-500">Qty: {order.items[0].quantity}</div>
+                                    <div className="text-xs font-medium">{formatPrice(order.items[0].totalPrice)}</div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center">
+                                  {getOrderTypeIcon(order)}
+                                  <div className="ml-2">
+                                    <div className="text-sm text-gray-900">{getItemName(order)}</div>
+                                    <div className="text-xs text-gray-500">Qty: {order.quantity}</div>
+                                    <div className="text-xs font-medium">{formatPrice(order.totalPrice)}</div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>
@@ -781,22 +1026,30 @@ const OrderManagement = () => {
                           {moment(order.createdAt).format('MMM DD, YYYY hh:mm A')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatPrice(order.totalPrice)}</div>
-                          <div className="text-xs text-gray-500">
-                            {Array.isArray(order.items) ? 'Multiple items' : 'Single item'}
+                          <div className="text-sm text-gray-900 font-medium">
+                            {formatPrice(order.isBulkOrder ? order.grandTotal : (parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0)))}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Delivery: {formatPrice(order.deliveryFee || 0)}
+                          <div className="text-xs text-gray-500 flex flex-col">
+                            <span>Subtotal: {formatPrice(order.isBulkOrder ? order.totalAmount : order.totalPrice)}</span>
+                            <span>Delivery: {formatPrice(order.deliveryFee || 0)}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span 
-                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                            }`}
+                          <select
+                            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                            value={order.paymentStatus || 'unpaid'}
+                            onChange={(e) => updatePaymentStatus(order._id, e.target.value, order.isBulkOrder, order.orderGroupId)}
+                            disabled={updatingPaymentId === order._id}
                           >
-                            {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
-                          </span>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
+                          </select>
+                          {updatingPaymentId === order._id && (
+                            <div className="mt-2 flex items-center">
+                              <FaSpinner className="animate-spin text-yellow-600 mr-1 text-xs" />
+                              <span className="text-xs text-gray-500">Updating</span>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">
@@ -807,47 +1060,33 @@ const OrderManagement = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[order.status] || 'bg-gray-100'}`}>
-                            {order.status}
-                          </span>
+                          <select
+                            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                            value={order.status}
+                            onChange={(e) => updateOrderStatus(order._id, e.target.value, order.isBulkOrder, order.orderGroupId)}
+                            disabled={updatingOrderId === order._id}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready">Ready</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          {updatingOrderId === order._id && (
+                            <div className="mt-2 flex items-center">
+                              <FaSpinner className="animate-spin text-yellow-600 mr-1 text-xs" />
+                              <span className="text-xs text-gray-500">Updating</span>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {updatingOrderId === order._id ? (
-                            <div className="flex items-center">
-                              <FaSpinner className="animate-spin text-yellow-600 mr-2" />
-                              <span className="text-sm text-gray-500">Updating...</span>
-                            </div>
-                          ) : (
-                            <>
-                              <select
-                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white mr-2"
-                                value={order.paymentStatus || 'unpaid'}
-                                onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
-                                disabled={updatingPaymentId === order._id}
-                              >
-                                <option value="unpaid">Unpaid</option>
-                                <option value="paid">Paid</option>
-                              </select>
-                              <select
-                                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
-                                value={order.status}
-                                onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="preparing">Preparing</option>
-                                <option value="ready">Ready</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                              </select>
-                              <button
-                                onClick={() => confirmDelete(order)}
-                                className="text-red-500 hover:text-red-700 ml-2"
-                                title="Delete Order"
-                              >
-                                <FaTrash />
-                              </button>
-                            </>
-                          )}
+                          <button
+                            onClick={() => confirmDelete(order)}
+                            className="text-red-500 hover:text-red-700 ml-2"
+                            title={order.isBulkOrder ? "Delete Bulk Order" : "Delete Order"}
+                          >
+                            <FaTrash />
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -943,7 +1182,9 @@ const OrderManagement = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div className="p-5 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Confirm Delete</h3>
+                <h3 className="text-lg font-semibold">
+                  {deleteConfirmation.isBulkOrder ? 'Confirm Delete Bulk Order' : 'Confirm Delete'}
+                </h3>
                 <button 
                   onClick={() => setDeleteConfirmation(null)}
                   className="text-gray-400 hover:text-gray-600"
@@ -955,7 +1196,11 @@ const OrderManagement = () => {
               </div>
             </div>
             <div className="p-5">
-              <p>Are you sure you want to delete this order?</p>
+              <p>
+                {deleteConfirmation.isBulkOrder 
+                  ? `Are you sure you want to delete this bulk order with ${deleteConfirmation.items?.length || '0'} items?` 
+                  : 'Are you sure you want to delete this order?'}
+              </p>
               <div className="flex justify-end space-x-3 mt-6 border-t border-gray-200 pt-4">
                 <button
                   type="button"
@@ -966,7 +1211,11 @@ const OrderManagement = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => deleteOrder(deleteConfirmation._id)}
+                  onClick={() => deleteOrder(
+                    deleteConfirmation._id, 
+                    deleteConfirmation.isBulkOrder, 
+                    deleteConfirmation.orderGroupId
+                  )}
                   className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center"
                 >
                   <FaTrash className="mr-2" /> Delete
