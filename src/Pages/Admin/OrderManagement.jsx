@@ -146,219 +146,144 @@ const OrderManagement = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId, status, isBulkOrder = false, orderGroupId = null) => {
-    try {
-      setUpdatingOrderId(orderId);
-      
-      if (isBulkOrder && orderGroupId) {
-        const groupItems = orders.filter(order => 
-          order.orderGroupId === orderGroupId || 
-          (order.orderReference === orderId && !order.orderGroupId)
-        );
+  const updateOrderStatus = async (orderId, status) => {
+      try {
+        setUpdatingOrderId(orderId);
         
-        const updatePromises = groupItems.map(item => 
-          fetch(`${API_URL}/admin/orders/${item._id}/status`, {
+        const orderGroup = groupedOrders.find(group => group._id === orderId);
+        
+        if (orderGroup && orderGroup.items && orderGroup.items.length > 0) {
+          const updatePromises = orderGroup.items.map(async (item) => {
+            const response = await fetch(`${API_URL}/admin/orders/${item._id}/status`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ status })
+            });
+    
+            if (!response.ok) {
+              throw new Error(`Failed to update order item ${item._id}`);
+            }
+            return item._id;
+          });
+          
+          await Promise.all(updatePromises);
+          toast.success(`All items in order updated to ${status}`);
+          
+          setGroupedOrders(groupedOrders.map(group => 
+            group._id === orderId ? { ...group, status } : group
+          ));
+          
+        } else {
+          const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ status })
-          }).then(res => {
-            if (!res.ok) {
-              throw new Error(`Failed to update order status for ${item._id}`);
-            }
-            return res.json();
-          })
-        );
-        
-        await Promise.all(updatePromises);
-        toast.success(`All items in bulk order updated to ${status}`);
-        
-        setGroupedOrders(groupedOrders.map(group => 
-          group._id === orderId ? { ...group, status } : group
-        ));
-        
-        setOrders(orders.map(order => 
-          (order.orderGroupId === orderGroupId || 
-           (order.orderReference === orderId && !order.orderGroupId)) 
-            ? { ...order, status } : order
-        ));
-      } else {
-        const orderItem = orders.find(o => o._id === orderId);
-        const actualId = orderItem ? orderItem._id : orderId;
-        
-        const response = await fetch(`${API_URL}/admin/orders/${actualId}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ status })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          const errorMsg = errorData.message || `Error ${response.status}: Failed to update order status`;
-          console.error('Order update error:', errorData);
-          throw new Error(errorMsg);
-        }
-
-        const responseData = await response.json();
-        toast.success(responseData.message || `Order status updated to ${status}`);
-        
-        setOrders(orders.map(order => 
-          order._id === actualId ? { ...order, status } : order
-        ));
-        
-        const updatedGroupedOrders = [...groupedOrders];
-        for (let i = 0; i < updatedGroupedOrders.length; i++) {
-          const group = updatedGroupedOrders[i];
-          if (group._id === orderId) {
-            group.status = status;
+          });
+    
+          if (!response.ok) {
+            throw new Error('Failed to update order status');
           }
-          const itemIndex = group.items.findIndex(item => item._id === actualId);
-          if (itemIndex !== -1) {
-            group.items[itemIndex].status = status;
-            const allSameStatus = group.items.every(item => item.status === status);
-            if (allSameStatus) {
-              group.status = status;
-            }
-          }
+    
+          toast.success(`Order status updated to ${status}`);
+          
+          setOrders(orders.map(order => 
+            order._id === orderId ? { ...order, status } : order
+          ));
         }
-        setGroupedOrders(updatedGroupedOrders);
+        
+        fetchOrders();
+      } catch (error) {
+        toast.error(error.message || 'Error updating order status');
+      } finally {
+        setUpdatingOrderId(null);
       }
-      
-      fetchOrders();
-    } catch (error) {
-      toast.error(error.message || 'Error updating order status');
-      console.error('Order status update error:', error);
-    } finally {
-      setUpdatingOrderId(null);
-    }
-  };
+    };
 
-  const updatePaymentStatus = async (orderId, paymentStatus, isBulkOrder = false, orderGroupId = null) => {
-    try {
-      setUpdatingPaymentId(orderId);
-      
-      if (isBulkOrder && orderGroupId) {
-        const groupItems = orders.filter(order => 
-          order.orderGroupId === orderGroupId || 
-          (order.orderReference === orderId && !order.orderGroupId)
-        );
+  const updatePaymentStatus = async (orderId, paymentStatus) => {
+      try {
+        setUpdatingPaymentId(orderId);
         
-        const updatePromises = groupItems.map(item => 
-          fetch(`${API_URL}/admin/orders/${item._id}/payment-status`, {
+        const orderGroup = groupedOrders.find(group => group._id === orderId);
+        
+        if (orderGroup && orderGroup.items && orderGroup.items.length > 0) {
+          const updatePromises = orderGroup.items.map(async (item) => {
+            const response = await fetch(`${API_URL}/admin/orders/${item._id}/payment-status`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ paymentStatus })
+            });
+    
+            if (!response.ok) {
+              throw new Error(`Failed to update payment for item ${item._id}`);
+            }
+            return item._id;
+          });
+          
+          await Promise.all(updatePromises);
+          toast.success(`Payment status for all items updated to ${paymentStatus}`);
+          
+          setGroupedOrders(groupedOrders.map(group => {
+            if (group._id === orderId) {
+              const updatedGroup = { ...group, paymentStatus };
+              
+              if (paymentStatus === 'paid' && group.status === 'pending') {
+                updatedGroup.status = 'preparing';
+              }
+              
+              return updatedGroup;
+            }
+            return group;
+          }));
+          
+        } else {
+          const response = await fetch(`${API_URL}/admin/orders/${orderId}/payment-status`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ paymentStatus })
-          }).then(res => {
-            if (!res.ok) {
-              throw new Error(`Failed to update payment status for ${item._id}`);
+          });
+    
+          if (!response.ok) {
+            throw new Error('Failed to update payment status');
+          }
+    
+          toast.success(`Payment status updated to ${paymentStatus}`);
+          
+          setOrders(orders.map(order => {
+            if (order._id === orderId) {
+              const updatedOrder = { 
+                ...order, 
+                paymentStatus 
+              };
+              
+              if (paymentStatus === 'paid' && order.status === 'pending') {
+                updatedOrder.status = 'preparing';
+              }
+              
+              return updatedOrder;
             }
-            return res.json();
-          })
-        );
-        
-        await Promise.all(updatePromises);
-        toast.success(`All items in bulk order updated to ${paymentStatus}`);
-        
-        setGroupedOrders(groupedOrders.map(group => {
-          if (group._id === orderId) {
-            return { 
-              ...group, 
-              paymentStatus,
-              status: paymentStatus === 'paid' && group.status === 'pending' ? 'preparing' : group.status
-            };
-          }
-          return group;
-        }));
-        
-        setOrders(orders.map(order => {
-          if (order.orderGroupId === orderGroupId || (order.orderReference === orderId && !order.orderGroupId)) {
-            return { 
-              ...order, 
-              paymentStatus,
-              status: paymentStatus === 'paid' && order.status === 'pending' ? 'preparing' : order.status
-            };
-          }
-          return order;
-        }));
-      } else {
-        const orderItem = orders.find(o => o._id === orderId);
-        const actualId = orderItem ? orderItem._id : orderId;
-        
-        const response = await fetch(`${API_URL}/admin/orders/${actualId}/payment-status`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ paymentStatus })
-        });
-  
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to update payment status');
+            return order;
+          }));
         }
-  
-        toast.success(`Payment status updated to ${paymentStatus}`);
         
-        // Update orders state
-        setOrders(orders.map(order => {
-          if (order._id === actualId) {
-            const updatedOrder = { 
-              ...order, 
-              paymentStatus 
-            };
-            
-            if (paymentStatus === 'paid' && order.status === 'pending') {
-              updatedOrder.status = 'preparing';
-            }
-            
-            return updatedOrder;
-          }
-          return order;
-        }));
-        
-        // Update grouped orders if this order is part of a group
-        const updatedGroupedOrders = [...groupedOrders];
-        for (let i = 0; i < updatedGroupedOrders.length; i++) {
-          const group = updatedGroupedOrders[i];
-          if (group._id === orderId) {
-            group.paymentStatus = paymentStatus;
-            if (paymentStatus === 'paid' && group.status === 'pending') {
-              group.status = 'preparing';
-            }
-          }
-          const itemIndex = group.items.findIndex(item => item._id === actualId);
-          if (itemIndex !== -1) {
-            group.items[itemIndex].paymentStatus = paymentStatus;
-            if (paymentStatus === 'paid' && group.items[itemIndex].status === 'pending') {
-              group.items[itemIndex].status = 'preparing';
-            }
-            
-            const allSamePaymentStatus = group.items.every(item => item.paymentStatus === paymentStatus);
-            if (allSamePaymentStatus) {
-              group.paymentStatus = paymentStatus;
-            }
-          }
-        }
-        setGroupedOrders(updatedGroupedOrders);
+        fetchOrders();
+      } catch (error) {
+        toast.error(error.message || 'Error updating payment status');
+      } finally {
+        setUpdatingPaymentId(null);
       }
-      
-      fetchOrders();
-    } catch (error) {
-      toast.error(error.message || 'Error updating payment status');
-      console.error('Payment status update error:', error);
-    } finally {
-      setUpdatingPaymentId(null);
-    }
-  };
+    };
 
   // Item helper functions
   const getItemName = (order) => {

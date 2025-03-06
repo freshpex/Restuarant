@@ -495,7 +495,7 @@ const StaffOrders = () => {
                           <p className="text-sm text-gray-500">{order.phone}</p>
                         </div>
                         
-                        {/* Order items - updated to handle bulk orders */}
+                        {/* Order items */}
                         <div className="py-3">    
                             <div className="max-h-40 overflow-y-auto">
                               {order.items.map((item, idx) => (
@@ -525,7 +525,7 @@ const StaffOrders = () => {
                           </div>
                         </div>
                         
-                        {/* Price breakdown - new section */}
+                        {/* Price breakdown */}
                         <div className="py-3 border-t border-gray-100">
                           <div className="flex justify-between text-sm mb-1">
                             <span>Items Subtotal:</span>
@@ -544,8 +544,7 @@ const StaffOrders = () => {
                         {/* Action buttons */}
                         <div className="pt-3 border-t border-gray-100">
                           <h3 className="font-medium text-gray-700 mb-2">Update Order</h3>
-                          
-                          {/* Payment status dropdown */}
+
                           <div className="mb-3">
                             <label className="block text-sm text-gray-600 mb-1">Payment Status:</label>
                             <select
