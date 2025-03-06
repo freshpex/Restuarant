@@ -8,6 +8,7 @@ import { clearCart } from '../../redux/slices/cartSlice';
 import { formatPrice } from '../../utils/formatUtils';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { selectCurrentUser } from '../../redux/selectors';
+import CustomPaymentModal from '../../components/Payment/CustomPaymentModal';
 
 const Checkout = () => {
   const location = useLocation();
@@ -21,8 +22,10 @@ const Checkout = () => {
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
   const [phoneError, setPhoneError] = useState('');
   const [lastOrderId, setLastOrderId] = useState(null);
+  const [lastOrderReference, setLastOrderReference] = useState(null);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   
   const { 
     cartItems, 
@@ -156,14 +159,35 @@ const Checkout = () => {
   };
   
   const handlePaymentSuccess = (response) => {
-    toast.promise(
-      updateOrderPaymentStatus(response),
-      {
-        loading: 'Confirming payment...',
-        success: 'Payment confirmed! Redirecting...',
-        error: 'Payment verification issue. Your payment may still be processing.',
-      }
-    );
+    // If response is undefined or doesn't have transaction_id, it's coming from the bank transfer
+    if (!response || !response.transaction_id) {
+      // For bank transfers, create a custom response with a generated transaction ID
+      const bankTransferResponse = {
+        status: 'successful',
+        transaction_id: `BANK-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        tx_ref: lastOrderReference,
+        payment_type: 'bank_transfer'
+      };
+      
+      toast.promise(
+        updateOrderPaymentStatus(bankTransferResponse),
+        {
+          loading: 'Confirming bank transfer...',
+          success: 'Payment confirmed! Thank you!',
+          error: 'Payment verification issue. Please contact support.',
+        }
+      );
+    } else {
+      // For online payments via Flutterwave
+      toast.promise(
+        updateOrderPaymentStatus(response),
+        {
+          loading: 'Confirming payment...',
+          success: 'Payment confirmed! Redirecting...',
+          error: 'Payment verification issue. Your payment may still be processing.',
+        }
+      );
+    }
   };
 
   const updateOrderPaymentStatus = async (paymentResponse) => {
@@ -276,103 +300,125 @@ const Checkout = () => {
       toast.error('Please enter your name');
       return;
     }
-    
-    setProcessingPayment(true);
-    
-    const orderReference = `TK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
-    const config = {
-      public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-      tx_ref: orderReference,
-      amount: parseFloat(grandTotal),
-      currency: 'NGN',
-      payment_options: 'card,mobilemoney,ussd,banktransfer',
-      customer: {
-        email: isGuest ? guestEmail || 'guest@timskitchen.com' : user?.email || 'customer@timskitchen.com',
-        phone_number: phoneNumber.trim(),
-        name: isGuest ? guestName || 'Guest Customer' : user?.displayName || 'Customer',
-      },
-      customizations: {
-        title: "Tim's Kitchen Cart Checkout",
-        description: `Payment for ${cartItems.length} items`,
-        logo: "/logo.png",
-      },
-      meta: {
-        orderReference: orderReference
-      }
-    };
-    
-    const handleFlutterPayment = useFlutterwave(config);
-    
-    handleFlutterPayment({
-      callback: (response) => {
-        closePaymentModal();
-        
-        if (response.status === "successful" || response.status === "completed") {
-          const orderData = {
-            items: prepareOrderItems(),
-            deliveryLocation,
-            deliveryFee,
-            fullAddress,
-            subtotal: totalAmount,
-            total: grandTotal,
-            paymentMethod: 'online',
-            paymentStatus: 'paid',
-            transactionRef: response.transaction_id,
-            buyerName: isGuest ? guestName : user?.displayName || 'Guest',
-            email: isGuest ? guestEmail : user?.email || 'guest@gmail.com',
-            userEmail: isGuest ? guestEmail : user?.email || '',
-            phone: phoneNumber.trim(),
-            date: new Date().toISOString().split('T')[0],
-            isGuestOrder: isGuest,
-            orderReference: orderReference
-          };
-          
-          dispatch(clearCart());
-          toast.promise(
-            fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              },
-              body: JSON.stringify(orderData)
-            })
-            .then(response => {
-              if (!response.ok) {
-                throw new Error('Failed to create order');
-              }
-              return response.json();
-            })
-            .then(data => {
-              navigate('/order-success', { 
-                state: { 
-                  orderId: data.orderId,
-                  orderReference: data.orderReference || orderReference,
-                  isPaid: true,
-                  contactPhone: phoneNumber.trim()
-                }
-              });
-              return data;
-            }),
-            {
-              loading: 'Finalizing your order...',
-              success: 'Payment successful! Redirecting...',
-              error: 'There was an issue creating your order, but your payment was successful. Contact support.'
-            }
-          );
-        } else {
-          toast.error('Payment was not completed successfully.');
+
+    if (paymentMethod === 'bank_transfer') {
+      setProcessingPayment(true);
+      
+      // First create the pending order, then show the payment modal
+      createPendingOrder()
+        .then(orderData => {
+          setLastOrderId(orderData.orderId);
+          setLastOrderReference(orderData.orderReference);
           setProcessingPayment(false);
+          setShowPaymentModal(true); // Show modal AFTER order creation is complete
+          
+          // Log the order ID for debugging
+          console.log("Created pending order ID:", orderData.orderId);
+        })
+        .catch(error => {
+          toast.error('Failed to create order. Please try again.');
+          setProcessingPayment(false);
+        });
+    } else {
+      setProcessingPayment(true);
+      
+      const orderReference = `TK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      const config = {
+        public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
+        tx_ref: orderReference,
+        amount: parseFloat(grandTotal),
+        currency: 'NGN',
+        payment_options: 'card,mobilemoney,ussd,banktransfer',
+        customer: {
+          email: isGuest ? guestEmail || 'guest@timskitchen.com' : user?.email || 'customer@timskitchen.com',
+          phone_number: phoneNumber.trim(),
+          name: isGuest ? guestName || 'Guest Customer' : user?.displayName || 'Customer',
+        },
+        customizations: {
+          title: "Tim's Kitchen Cart Checkout",
+          description: `Payment for ${cartItems.length} items`,
+          logo: "/logo.png",
+        },
+        meta: {
+          orderReference: orderReference
         }
-      },
-      onClose: () => {
-        setProcessingPayment(false);
-        toast.info('Payment cancelled');
-      }
-    });
+      };
+      
+      const handleFlutterPayment = useFlutterwave(config);
+      
+      handleFlutterPayment({
+        callback: (response) => {
+          closePaymentModal();
+          
+          if (response.status === "successful" || response.status === "completed") {
+            handlePaymentSuccess(response);
+          } else {
+            toast.error('Payment was not completed successfully.');
+            setProcessingPayment(false);
+          }
+        },
+        onClose: () => {
+          setProcessingPayment(false);
+          toast.info('Payment cancelled');
+        }
+      });
+    }
   };
 
+  // Add more debugging to see the flow
+  const createPendingOrder = async () => {
+    const orderReference = `TK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    console.log("Creating pending order with reference:", orderReference);
+    
+    const orderData = {
+      items: prepareOrderItems(),
+      deliveryLocation,
+      deliveryFee,
+      fullAddress,
+      subtotal: totalAmount,
+      total: grandTotal,
+      paymentMethod: 'bank_transfer',
+      paymentStatus: 'pending',
+      transactionRef: null,
+      buyerName: isGuest ? guestName : user?.displayName || 'Guest',
+      email: isGuest ? guestEmail : user?.email || 'guest@gmail.com',
+      userEmail: isGuest ? guestEmail : user?.email || '',
+      phone: phoneNumber.trim(),
+      date: new Date().toISOString().split('T')[0],
+      isGuestOrder: isGuest,
+      orderReference: orderReference
+    };
+    
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+      
+      const data = await response.json();
+      console.log("Order created successfully:", data);
+      setLastOrderReference(data.orderReference || orderReference);
+      return {
+        orderId: data.orderId,
+        orderReference: data.orderReference || orderReference
+      };
+    } catch (error) {
+      console.error("Order creation error:", error);
+      toast.error('Failed to create order. Please try again.');
+      throw error;
+    }
+  };
+  
+  
   const handlePlaceOrder = () => {
     if (!phoneNumber.trim()) {
       setPhoneError('Phone number is required');
@@ -386,7 +432,7 @@ const Checkout = () => {
       return;
     }
     
-    if (paymentMethod === 'online') {
+    if (paymentMethod === 'online' || paymentMethod === 'bank_transfer') {
       handlePayOnline();
     } else if (paymentMethod === 'whatsapp') {
       handlePayWithWhatsApp();
@@ -586,26 +632,27 @@ const Checkout = () => {
               
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div
-                    className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'online' ? 'border-yellow-600 bg-yellow-50' : 'border-gray-200'}`}
-                    onClick={() => setPaymentMethod('online')}
+                    className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'bank_transfer' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}
+                    onClick={() => setPaymentMethod('bank_transfer')}
                   >
                     <div className="flex items-center">
                       <input
                         type="radio"
-                        id="online"
+                        id="bank_transfer"
                         name="paymentMethod"
-                        value="online"
-                        checked={paymentMethod === 'online'}
-                        onChange={() => setPaymentMethod('online')}
-                        className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                        value="bank_transfer"
+                        checked={paymentMethod === 'bank_transfer'}
+                        onChange={() => setPaymentMethod('bank_transfer')}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <label htmlFor="online" className="ml-3 block text-sm font-medium text-gray-700">
-                        Pay Online (Card, Transfer, USSD)
+                      <label htmlFor="bank_transfer" className="ml-3 block text-sm font-medium text-gray-700">
+                        Bank Transfer
                       </label>
                     </div>
                   </div>
+                  
                   <div
                     className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'whatsapp' ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}
                     onClick={() => setPaymentMethod('whatsapp')}
@@ -621,7 +668,7 @@ const Checkout = () => {
                         className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                       />
                       <label htmlFor="whatsapp" className="ml-3 block text-sm font-medium text-gray-700">
-                        Pay via WhatsApp Chat
+                        Pay via WhatsApp
                       </label>
                     </div>
                   </div>
@@ -667,6 +714,15 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+      <CustomPaymentModal 
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        amount={grandTotal}
+        orderId={lastOrderId}
+        orderReference={lastOrderReference}
+        onConfirmSuccess={() => handlePaymentSuccess()}
+        apiUrl={import.meta.env.VITE_API_URL}
+      />
     </>
   );
 };

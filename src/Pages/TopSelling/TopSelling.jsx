@@ -23,7 +23,6 @@ const TopSelling = () => {
 
     useEffect(() => {
         dispatch(fetchTopDrinks());
-        console.log("Dispatched fetchTopDrinks");
       }, [dispatch]);
 
     return (
