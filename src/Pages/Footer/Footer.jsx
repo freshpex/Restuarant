@@ -47,13 +47,13 @@ const Footer = () => {
                         </li>
                     </ul>
                 </div>
-                <div className="flex flex-col space-y-2 text-sm font-semibold text-gray-500 dark:text-white">
-                    <h2 className="font-bold text-sm uppercase">Quick Links</h2>
-                    <Link to="/" className="hover:text-yellow-400">Home</Link>
-                    <Link to="/food" className="hover:text-yellow-400">Menu</Link>
-                    <Link to="/aboutUs" className="hover:text-yellow-400">About Us</Link>
-                    <Link to="/track-order" className="hover:text-yellow-400">Track Order</Link>
-                    <Link to="/contact" className="hover:text-yellow-400">Contact</Link>
+                <div className="flex flex-col space-y-2 text-sm font-semibold dark:text-white">
+                    <h2 className="font-bold text-sm uppercase text-gray-500">Quick Links</h2>
+                    <Link to="/" className="hover:text-yellow-400 text-gray-700">Home</Link>
+                    <Link to="/food" className="hover:text-yellow-400 text-gray-700">Menu</Link>
+                    <Link to="/aboutUs" className="hover:text-yellow-400 text-gray-700">About Us</Link>
+                    <Link to="/track-order" className="hover:text-yellow-400 text-gray-700">Track Order</Link>
+                    <Link to="/contact" className="hover:text-yellow-400 text-gray-700">Contact</Link>
                 </div>
             </div>
         </div>

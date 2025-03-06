@@ -259,7 +259,7 @@ const UserManagement = () => {
               </div>
               
               {/* Mobile Cards - Shown only on Mobile */}
-              <div className="md:hidden">
+              <div className="md:hidden pb-12">
                 {users.map((user) => (
                   <div 
                     key={`mobile-${user._id || user.email}`} 

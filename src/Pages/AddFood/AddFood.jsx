@@ -221,7 +221,7 @@ const AddFood = () => {
                                 <div className="col-span-full border-t pt-6">
                                     <h2 className="text-lg font-medium text-gray-900 mb-4">Food Details</h2>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div>
                                             <label htmlFor="food" className="block text-sm font-medium text-gray-700">Food Name*</label>
                                             <input 
@@ -272,7 +272,7 @@ const AddFood = () => {
                                             />
                                         </div>
                                         
-                                        <div className="col-span-2">
+                                        <div className="lg:col-span-2">
                                             <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
                                             <textarea 
                                                 name="description" 

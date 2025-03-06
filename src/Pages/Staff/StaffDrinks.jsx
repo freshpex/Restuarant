@@ -30,7 +30,7 @@ const StaffDrinks = () => {
   const fetchDrinks = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/drinks`, {
+      const response = await fetch(`${API_URL}/drinks`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

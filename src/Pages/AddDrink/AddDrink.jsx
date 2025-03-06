@@ -221,7 +221,7 @@ const AddDrink = () => {
                                 <div className="col-span-full border-t pt-6">
                                     <h2 className="text-lg font-medium text-gray-900 mb-4">Drink Details</h2>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div>
                                             <label htmlFor="drink" className="block text-sm font-medium text-gray-700">Drink Name*</label>
                                             <input 
@@ -284,7 +284,7 @@ const AddDrink = () => {
                                             />
                                         </div>
                                         
-                                        <div className="col-span-full">
+                                        <div>
                                             <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Drink Quantity*</label>
                                             <input 
                                                 type='number' 
