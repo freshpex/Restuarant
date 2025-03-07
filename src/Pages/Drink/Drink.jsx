@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDrinks, setCurrentPage } from '../../redux/slices/drinkSlice';
 import { Helmet } from 'react-helmet';
 import AllDrinkCard from './AllDrinkCard';
-import { AiOutlineRight, AiOutlineLeft } from "react-icons/ai";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { FaSearch, FaTimes, FaSpinner } from "react-icons/fa";
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import Fuse from 'fuse.js';
 
@@ -19,6 +18,12 @@ const Drink = () => {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [drinkPerPage, setDrinkPerPage] = useState(9);
     const [fuse, setFuse] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [displayedItems, setDisplayedItems] = useState([]);
+    const [displayCount, setDisplayCount] = useState(drinkPerPage);
+    const observer = useRef();
+    const loadingRef = useRef(null);
     
     useEffect(() => {
         if (drinks.length > 0) {
@@ -45,6 +50,51 @@ const Drink = () => {
     useEffect(() => {
         setFilter(drinks);
     }, [drinks]);
+    
+    useEffect(() => {
+        setDisplayedItems(filter.slice(0, displayCount));
+        setHasMore(displayCount < filter.length);
+    }, [filter, displayCount]);
+
+    const lastDrinkElementRef = useCallback(node => {
+        if (loading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMoreItems();
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loading, hasMore]);
+
+    const loadMoreItems = () => {
+        if (isLoading || !hasMore) return;
+        
+        setIsLoading(true);
+        
+        if (displayCount + drinkPerPage > drinks.length && hasMore) {
+            dispatch(setCurrentPage(currentPage + 1))
+                .then(() => {
+                    setDisplayCount(prev => prev + drinkPerPage);
+                    setIsLoading(false);
+                })
+                .catch(() => {
+                    setIsLoading(false);
+                });
+        } else {
+            setTimeout(() => {
+                setDisplayCount(prev => prev + drinkPerPage);
+                setIsLoading(false);
+            }, 500);
+        }
+    };
+
+    // Handle manual "Load More" button click
+    const handleLoadMore = () => {
+        if (!isLoading) {
+            loadMoreItems();
+        }
+    };
     
     const debounce = (func, delay) => {
         let timeoutId;
@@ -126,6 +176,7 @@ const Drink = () => {
         
         setFilter(filteredResults);
         setShowSuggestions(false);
+        setDisplayCount(drinkPerPage);
     };
     
     const handleSuggestionClick = (suggestion) => {
@@ -139,6 +190,7 @@ const Drink = () => {
         }
         
         setFilter(filteredResults);
+        setDisplayCount(drinkPerPage);
     };
     
     const handleCategoryChange = (e) => {
@@ -164,6 +216,8 @@ const Drink = () => {
         } else {
             setFilter(drinks.filter(item => item.drinksCategory === category));
         }
+        
+        setDisplayCount(drinkPerPage);
     };
     
     const clearSearch = () => {
@@ -176,108 +230,8 @@ const Drink = () => {
         } else {
             setFilter(drinks);
         }
-    };
-    
-    const handlePrev = () => {
-        if (currentPage > 0) {
-            dispatch(setCurrentPage(currentPage - 1));
-        }
-    };
-
-    const handleNext = () => {
-        if (filter.length === drinkPerPage) {
-            dispatch(setCurrentPage(currentPage + 1));
-            return;
-        }
-        const maxPage = Math.ceil(filter.length / drinkPerPage) - 1;
-        if (currentPage < maxPage) {
-            dispatch(setCurrentPage(currentPage + 1));
-        }
-    };
-
-    const handleFirst = () => {
-        dispatch(setCurrentPage(0));
-    };
-
-    const handleLast = () => {
-        const lastPage = Math.ceil(filter.length / drinkPerPage) - 1;
-        dispatch(setCurrentPage(lastPage));
-    };
-
-    const renderPaginationItems = () => {
-        const totalPages = Math.ceil(filter.length / drinkPerPage);
-        if (totalPages <= 1) return null;
         
-        const items = [];
-        
-        items.push(
-            <button 
-                onClick={() => dispatch(setCurrentPage(0))} 
-                key="first-page" 
-                className={`mx-1 px-3 py-1 rounded-md border ${currentPage === 0 ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                aria-label="Page 1"
-                aria-current={currentPage === 0 ? "page" : undefined}
-            >
-                1
-            </button>
-        );
-        
-        if (totalPages > 7) {
-            if (currentPage > 3) {
-                items.push(<span key="ellipsis-1" className="mx-1 text-white">...</span>);
-            }
-            
-            const startPage = Math.max(1, currentPage - 1);
-            const endPage = Math.min(totalPages - 2, currentPage + 1);
-            
-            for (let i = startPage; i <= endPage; i++) {
-                items.push(
-                    <button 
-                        onClick={() => dispatch(setCurrentPage(i))} 
-                        key={i} 
-                        className={`mx-1 px-3 py-1 rounded-md border ${currentPage === i ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                        aria-label={`Page ${i + 1}`}
-                        aria-current={currentPage === i ? "page" : undefined}
-                    >
-                        {i + 1}
-                    </button>
-                );
-            }
-            
-            if (currentPage < totalPages - 4) {
-                items.push(<span key="ellipsis-2" className="mx-1 text-white">...</span>);
-            }
-            
-            if (totalPages > 1) {
-                items.push(
-                    <button 
-                        onClick={() => dispatch(setCurrentPage(totalPages - 1))} 
-                        key="last-page" 
-                        className={`mx-1 px-3 py-1 rounded-md border ${currentPage === totalPages - 1 ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                        aria-label={`Page ${totalPages}`}
-                        aria-current={currentPage === totalPages - 1 ? "page" : undefined}
-                    >
-                        {totalPages}
-                    </button>
-                );
-            }
-        } else {
-            for (let i = 1; i < totalPages; i++) {
-                items.push(
-                    <button 
-                        onClick={() => dispatch(setCurrentPage(i))} 
-                        key={i} 
-                        className={`mx-1 px-3 py-1 rounded-md border ${currentPage === i ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                        aria-label={`Page ${i + 1}`}
-                        aria-current={currentPage === i ? "page" : undefined}
-                    >
-                        {i + 1}
-                    </button>
-                );
-            }
-        }
-        
-        return items;
+        setDisplayCount(drinkPerPage);
     };
 
     return (
@@ -380,7 +334,7 @@ const Drink = () => {
                 </div>
             </div>
             <div className='bg-[#121212] -mt-40 pb-20 lg:px-28 px-6'>
-                {loading ? (
+                {loading && displayCount <= drinkPerPage ? (
                     <LoadingSpinner />
                 ) : error ? (
                     <div className="text-red-500 text-center py-10">
@@ -388,102 +342,73 @@ const Drink = () => {
                     </div>
                 ) : filter.length === 0 ? (
                     <div className="text-white text-center py-10">
-                        No Drink found. Try a different search.
+                        No drinks found. Try a different search.
                     </div>
                 ) : (
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
-                        {filter.map(data => <AllDrinkCard key={data._id} data={data} />)}
-                    </div>
+                    <>
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
+                            {displayedItems.map((data, index) => {
+                                if (displayedItems.length === index + 1) {
+                                    // Last item - attach ref for intersection observer
+                                    return (
+                                        <div ref={lastDrinkElementRef} key={data._id}>
+                                            <AllDrinkCard data={data} />
+                                        </div>
+                                    );
+                                } else {
+                                    return <AllDrinkCard key={data._id} data={data} />;
+                                }
+                            })}
+                        </div>
+                        
+                        {isLoading && (
+                            <div className="flex justify-center items-center py-8">
+                                <FaSpinner className="animate-spin text-yellow-600 text-2xl" />
+                                <span className="ml-2 text-gray-300">Loading more drinks...</span>
+                            </div>
+                        )}
+                        
+                        {/* Load more buttons */}
+                        <div className="flex flex-col items-center justify-center mt-10 space-y-4">
+                            {!isLoading && hasMore && (
+                                <button
+                                    onClick={handleLoadMore}
+                                    className="px-6 py-2 bg-yellow-700 hover:bg-yellow-800 text-white rounded-lg transition-colors shadow-lg"
+                                >
+                                    Load More
+                                </button>
+                            )}
+                            
+                            {/* Items per page selector */}
+                            <div className="flex items-center justify-center text-sm mt-4">
+                                <label htmlFor="itemsPerPage" className="text-gray-400 mr-2">Items per batch:</label>
+                                <select
+                                    id="itemsPerPage"
+                                    className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
+                                    value={drinkPerPage}
+                                    onChange={(e) => {
+                                        const newSize = parseInt(e.target.value);
+                                        setDrinkPerPage(newSize);
+                                        setDisplayCount(newSize);
+                                        dispatch(setCurrentPage(0));
+                                    }}
+                                    aria-label="Number of items per load"
+                                >
+                                    <option value="6">6</option>
+                                    <option value="9">9</option>
+                                    <option value="12">12</option>
+                                    <option value="24">24</option>
+                                </select>
+                            </div>
+                            
+                            {!hasMore && filter.length > drinkPerPage && (
+                                <div className="text-center mt-4 text-gray-400">
+                                    You've reached the end of the list.
+                                </div>
+                            )}
+                        </div>
+                    </>
                 )}
-            </div>
-
-            {/* Enhanced modern pagination */}
-            <div className='bg-[#121212] flex flex-col items-center pb-20 text-center text-white'>
-                <div className="flex flex-wrap justify-center items-center mb-4">
-                    {filter.length > 0 && (
-                        <p className="text-sm text-gray-400 mb-4 w-full">
-                            Showing {Math.min(currentPage * drinkPerPage + 1, filter.length)} to {Math.min((currentPage + 1) * drinkPerPage, filter.length)} of {filter.length} items
-                        </p>
-                    )}
-                    
-                    <div className="flex items-center">
-                        {/* First page button */}
-                        <button 
-                            className={`px-2 mx-1 rounded-md border py-1 ${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white hidden sm:block`}
-                            onClick={handleFirst}
-                            disabled={currentPage === 0}
-                            aria-label="First page"
-                        >
-                            <span className="sr-only">First</span>
-                            <span aria-hidden="true">««</span>
-                        </button>
-                        
-                        {/* Previous page button */}
-                        <button 
-                            className={`px-3 mx-1 rounded-md border py-1 ${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white`}
-                            onClick={handlePrev}
-                            disabled={currentPage === 0}
-                            aria-label="Previous page"
-                        >
-                            <AiOutlineLeft aria-hidden="true" />
-                            <span className="sr-only">Previous</span>
-                        </button>
-                        
-                        {/* Page numbers */}
-                        <div className="hidden sm:flex mx-1">
-                            {renderPaginationItems()}
-                        </div>
-                        
-                        {/* Current page indicator for mobile */}
-                        <div className="sm:hidden mx-2 py-1 px-3 bg-yellow-800 rounded-md">
-                            <span>{currentPage + 1}</span>
-                            <span className="text-gray-400 text-xs ml-1">/ {Math.ceil(filter.length / drinkPerPage)}</span>
-                        </div>
-                        
-                        {/* Next page button */}
-                        <button 
-                            className={`px-3 mx-1 rounded-md border py-1 ${currentPage >= Math.ceil(filter.length / drinkPerPage) - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white`}
-                            onClick={handleNext}
-                            disabled={currentPage >= Math.ceil(filter.length / drinkPerPage) - 1}
-                            aria-label="Next page"
-                        >
-                            <AiOutlineRight aria-hidden="true" />
-                            <span className="sr-only">Next</span>
-                        </button>
-                        
-                        {/* Last page button */}
-                        <button 
-                            className={`px-2 mx-1 rounded-md border py-1 ${currentPage >= Math.ceil(filter.length / drinkPerPage) - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white hidden sm:block`}
-                            onClick={handleLast}
-                            disabled={currentPage >= Math.ceil(filter.length / drinkPerPage) - 1}
-                            aria-label="Last page"
-                        >
-                            <span className="sr-only">Last</span>
-                            <span aria-hidden="true">»»</span>
-                        </button>
-                    </div>
-                </div>
-                
-                {/* Items per page selector */}
-                <div className="flex items-center justify-center text-sm mt-2">
-                    <label htmlFor="pageSize" className="text-gray-400 mr-2">Items per page:</label>
-                    <select
-                        id="pageSize"
-                        className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
-                        value={drinkPerPage}
-                        onChange={(e) => {
-                            const newSize = parseInt(e.target.value);
-                            setDrinkPerPage(newSize);
-                            dispatch(setCurrentPage(0));
-                        }}
-                        aria-label="Number of items per page"
-                    >
-                        <option value="6">6</option>
-                        <option value="9">9</option>
-                        <option value="12">12</option>
-                        <option value="24">24</option>
-                    </select>
-                </div>
             </div>
         </>
     );

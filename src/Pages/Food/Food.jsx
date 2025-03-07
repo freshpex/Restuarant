@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchFoods, setCurrentPage } from '../../redux/slices/foodSlice';
 import { Helmet } from 'react-helmet';
 import AllFoodCard from './AllFoodCard';
-import { AiOutlineRight, AiOutlineLeft } from "react-icons/ai";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { FaSearch, FaTimes, FaSpinner } from "react-icons/fa";
 import LoadingSpinner from '../../Components/LoadingSpinner';
 import Fuse from 'fuse.js';
 
@@ -17,8 +16,16 @@ const Food = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('');
-    const [foodPerPage, setFoodPerPage] = useState(9);
+    const [foodPerPage, setFoodPerPage] = useState(6);
     const [fuse, setFuse] = useState(null);
+    
+    // New state for infinite scrolling
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [displayedItems, setDisplayedItems] = useState([]);
+    const [displayCount, setDisplayCount] = useState(foodPerPage);
+    const observer = useRef();
+    const loadingRef = useRef(null);
     
     useEffect(() => {
         if (foods.length > 0) {
@@ -45,6 +52,52 @@ const Food = () => {
     useEffect(() => {
         setFilter(foods);
     }, [foods]);
+    
+    
+    useEffect(() => {
+        setDisplayedItems(filter.slice(0, displayCount));
+        setHasMore(displayCount < filter.length);
+    }, [filter, displayCount]);
+
+    // Implementation of infinite scroll using Intersection Observer
+    const lastFoodElementRef = useCallback(node => {
+        if (loading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMoreItems();
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loading, hasMore]);
+
+    const loadMoreItems = () => {
+        if (isLoading || !hasMore) return;
+        
+        setIsLoading(true);
+        
+        if (displayCount + foodPerPage > foods.length && hasMore) {
+            dispatch(setCurrentPage(currentPage + 1))
+                .then(() => {
+                    setDisplayCount(prev => prev + foodPerPage);
+                    setIsLoading(false);
+                })
+                .catch(() => {
+                    setIsLoading(false);
+                });
+        } else {
+            setTimeout(() => {
+                setDisplayCount(prev => prev + foodPerPage);
+                setIsLoading(false);
+            }, 500);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoading) {
+            loadMoreItems();
+        }
+    };
     
     const debounce = (func, delay) => {
         let timeoutId;
@@ -126,6 +179,7 @@ const Food = () => {
         
         setFilter(filteredResults);
         setShowSuggestions(false);
+        setDisplayCount(foodPerPage);
     };
     
     const handleSuggestionClick = (suggestion) => {
@@ -139,6 +193,7 @@ const Food = () => {
         }
         
         setFilter(filteredResults);
+        setDisplayCount(foodPerPage);
     };
     
     const handleCategoryChange = (e) => {
@@ -164,6 +219,8 @@ const Food = () => {
         } else {
             setFilter(foods.filter(item => item.foodCategory === category));
         }
+        
+        setDisplayCount(foodPerPage);
     };
     
     const clearSearch = () => {
@@ -176,112 +233,8 @@ const Food = () => {
         } else {
             setFilter(foods);
         }
-    };
-    
-    const handlePrev = () => {
-        if (currentPage > 0) {
-            dispatch(setCurrentPage(currentPage - 1));
-        }
-    };
-
-    const handleNext = () => {
-        if (filter.length === foodPerPage) {
-            dispatch(setCurrentPage(currentPage + 1));
-            return;
-        }
-        const maxPage = Math.ceil(filter.length / foodPerPage) - 1;
-        if (currentPage < maxPage) {
-            dispatch(setCurrentPage(currentPage + 1));
-        }
-    };
-
-    const handleFirst = () => {
-        dispatch(setCurrentPage(0));
-    };
-
-    const handleLast = () => {
-        const lastPage = Math.ceil(filter.length / foodPerPage) - 1;
-        dispatch(setCurrentPage(lastPage));
-    };
-
-    const renderPaginationItems = () => {
-        const totalPages = Math.ceil(filter.length / foodPerPage);
-        if (totalPages <= 1) return null;
         
-        const items = [];
-        
-        items.push(
-            <button 
-                onClick={() => dispatch(setCurrentPage(0))} 
-                key="first-page" 
-                className={`mx-1 px-3 py-1 rounded-md border ${currentPage === 0 ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                aria-label="Page 1"
-                aria-current={currentPage === 0 ? "page" : undefined}
-            >
-                1
-            </button>
-        );
-        
-        // Logic for showing pagination with ellipsis
-        if (totalPages > 7) {
-            if (currentPage > 3) {
-                items.push(<span key="ellipsis-1" className="mx-1 text-white">...</span>);
-            }
-            
-            // Show pages around current page
-            const startPage = Math.max(1, currentPage - 1);
-            const endPage = Math.min(totalPages - 2, currentPage + 1);
-            
-            for (let i = startPage; i <= endPage; i++) {
-                items.push(
-                    <button 
-                        onClick={() => dispatch(setCurrentPage(i))} 
-                        key={i} 
-                        className={`mx-1 px-3 py-1 rounded-md border ${currentPage === i ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                        aria-label={`Page ${i + 1}`}
-                        aria-current={currentPage === i ? "page" : undefined}
-                    >
-                        {i + 1}
-                    </button>
-                );
-            }
-            
-            // Show ellipsis before last page if current page is far from end
-            if (currentPage < totalPages - 4) {
-                items.push(<span key="ellipsis-2" className="mx-1 text-white">...</span>);
-            }
-            
-            // Always show last page if there's more than one page
-            if (totalPages > 1) {
-                items.push(
-                    <button 
-                        onClick={() => dispatch(setCurrentPage(totalPages - 1))} 
-                        key="last-page" 
-                        className={`mx-1 px-3 py-1 rounded-md border ${currentPage === totalPages - 1 ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                        aria-label={`Page ${totalPages}`}
-                        aria-current={currentPage === totalPages - 1 ? "page" : undefined}
-                    >
-                        {totalPages}
-                    </button>
-                );
-            }
-        } else {
-            for (let i = 1; i < totalPages; i++) {
-                items.push(
-                    <button 
-                        onClick={() => dispatch(setCurrentPage(i))} 
-                        key={i} 
-                        className={`mx-1 px-3 py-1 rounded-md border ${currentPage === i ? "bg-yellow-800 text-white border-yellow-600" : "bg-[#121212] text-white border-gray-700 hover:bg-gray-800"}`}
-                        aria-label={`Page ${i + 1}`}
-                        aria-current={currentPage === i ? "page" : undefined}
-                    >
-                        {i + 1}
-                    </button>
-                );
-            }
-        }
-        
-        return items;
+        setDisplayCount(foodPerPage);
     };
 
     return (
@@ -384,7 +337,7 @@ const Food = () => {
                 </div>
             </div>
             <div className='bg-[#121212] -mt-40 pb-20 lg:px-28 px-6'>
-                {loading ? (
+                {loading && displayCount <= foodPerPage ? (
                     <LoadingSpinner />
                 ) : error ? (
                     <div className="text-red-500 text-center py-10">
@@ -395,98 +348,71 @@ const Food = () => {
                         No foods found. Try a different search.
                     </div>
                 ) : (
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
-                        {filter.map(data => <AllFoodCard key={data._id} data={data} />)}
-                    </div>
-                )}
-            </div>
+                    <>
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
+                            {displayedItems.map((data, index) => {
+                                if (displayedItems.length === index + 1) {
+                                    return (
+                                        <div ref={lastFoodElementRef} key={data._id}>
+                                            <AllFoodCard data={data} />
+                                        </div>
+                                    );
+                                } else {
+                                    return <AllFoodCard key={data._id} data={data} />;
+                                }
+                            })}
+                        </div>
+                        
+                        {/* Loading indicator at bottom of grid */}
+                        {isLoading && (
+                            <div className="flex justify-center items-center py-8">
+                                <FaSpinner className="animate-spin text-yellow-600 text-2xl" />
+                                <span className="ml-2 text-gray-300">Loading more items...</span>
+                            </div>
+                        )}
+                        
+                        {/* Load more button  */}
+                        {!isLoading && hasMore && (
+                            <div className="text-center mt-10">
+                                <button
+                                    onClick={handleLoadMore}
+                                    className="px-6 py-2 bg-yellow-700 hover:bg-yellow-800 text-white rounded-lg transition-colors shadow-lg"
+                                >
+                                    Load More
+                                </button>
+                            </div>
+                        )}
+                        
+                        {/* Items per batch selector */}
+                        <div className="flex items-center justify-center text-sm mt-4">
+                            <label htmlFor="itemsPerBatch" className="text-gray-400 mr-2">Items per batch:</label>
+                            <select
+                                id="itemsPerBatch"
+                                className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
+                                value={foodPerPage}
+                                onChange={(e) => {
+                                    const newSize = parseInt(e.target.value);
+                                    setFoodPerPage(newSize);
+                                    setDisplayCount(newSize);
+                                    dispatch(setCurrentPage(0));
+                                }}
+                                aria-label="Number of items per load"
+                            >
+                                <option value="6">6</option>
+                                <option value="9">9</option>
+                                <option value="12">12</option>
+                                <option value="24">24</option>
+                            </select>
+                        </div>
 
-            <div className='bg-[#121212] flex flex-col items-center pb-20 text-center text-white'>
-                <div className="flex flex-wrap justify-center items-center mb-4">
-                    {filter.length > 0 && (
-                        <p className="text-sm text-gray-400 mb-4 w-full">
-                            Showing {Math.min(currentPage * foodPerPage + 1, filter.length)} to {Math.min((currentPage + 1) * foodPerPage, filter.length)} of {filter.length} items
-                        </p>
-                    )}
-                    
-                    <div className="flex items-center">
-                        {/* First page button */}
-                        <button 
-                            className={`px-2 mx-1 rounded-md border py-1 ${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white hidden sm:block`}
-                            onClick={handleFirst}
-                            disabled={currentPage === 0}
-                            aria-label="First page"
-                        >
-                            <span className="sr-only">First</span>
-                            <span aria-hidden="true">««</span>
-                        </button>
-                        
-                        {/* Previous page button */}
-                        <button 
-                            className={`px-3 mx-1 rounded-md border py-1 ${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white`}
-                            onClick={handlePrev}
-                            disabled={currentPage === 0}
-                            aria-label="Previous page"
-                        >
-                            <AiOutlineLeft aria-hidden="true" />
-                            <span className="sr-only">Previous</span>
-                        </button>
-                        
-                        {/* Page numbers */}
-                        <div className="hidden sm:flex mx-1">
-                            {renderPaginationItems()}
-                        </div>
-                        
-                        {/* Current page indicator for mobile */}
-                        <div className="sm:hidden mx-2 py-1 px-3 bg-yellow-800 rounded-md">
-                            <span>{currentPage + 1}</span>
-                            <span className="text-gray-400 text-xs ml-1">/ {Math.ceil(filter.length / foodPerPage)}</span>
-                        </div>
-                        
-                        {/* Next page button */}
-                        <button 
-                            className={`px-3 mx-1 rounded-md border py-1 ${currentPage >= Math.ceil(filter.length / foodPerPage) - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white`}
-                            onClick={handleNext}
-                            disabled={currentPage >= Math.ceil(filter.length / foodPerPage) - 1}
-                            aria-label="Next page"
-                        >
-                            <AiOutlineRight aria-hidden="true" />
-                            <span className="sr-only">Next</span>
-                        </button>
-                        
-                        {/* Last page button */}
-                        <button 
-                            className={`px-2 mx-1 rounded-md border py-1 ${currentPage >= Math.ceil(filter.length / foodPerPage) - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'} bg-[#121212] text-white hidden sm:block`}
-                            onClick={handleLast}
-                            disabled={currentPage >= Math.ceil(filter.length / foodPerPage) - 1}
-                            aria-label="Last page"
-                        >
-                            <span className="sr-only">Last</span>
-                            <span aria-hidden="true">»»</span>
-                        </button>
-                    </div>
-                </div>
-                
-                {/* Items per page selector */}
-                <div className="flex items-center justify-center text-sm mt-2">
-                    <label htmlFor="pageSize" className="text-gray-400 mr-2">Items per page:</label>
-                    <select
-                        id="pageSize"
-                        className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
-                        value={foodPerPage}
-                        onChange={(e) => {
-                            const newSize = parseInt(e.target.value);
-                            setFoodPerPage(newSize);
-                            dispatch(setCurrentPage(0));
-                        }}
-                        aria-label="Number of items per page"
-                    >
-                        <option value="6">6</option>
-                        <option value="9">9</option>
-                        <option value="12">12</option>
-                        <option value="24">24</option>
-                    </select>
-                </div>
+                        {/* Message when all items are loaded */}
+                        {!hasMore && filter.length > foodPerPage && (
+                            <div className="text-center mt-8 text-gray-400">
+                                You've reached the end of the list.
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
         </>
     );
