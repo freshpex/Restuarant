@@ -14,8 +14,22 @@ export const fetchDrinks = createAsyncThunk(
         }
       );
 
-      if (!response.ok) throw new Error('Failed to fetch Drinks');
-      return await response.json();
+      if (!response.ok) throw new Error('Failed to fetch drinks');
+      const data = await response.json();
+      
+      if (data && typeof data === 'object' && Array.isArray(data.drinks)) {
+        return {
+          drinks: data.drinks,
+          count: data.count || data.drinks.length,
+          totalPages: data.totalPages || Math.ceil(data.count / size)
+        };
+      }
+      
+      return {
+        drinks: Array.isArray(data) ? data : [],
+        count: Array.isArray(data) ? data.length : 0,
+        totalPages: Array.isArray(data) ? Math.ceil(data.length / size) : 0
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -32,7 +46,7 @@ export const fetchDrinkById = createAsyncThunk(
           'Accept': 'application/json'
         }
       });
-      if (!response.ok) throw new Error('Failed to fetch Drink');
+      if (!response.ok) throw new Error('Failed to fetch drink');
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
@@ -77,7 +91,9 @@ const drinkSlice = createSlice({
       })
       .addCase(fetchDrinks.fulfilled, (state, action) => {
         state.loading = false;
-        state.drinks = action.payload;
+        state.drinks = action.payload.drinks || [];
+        state.count = action.payload.count || action.payload.drinks?.length || 0;
+        state.totalPages = action.payload.totalPages || 0;
       })
       .addCase(fetchDrinks.rejected, (state, action) => {
         state.loading = false;

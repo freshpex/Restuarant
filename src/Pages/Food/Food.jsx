@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchFoods, setCurrentPage } from '../../redux/slices/foodSlice';
+import { fetchFoods } from '../../redux/slices/foodSlice';
 import { Helmet } from 'react-helmet';
 import AllFoodCard from './AllFoodCard';
 import { FaSearch, FaTimes, FaSpinner } from "react-icons/fa";
@@ -9,7 +9,7 @@ import Fuse from 'fuse.js';
 
 const Food = () => {
     const dispatch = useDispatch();
-    const { foods, loading, error, currentPage } = useSelector(state => state.food);
+    const { foods, loading, error } = useSelector(state => state.food);
     console.log('Foods:', foods);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState([]);
@@ -17,10 +17,9 @@ const Food = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('');
-    const [foodPerPage, setFoodPerPage] = useState(6);
+    const [foodPerPage] = useState(6);
     const [fuse, setFuse] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
     const [displayedItems, setDisplayedItems] = useState([]);
     const [displayCount, setDisplayCount] = useState(foodPerPage);
     const observer = useRef();
@@ -44,19 +43,17 @@ const Food = () => {
     }, [foods]);
 
     useEffect(() => {
-        dispatch(fetchFoods({ page: currentPage, size: foodPerPage }));
-        console.log('Fetching foods with page:', currentPage, 'and size:', foodPerPage);
-    }, [dispatch, currentPage, foodPerPage]);
+        dispatch(fetchFoods({ page: 0, size: 1000 }));
+        console.log('Fetching all foods at once');
+    }, [dispatch]);
 
     useEffect(() => {
         setFilter(foods);
     }, [foods]);
     
-    
     useEffect(() => {
         if (filter.length > 0) {
             setDisplayedItems(filter.slice(0, displayCount));
-            setHasMore(displayCount < filter.length);
         }
     }, [filter, displayCount]);
 
@@ -64,31 +61,22 @@ const Food = () => {
         if (loading) return;
         if (observer.current) observer.current.disconnect();
         observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasMore) {
+            if (entries[0].isIntersecting && displayCount < filter.length) {
                 loadMoreItems();
             }
         });
         if (node) observer.current.observe(node);
-    }, [loading, hasMore]);
+    }, [loading, displayCount, filter.length]);
 
     const loadMoreItems = () => {
-        if (isLoading || !hasMore) return;
+        if (isLoading) return;
         
         setIsLoading(true);
         
-        if (displayCount + foodPerPage > foods.length && hasMore) {
-            dispatch(setCurrentPage(currentPage + 1));
-            
-            setTimeout(() => {
-                setDisplayCount(prev => prev + foodPerPage);
-                setIsLoading(false);
-            }, 800);
-        } else {
-            setTimeout(() => {
-                setDisplayCount(prev => prev + foodPerPage);
-                setIsLoading(false);
-            }, 500);
-        }
+        setTimeout(() => {
+            setDisplayCount(prev => Math.min(prev + foodPerPage, filter.length));
+            setIsLoading(false);
+        }, 500);
     };
 
     const handleLoadMore = () => {
@@ -97,6 +85,7 @@ const Food = () => {
         }
     };
     
+    // Debounce function for search input
     const debounce = (func, delay) => {
         let timeoutId;
         return (...args) => {
@@ -127,6 +116,7 @@ const Food = () => {
                 } else {
                     setFilter(foods);
                 }
+                setDisplayCount(foodPerPage);
             }
         }
     };
@@ -140,44 +130,20 @@ const Food = () => {
         const suggestionResults = results
             .map(result => result.item)
             .slice(0, 5);
-            
         setSuggestions(suggestionResults);
         
         let filteredResults = results.map(result => result.item);
-        
         if (selectedCategory) {
-            filteredResults = filteredResults.filter(
-                item => item.foodCategory === selectedCategory
-            );
+            filteredResults = filteredResults.filter(item => item.foodCategory === selectedCategory);
         }
         
         setFilter(filteredResults);
+        setDisplayCount(Math.min(foodPerPage, filteredResults.length));
     }, 300);
     
     const handleSearch = () => {
-        if (!search) {
-            if (selectedCategory) {
-                setFilter(foods.filter(item => item.foodCategory === selectedCategory));
-            } else {
-                setFilter(foods);
-            }
-            return;
-        }
-        
-        if (!fuse) return;
-        
-        const results = fuse.search(search);
-        let filteredResults = results.map(result => result.item);
-        
-        if (selectedCategory) {
-            filteredResults = filteredResults.filter(
-                item => item.foodCategory === selectedCategory
-            );
-        }
-        
-        setFilter(filteredResults);
+        applyFilters();
         setShowSuggestions(false);
-        setDisplayCount(foodPerPage);
     };
     
     const handleSuggestionClick = (suggestion) => {
@@ -191,34 +157,26 @@ const Food = () => {
         }
         
         setFilter(filteredResults);
-        setDisplayCount(foodPerPage);
+        setDisplayCount(Math.min(foodPerPage, filteredResults.length));
     };
     
     const handleCategoryChange = (e) => {
         const category = e.target.value;
         setSelectedCategory(category);
         
-        if (!category) {
-            if (search && fuse) {
-                const results = fuse.search(search);
-                setFilter(results.map(result => result.item));
-            } else {
-                setFilter(foods);
-            }
-            return;
-        }
+        let filteredResults = foods;
         
         if (search && fuse) {
-            const results = fuse.search(search);
-            const filteredResults = results
-                .map(result => result.item)
-                .filter(item => item.foodCategory === category);
-            setFilter(filteredResults);
-        } else {
-            setFilter(foods.filter(item => item.foodCategory === category));
+            const searchResults = fuse.search(search);
+            filteredResults = searchResults.map(result => result.item);
         }
         
-        setDisplayCount(foodPerPage);
+        if (category) {
+            filteredResults = filteredResults.filter(item => item.foodCategory === category);
+        }
+        
+        setFilter(filteredResults);
+        setDisplayCount(Math.min(foodPerPage, filteredResults.length));
     };
     
     const clearSearch = () => {
@@ -234,6 +192,8 @@ const Food = () => {
         
         setDisplayCount(foodPerPage);
     };
+    
+    const hasMore = displayCount < filter.length;
 
     return (
         <>
@@ -335,7 +295,7 @@ const Food = () => {
                 </div>
             </div>
             <div className='bg-[#121212] -mt-40 pb-20 lg:px-28 px-6'>
-                {loading && displayCount <= foodPerPage ? (
+                {loading && displayedItems.length === 0 ? (
                     <LoadingSpinner />
                 ) : error ? (
                     <div className="text-red-500 text-center py-10">
@@ -369,18 +329,9 @@ const Food = () => {
                             </div>
                         )}
                         
-                        {/* Load more button and controls */}
-                        <div className="flex flex-col items-center justify-center mt-10 space-y-4">
-                            {/* Debug output to help understand why button might not be showing */}
-                            <div className="text-xs text-gray-500">
-                                isLoading: {isLoading ? 'true' : 'false'}, 
-                                hasMore: {hasMore ? 'true' : 'false'}, 
-                                filter length: {filter.length}, 
-                                displayCount: {displayCount}
-                            </div>
-                            
-                            {/* Make Load More button more visible with better conditionals */}
-                            {!isLoading && hasMore && filter.length > 0 && (
+                        {/* Load more button */}
+                        <div className="flex flex-col items-center justify-center mt-10">
+                            {!isLoading && hasMore && (
                                 <button
                                     onClick={handleLoadMore}
                                     className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors shadow-lg font-medium"
@@ -388,28 +339,6 @@ const Food = () => {
                                     Load More Items
                                 </button>
                             )}
-                            
-                            {/* Items per page selector */}
-                            <div className="flex items-center justify-center text-sm mt-4">
-                                <label htmlFor="itemsPerPage" className="text-gray-400 mr-2">Items per batch:</label>
-                                <select
-                                    id="itemsPerPage"
-                                    className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
-                                    value={foodPerPage}
-                                    onChange={(e) => {
-                                        const newSize = parseInt(e.target.value);
-                                        setFoodPerPage(newSize);
-                                        setDisplayCount(newSize);
-                                        dispatch(setCurrentPage(0));
-                                    }}
-                                    aria-label="Number of items per load"
-                                >
-                                    <option value="6">6</option>
-                                    <option value="9">9</option>
-                                    <option value="12">12</option>
-                                    <option value="24">24</option>
-                                </select>
-                            </div>
                             
                             {!hasMore && filter.length > foodPerPage && (
                                 <div className="text-center mt-4 text-gray-400">

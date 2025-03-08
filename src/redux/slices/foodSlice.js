@@ -15,7 +15,21 @@ export const fetchFoods = createAsyncThunk(
       );
 
       if (!response.ok) throw new Error('Failed to fetch foods');
-      return await response.json();
+      const data = await response.json();
+      
+      if (data && typeof data === 'object' && Array.isArray(data.foods)) {
+        return {
+          foods: data.foods,
+          count: data.count || data.foods.length,
+          totalPages: data.totalPages || Math.ceil(data.count / size)
+        };
+      }
+      
+      return {
+        foods: Array.isArray(data) ? data : [],
+        count: Array.isArray(data) ? data.length : 0,
+        totalPages: Array.isArray(data) ? Math.ceil(data.length / size) : 0
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -77,7 +91,9 @@ const foodSlice = createSlice({
       })
       .addCase(fetchFoods.fulfilled, (state, action) => {
         state.loading = false;
-        state.foods = action.payload;
+        state.foods = action.payload.foods || [];
+        state.count = action.payload.count || action.payload.foods?.length || 0;
+        state.totalPages = action.payload.totalPages || 0;
       })
       .addCase(fetchFoods.rejected, (state, action) => {
         state.loading = false;

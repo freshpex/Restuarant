@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchDrinks, setCurrentPage } from '../../redux/slices/drinkSlice';
+import { fetchDrinks } from '../../redux/slices/drinkSlice';
 import { Helmet } from 'react-helmet';
 import AllDrinkCard from './AllDrinkCard';
 import { FaSearch, FaTimes, FaSpinner } from "react-icons/fa";
@@ -9,21 +9,21 @@ import Fuse from 'fuse.js';
 
 const Drink = () => {
     const dispatch = useDispatch();
-    const { drinks, loading, error, currentPage } = useSelector(state => state.drink);
+    const { drinks, loading, error } = useSelector(state => state.drink);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('');
-    const [drinkPerPage, setDrinkPerPage] = useState(9);
+    const [drinkPerPage] = useState(6);
     const [fuse, setFuse] = useState(null);
+    
     const [isLoading, setIsLoading] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
     const [displayedItems, setDisplayedItems] = useState([]);
     const [displayCount, setDisplayCount] = useState(drinkPerPage);
+    
     const observer = useRef();
-    const loadingRef = useRef(null);
     
     useEffect(() => {
         if (drinks.length > 0) {
@@ -38,64 +38,74 @@ const Drink = () => {
             };
             setFuse(new Fuse(drinks, fuseOptions));
             
-            const uniqueCategories = [...new Set(drinks.map(item => item.drinksCategory))].filter(Boolean);
+            const uniqueCategories = [...new Set(drinks.map(item => item.drinkCategory))].filter(Boolean);
             setCategories(uniqueCategories);
         }
     }, [drinks]);
 
     useEffect(() => {
-        dispatch(fetchDrinks({ page: currentPage, size: drinkPerPage }));
-    }, [dispatch, currentPage, drinkPerPage]);
+        dispatch(fetchDrinks({ page: 0, size: 1000 }));
+    }, [dispatch]);
 
     useEffect(() => {
         setFilter(drinks);
     }, [drinks]);
     
     useEffect(() => {
-        setDisplayedItems(filter.slice(0, displayCount));
-        setHasMore(displayCount < filter.length);
+        if (filter.length > 0) {
+            setDisplayedItems(filter.slice(0, displayCount));
+        }
     }, [filter, displayCount]);
-
+    
     const lastDrinkElementRef = useCallback(node => {
         if (loading) return;
         if (observer.current) observer.current.disconnect();
         observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasMore) {
+            if (entries[0].isIntersecting && displayCount < filter.length) {
                 loadMoreItems();
             }
         });
         if (node) observer.current.observe(node);
-    }, [loading, hasMore]);
+    }, [loading, displayCount, filter.length]);
 
+    // Load more items function
     const loadMoreItems = () => {
-        if (isLoading || !hasMore) return;
+        if (isLoading) return;
         
         setIsLoading(true);
         
-        if (displayCount + drinkPerPage > drinks.length && hasMore) {
-            dispatch(setCurrentPage(currentPage + 1))
-                .then(() => {
-                    setDisplayCount(prev => prev + drinkPerPage);
-                    setIsLoading(false);
-                })
-                .catch(() => {
-                    setIsLoading(false);
-                });
-        } else {
-            setTimeout(() => {
-                setDisplayCount(prev => prev + drinkPerPage);
-                setIsLoading(false);
-            }, 500);
-        }
+        // Simply display more items from the already loaded list
+        setTimeout(() => {
+            setDisplayCount(prev => Math.min(prev + drinkPerPage, filter.length));
+            setIsLoading(false);
+        }, 500);
     };
 
-    // Handle manual "Load More" button click
+    // Handle Load More button click
     const handleLoadMore = () => {
         if (!isLoading) {
             loadMoreItems();
         }
     };
     
+    // Apply filters to the all loaded drinks
+    const applyFilters = () => {
+        let filteredResults = allLoadedDrinks;
+        
+        if (search && fuse) {
+            const results = fuse.search(search);
+            filteredResults = results.map(result => result.item);
+        }
+        
+        if (selectedCategory) {
+            filteredResults = filteredResults.filter(item => item.drinkCategory === selectedCategory);
+        }
+        
+        setFilter(filteredResults);
+        setDisplayCount(Math.min(drinkPerPage, filteredResults.length));
+    };
+    
+    // Debounce function for search input
     const debounce = (func, delay) => {
         let timeoutId;
         return (...args) => {
@@ -122,10 +132,11 @@ const Drink = () => {
             
             if (!value) {
                 if (selectedCategory) {
-                    setFilter(drinks.filter(item => item.drinkCategory === selectedCategory));
+                    setFilter(allLoadedDrinks.filter(item => item.drinkCategory === selectedCategory));
                 } else {
-                    setFilter(drinks);
+                    setFilter(allLoadedDrinks);
                 }
+                setDisplayCount(drinkPerPage);
             }
         }
     };
@@ -139,44 +150,20 @@ const Drink = () => {
         const suggestionResults = results
             .map(result => result.item)
             .slice(0, 5);
-            
         setSuggestions(suggestionResults);
         
         let filteredResults = results.map(result => result.item);
-        
         if (selectedCategory) {
-            filteredResults = filteredResults.filter(
-                item => item.drinkCategory === selectedCategory
-            );
+            filteredResults = filteredResults.filter(item => item.drinkCategory === selectedCategory);
         }
         
         setFilter(filteredResults);
+        setDisplayCount(Math.min(drinkPerPage, filteredResults.length));
     }, 300);
     
     const handleSearch = () => {
-        if (!search) {
-            if (selectedCategory) {
-                setFilter(drinks.filter(item => item.drinkCategory === selectedCategory));
-            } else {
-                setFilter(drinks);
-            }
-            return;
-        }
-        
-        if (!fuse) return;
-        
-        const results = fuse.search(search);
-        let filteredResults = results.map(result => result.item);
-        
-        if (selectedCategory) {
-            filteredResults = filteredResults.filter(
-                item => item.drinkCategory === selectedCategory
-            );
-        }
-        
-        setFilter(filteredResults);
+        applyFilters();
         setShowSuggestions(false);
-        setDisplayCount(drinkPerPage);
     };
     
     const handleSuggestionClick = (suggestion) => {
@@ -190,34 +177,27 @@ const Drink = () => {
         }
         
         setFilter(filteredResults);
-        setDisplayCount(drinkPerPage);
+        setDisplayCount(Math.min(drinkPerPage, filteredResults.length));
     };
     
     const handleCategoryChange = (e) => {
         const category = e.target.value;
         setSelectedCategory(category);
         
-        if (!category) {
-            if (search && fuse) {
-                const results = fuse.search(search);
-                setFilter(results.map(result => result.item));
-            } else {
-                setFilter(drinks);
-            }
-            return;
-        }
+        // Apply category filter along with any active search
+        let filteredResults = allLoadedDrinks;
         
         if (search && fuse) {
-            const results = fuse.search(search);
-            const filteredResults = results
-                .map(result => result.item)
-                .filter(item => item.drinksCategory === category);
-            setFilter(filteredResults);
-        } else {
-            setFilter(drinks.filter(item => item.drinksCategory === category));
+            const searchResults = fuse.search(search);
+            filteredResults = searchResults.map(result => result.item);
         }
         
-        setDisplayCount(drinkPerPage);
+        if (category) {
+            filteredResults = filteredResults.filter(item => item.drinkCategory === category);
+        }
+        
+        setFilter(filteredResults);
+        setDisplayCount(Math.min(drinkPerPage, filteredResults.length));
     };
     
     const clearSearch = () => {
@@ -226,23 +206,26 @@ const Drink = () => {
         setShowSuggestions(false);
         
         if (selectedCategory) {
-            setFilter(drinks.filter(item => item.drinkCategory === selectedCategory));
+            setFilter(allLoadedDrinks.filter(item => item.drinkCategory === selectedCategory));
         } else {
-            setFilter(drinks);
+            setFilter(allLoadedDrinks);
         }
         
         setDisplayCount(drinkPerPage);
     };
 
+    // Calculate if we have more items to show
+    const hasMore = displayCount < filter.length;
+
     return (
         <>
             <Helmet>
-                <title>Tim's Kitchen | All-Drink</title>
+                <title>Tim's Kitchen | All-Drinks</title>
             </Helmet>
             <div className='bg-[#121212] w-full h-screen relative'>
                 <img 
                     className='w-full brightness-75 mx-auto h-[60%] my-auto bg-center bg-cover object-cover' 
-                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmjJSg35uns6TQqok1SUlJW9WVa47jFmD33w&s" 
+                    src="https://tastyc.bslthemes.com/wp-content/uploads/2021/04/gallery-i-6.jpg" 
                     alt="" 
                 />
                 <div className="absolute inset-0"></div>
@@ -281,7 +264,7 @@ const Drink = () => {
                                     <div className='relative right-0'>
                                         <button
                                             onClick={handleSearch}
-                                            className='rounded-tr-lg tracking-wider font-se rounded-br-lg font-semibold bg-yellow-700 px-5 py-3.5 text-gray-900'
+                                            className='rounded-tr-lg tracking-wider font-se rounded-br-lg font-semibold bg-blue-700 px-5 py-3.5 text-gray-100'
                                         >
                                             <FaSearch />
                                         </button>
@@ -295,7 +278,7 @@ const Drink = () => {
                                             {suggestions.map((item, index) => (
                                                 <li 
                                                     key={index}
-                                                    className='px-4 py-2 hover:bg-yellow-50 cursor-pointer flex items-center gap-3'
+                                                    className='px-4 py-2 hover:bg-blue-50 cursor-pointer flex items-center gap-3'
                                                     onClick={() => handleSuggestionClick(item)}
                                                 >
                                                     <img 
@@ -333,8 +316,9 @@ const Drink = () => {
                     </div>
                 </div>
             </div>
+            
             <div className='bg-[#121212] -mt-40 pb-20 lg:px-28 px-6'>
-                {loading && displayCount <= drinkPerPage ? (
+                {loading && displayedItems.length === 0 ? (
                     <LoadingSpinner />
                 ) : error ? (
                     <div className="text-red-500 text-center py-10">
@@ -349,7 +333,6 @@ const Drink = () => {
                         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10'>
                             {displayedItems.map((data, index) => {
                                 if (displayedItems.length === index + 1) {
-                                    // Last item - attach ref for intersection observer
                                     return (
                                         <div ref={lastDrinkElementRef} key={data._id}>
                                             <AllDrinkCard data={data} />
@@ -361,45 +344,24 @@ const Drink = () => {
                             })}
                         </div>
                         
+                        {/* Loading indicator */}
                         {isLoading && (
                             <div className="flex justify-center items-center py-8">
-                                <FaSpinner className="animate-spin text-yellow-600 text-2xl" />
+                                <FaSpinner className="animate-spin text-blue-600 text-2xl" />
                                 <span className="ml-2 text-gray-300">Loading more drinks...</span>
                             </div>
                         )}
                         
-                        {/* Load more buttons */}
-                        <div className="flex flex-col items-center justify-center mt-10 space-y-4">
+                        {/* Load more controls */}
+                        <div className="flex flex-col items-center justify-center mt-10">
                             {!isLoading && hasMore && (
                                 <button
                                     onClick={handleLoadMore}
-                                    className="px-6 py-2 bg-yellow-700 hover:bg-yellow-800 text-white rounded-lg transition-colors shadow-lg"
+                                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
                                 >
-                                    Load More
+                                    Load More Items
                                 </button>
                             )}
-                            
-                            {/* Items per page selector */}
-                            <div className="flex items-center justify-center text-sm mt-4">
-                                <label htmlFor="itemsPerPage" className="text-gray-400 mr-2">Items per batch:</label>
-                                <select
-                                    id="itemsPerPage"
-                                    className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
-                                    value={drinkPerPage}
-                                    onChange={(e) => {
-                                        const newSize = parseInt(e.target.value);
-                                        setDrinkPerPage(newSize);
-                                        setDisplayCount(newSize);
-                                        dispatch(setCurrentPage(0));
-                                    }}
-                                    aria-label="Number of items per load"
-                                >
-                                    <option value="6">6</option>
-                                    <option value="9">9</option>
-                                    <option value="12">12</option>
-                                    <option value="24">24</option>
-                                </select>
-                            </div>
                             
                             {!hasMore && filter.length > drinkPerPage && (
                                 <div className="text-center mt-4 text-gray-400">
