@@ -20,8 +20,12 @@ const StaffFoods = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   
+  const [updatingQuantity, setUpdatingQuantity] = useState({});
+  const [quantityValues, setQuantityValues] = useState({});
+  
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
+  const isAdmin = useSelector(state => state.auth.user?.role === 'admin');
 
   useEffect(() => {
     fetchFoods();
@@ -57,7 +61,6 @@ const StaffFoods = () => {
   
   // Sort and filter foods
   const getSortedAndFilteredFoods = () => {
-    // First, filter the foods
     let filteredFoods = foods.filter(food => {
       const matchesSearch = food.foodName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             food.foodDescription?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -67,16 +70,13 @@ const StaffFoods = () => {
       return matchesSearch && matchesCategory;
     });
     
-    // Then, sort the filtered foods
     return filteredFoods.sort((a, b) => {
-      // Handle numeric fields
       if (['foodPrice', 'foodQuantity', 'orderCount'].includes(sortField)) {
         const valueA = parseFloat(a[sortField]) || 0;
         const valueB = parseFloat(b[sortField]) || 0;
         
         return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
       } else {
-        // Handle string fields
         const valueA = (a[sortField] || '').toLowerCase();
         const valueB = (b[sortField] || '').toLowerCase();
         
@@ -126,6 +126,87 @@ const StaffFoods = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   
+  const handleQuantityChange = (foodId, value) => {
+    setQuantityValues({
+      ...quantityValues,
+      [foodId]: value
+    });
+  };
+
+  const incrementQuantity = (foodId) => {
+    const currentValue = parseInt(quantityValues[foodId] || '0');
+    setQuantityValues({
+      ...quantityValues,
+      [foodId]: (currentValue + 1).toString()
+    });
+  };
+
+  const decrementQuantity = (foodId) => {
+    const currentValue = parseInt(quantityValues[foodId] || '0');
+    if (currentValue > 0) {
+      setQuantityValues({
+        ...quantityValues,
+        [foodId]: (currentValue - 1).toString()
+      });
+    }
+  };
+
+  const updateFoodQuantity = async (foodId) => {
+    try {
+      setUpdatingQuantity({
+        ...updatingQuantity,
+        [foodId]: true
+      });
+
+      const changeAmount = parseInt(quantityValues[foodId] || 0);
+      if (isNaN(changeAmount) || changeAmount === 0) {
+        toast.error('Please enter a valid quantity');
+        return;
+      }
+
+      if (!isAdmin && changeAmount < 0) {
+        toast.error('Only admins can decrease inventory quantities');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/foods/${foodId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quantity: changeAmount })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update quantity');
+      }
+
+      const data = await response.json();
+      
+      setFoods(prevFoods => 
+        prevFoods.map(food => 
+          food._id === foodId 
+            ? { ...food, foodQuantity: data.newQuantity.toString() } 
+            : food
+        )
+      );
+      
+      toast.success(`Food quantity updated successfully`);
+      setQuantityValues({
+        ...quantityValues,
+        [foodId]: ''
+      });
+    } catch (error) {
+      toast.error(error.message || 'Error updating food quantity');
+    } finally {
+      setUpdatingQuantity({
+        ...updatingQuantity,
+        [foodId]: false
+      });
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -284,12 +365,54 @@ const StaffFoods = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Link
-                            to={`/seeFood/${food._id}`}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            View
-                          </Link>
+                          <div className="flex items-center space-x-2">
+                            {/* Quantity update UI */}
+                            <div className="flex items-center">
+                              <div className="flex border border-gray-300 rounded">
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => decrementQuantity(food._id)}
+                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                                    disabled={updatingQuantity[food._id]}
+                                  >
+                                    -
+                                  </button>
+                                )}
+                                <input
+                                  type="number"
+                                  placeholder="Qty"
+                                  className="w-16 h-8 px-2 border-0 text-center"
+                                  value={quantityValues[food._id] || ''}
+                                  onChange={(e) => handleQuantityChange(food._id, e.target.value)}
+                                />
+                                <button
+                                  onClick={() => incrementQuantity(food._id)}
+                                  className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                                  disabled={updatingQuantity[food._id]}
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => updateFoodQuantity(food._id)}
+                                className="ml-2 inline-flex items-center px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded"
+                                disabled={updatingQuantity[food._id]}
+                              >
+                                {updatingQuantity[food._id] ? (
+                                  <FaSpinner className="animate-spin h-4 w-4" />
+                                ) : (
+                                  <span>Save</span>
+                                )}
+                              </button>
+                            </div>
+                            
+                            <Link 
+                              to={`/seeFood/${food._id}`} 
+                              className="text-blue-600 hover:text-blue-900 mr-3"
+                            >
+                              View
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -373,6 +496,48 @@ const StaffFoods = () => {
                         >
                           View
                         </Link>
+                      </div>
+                    </div>
+                    
+                    <div className="px-4 py-3 border-t border-gray-100 flex flex-col">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Update Quantity</h4>
+                      <div className="flex items-center">
+                        <div className="flex border border-gray-300 rounded">
+                          {isAdmin && (
+                            <button
+                              onClick={() => decrementQuantity(food._id)}
+                              className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                              disabled={updatingQuantity[food._id]}
+                            >
+                              -
+                            </button>
+                          )}
+                          <input
+                            type="number"
+                            placeholder="Qty"
+                            className="w-16 h-8 px-2 border-0 text-center"
+                            value={quantityValues[food._id] || ''}
+                            onChange={(e) => handleQuantityChange(food._id, e.target.value)}
+                          />
+                          <button
+                            onClick={() => incrementQuantity(food._id)}
+                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                            disabled={updatingQuantity[food._id]}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => updateFoodQuantity(food._id)}
+                          className="ml-2 flex-grow inline-flex items-center justify-center px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded"
+                          disabled={updatingQuantity[food._id]}
+                        >
+                          {updatingQuantity[food._id] ? (
+                            <FaSpinner className="animate-spin h-4 w-4" />
+                          ) : (
+                            <span>Update Quantity</span>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

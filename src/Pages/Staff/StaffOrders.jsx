@@ -156,14 +156,6 @@ const StaffOrders = () => {
     
     return [...forwardStatuses, 'cancelled'];
   };
-  
-  const getAvailablePaymentStatuses = (currentPaymentStatus) => {
-    const paymentStatusSequence = ['unpaid', 'processing', 'paid'];
-    
-    const currentIndex = paymentStatusSequence.indexOf(currentPaymentStatus);
-    
-    return paymentStatusSequence.slice(currentIndex);
-  };
 
   const updateOrderStatus = async (orderId, status) => {
     try {

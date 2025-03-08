@@ -20,8 +20,13 @@ const StaffDrinks = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   
+  // New state for quantity management
+  const [updatingQuantity, setUpdatingQuantity] = useState({});
+  const [quantityValues, setQuantityValues] = useState({});
+  
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
+  const isAdmin = useSelector(state => state.auth.user?.role === 'admin');
 
   useEffect(() => {
     fetchDrinks();
@@ -120,7 +125,89 @@ const StaffDrinks = () => {
   };
   
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  
+
+  const handleQuantityChange = (drinkId, value) => {
+    setQuantityValues({
+      ...quantityValues,
+      [drinkId]: value
+    });
+  };
+
+  const incrementQuantity = (drinkId) => {
+    const currentValue = parseInt(quantityValues[drinkId] || '0');
+    setQuantityValues({
+      ...quantityValues,
+      [drinkId]: (currentValue + 1).toString()
+    });
+  };
+
+  const decrementQuantity = (drinkId) => {
+    const currentValue = parseInt(quantityValues[drinkId] || '0');
+    if (currentValue > 0) {
+      setQuantityValues({
+        ...quantityValues,
+        [drinkId]: (currentValue - 1).toString()
+      });
+    }
+  };
+
+  const updateDrinkQuantity = async (drinkId) => {
+    try {
+      setUpdatingQuantity({
+        ...updatingQuantity,
+        [drinkId]: true
+      });
+
+      const changeAmount = parseInt(quantityValues[drinkId] || 0);
+      if (isNaN(changeAmount) || changeAmount === 0) {
+        toast.error('Please enter a valid quantity');
+        return;
+      }
+
+      if (!isAdmin && changeAmount < 0) {
+        toast.error('Only admins can decrease inventory quantities');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/drinks/${drinkId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quantity: changeAmount })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update quantity');
+      }
+
+      const data = await response.json();
+      
+      // Update the drink in the state
+      setDrinks(prevDrinks => 
+        prevDrinks.map(drink => 
+          drink._id === drinkId 
+            ? { ...drink, drinkQuantity: data.newQuantity.toString() } 
+            : drink
+        )
+      );
+      
+      toast.success(`Drink quantity updated successfully`);
+      setQuantityValues({
+        ...quantityValues,
+        [drinkId]: ''
+      });
+    } catch (error) {
+      toast.error(error.message || 'Error updating drink quantity');
+    } finally {
+      setUpdatingQuantity({
+        ...updatingQuantity,
+        [drinkId]: false
+      });
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -279,12 +366,55 @@ const StaffDrinks = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Link
-                            to={`/seeDrink/${drink._id}`}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            View
-                          </Link>
+                          <div className="flex items-center space-x-2">
+                            {/* Quantity update UI */}
+                            <div className="flex items-center">
+                              <div className="flex border border-gray-300 rounded">
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => decrementQuantity(drink._id)}
+                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                                    disabled={updatingQuantity[drink._id]}
+                                  >
+                                    -
+                                  </button>
+                                )}
+                                <input
+                                  type="number"
+                                  placeholder="Qty"
+                                  className="w-16 h-8 px-2 border-0 text-center"
+                                  value={quantityValues[drink._id] || ''}
+                                  onChange={(e) => handleQuantityChange(drink._id, e.target.value)}
+                                />
+                                <button
+                                  onClick={() => incrementQuantity(drink._id)}
+                                  className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                                  disabled={updatingQuantity[drink._id]}
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => updateDrinkQuantity(drink._id)}
+                                className="ml-2 inline-flex items-center px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded"
+                                disabled={updatingQuantity[drink._id]}
+                              >
+                                {updatingQuantity[drink._id] ? (
+                                  <FaSpinner className="animate-spin h-4 w-4" />
+                                ) : (
+                                  <span>Save</span>
+                                )}
+                              </button>
+                            </div>
+                            
+                            {/* Other action buttons */}
+                            <Link 
+                              to={`/seeDrink/${drink._id}`} 
+                              className="text-blue-600 hover:text-blue-900 mr-3"
+                            >
+                              View
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -368,6 +498,48 @@ const StaffDrinks = () => {
                         >
                           View
                         </Link>
+                      </div>
+                    </div>
+                    
+                    <div className="px-4 py-3 border-t border-gray-100 flex flex-col">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Update Quantity</h4>
+                      <div className="flex items-center">
+                        <div className="flex border border-gray-300 rounded">
+                          {isAdmin && (
+                            <button
+                              onClick={() => decrementQuantity(drink._id)}
+                              className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                              disabled={updatingQuantity[drink._id]}
+                            >
+                              -
+                            </button>
+                          )}
+                          <input
+                            type="number"
+                            placeholder="Qty"
+                            className="w-16 h-8 px-2 border-0 text-center"
+                            value={quantityValues[drink._id] || ''}
+                            onChange={(e) => handleQuantityChange(drink._id, e.target.value)}
+                          />
+                          <button
+                            onClick={() => incrementQuantity(drink._id)}
+                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600"
+                            disabled={updatingQuantity[drink._id]}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => updateDrinkQuantity(drink._id)}
+                          className="ml-2 flex-grow inline-flex items-center justify-center px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded"
+                          disabled={updatingQuantity[drink._id]}
+                        >
+                          {updatingQuantity[drink._id] ? (
+                            <FaSpinner className="animate-spin h-4 w-4" />
+                          ) : (
+                            <span>Update Quantity</span>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

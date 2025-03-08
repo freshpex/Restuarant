@@ -10,6 +10,7 @@ import Fuse from 'fuse.js';
 const Food = () => {
     const dispatch = useDispatch();
     const { foods, loading, error, currentPage } = useSelector(state => state.food);
+    console.log('Foods:', foods);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
@@ -18,14 +19,11 @@ const Food = () => {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [foodPerPage, setFoodPerPage] = useState(6);
     const [fuse, setFuse] = useState(null);
-    
-    // New state for infinite scrolling
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [displayedItems, setDisplayedItems] = useState([]);
     const [displayCount, setDisplayCount] = useState(foodPerPage);
     const observer = useRef();
-    const loadingRef = useRef(null);
     
     useEffect(() => {
         if (foods.length > 0) {
@@ -47,6 +45,7 @@ const Food = () => {
 
     useEffect(() => {
         dispatch(fetchFoods({ page: currentPage, size: foodPerPage }));
+        console.log('Fetching foods with page:', currentPage, 'and size:', foodPerPage);
     }, [dispatch, currentPage, foodPerPage]);
 
     useEffect(() => {
@@ -55,11 +54,12 @@ const Food = () => {
     
     
     useEffect(() => {
-        setDisplayedItems(filter.slice(0, displayCount));
-        setHasMore(displayCount < filter.length);
+        if (filter.length > 0) {
+            setDisplayedItems(filter.slice(0, displayCount));
+            setHasMore(displayCount < filter.length);
+        }
     }, [filter, displayCount]);
 
-    // Implementation of infinite scroll using Intersection Observer
     const lastFoodElementRef = useCallback(node => {
         if (loading) return;
         if (observer.current) observer.current.disconnect();
@@ -77,14 +77,12 @@ const Food = () => {
         setIsLoading(true);
         
         if (displayCount + foodPerPage > foods.length && hasMore) {
-            dispatch(setCurrentPage(currentPage + 1))
-                .then(() => {
-                    setDisplayCount(prev => prev + foodPerPage);
-                    setIsLoading(false);
-                })
-                .catch(() => {
-                    setIsLoading(false);
-                });
+            dispatch(setCurrentPage(currentPage + 1));
+            
+            setTimeout(() => {
+                setDisplayCount(prev => prev + foodPerPage);
+                setIsLoading(false);
+            }, 800);
         } else {
             setTimeout(() => {
                 setDisplayCount(prev => prev + foodPerPage);
@@ -363,54 +361,62 @@ const Food = () => {
                             })}
                         </div>
                         
-                        {/* Loading indicator at bottom of grid */}
+                        {/* Loading indicator */}
                         {isLoading && (
                             <div className="flex justify-center items-center py-8">
                                 <FaSpinner className="animate-spin text-yellow-600 text-2xl" />
-                                <span className="ml-2 text-gray-300">Loading more items...</span>
+                                <span className="ml-2 text-gray-300">Loading more foods...</span>
                             </div>
                         )}
                         
-                        {/* Load more button  */}
-                        {!isLoading && hasMore && (
-                            <div className="text-center mt-10">
+                        {/* Load more button and controls */}
+                        <div className="flex flex-col items-center justify-center mt-10 space-y-4">
+                            {/* Debug output to help understand why button might not be showing */}
+                            <div className="text-xs text-gray-500">
+                                isLoading: {isLoading ? 'true' : 'false'}, 
+                                hasMore: {hasMore ? 'true' : 'false'}, 
+                                filter length: {filter.length}, 
+                                displayCount: {displayCount}
+                            </div>
+                            
+                            {/* Make Load More button more visible with better conditionals */}
+                            {!isLoading && hasMore && filter.length > 0 && (
                                 <button
                                     onClick={handleLoadMore}
-                                    className="px-6 py-2 bg-yellow-700 hover:bg-yellow-800 text-white rounded-lg transition-colors shadow-lg"
+                                    className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors shadow-lg font-medium"
                                 >
-                                    Load More
+                                    Load More Items
                                 </button>
+                            )}
+                            
+                            {/* Items per page selector */}
+                            <div className="flex items-center justify-center text-sm mt-4">
+                                <label htmlFor="itemsPerPage" className="text-gray-400 mr-2">Items per batch:</label>
+                                <select
+                                    id="itemsPerPage"
+                                    className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
+                                    value={foodPerPage}
+                                    onChange={(e) => {
+                                        const newSize = parseInt(e.target.value);
+                                        setFoodPerPage(newSize);
+                                        setDisplayCount(newSize);
+                                        dispatch(setCurrentPage(0));
+                                    }}
+                                    aria-label="Number of items per load"
+                                >
+                                    <option value="6">6</option>
+                                    <option value="9">9</option>
+                                    <option value="12">12</option>
+                                    <option value="24">24</option>
+                                </select>
                             </div>
-                        )}
-                        
-                        {/* Items per batch selector */}
-                        <div className="flex items-center justify-center text-sm mt-4">
-                            <label htmlFor="itemsPerBatch" className="text-gray-400 mr-2">Items per batch:</label>
-                            <select
-                                id="itemsPerBatch"
-                                className="bg-gray-800 border border-gray-700 text-white rounded-md px-2 py-1 text-sm"
-                                value={foodPerPage}
-                                onChange={(e) => {
-                                    const newSize = parseInt(e.target.value);
-                                    setFoodPerPage(newSize);
-                                    setDisplayCount(newSize);
-                                    dispatch(setCurrentPage(0));
-                                }}
-                                aria-label="Number of items per load"
-                            >
-                                <option value="6">6</option>
-                                <option value="9">9</option>
-                                <option value="12">12</option>
-                                <option value="24">24</option>
-                            </select>
+                            
+                            {!hasMore && filter.length > foodPerPage && (
+                                <div className="text-center mt-4 text-gray-400">
+                                    You've reached the end of the list.
+                                </div>
+                            )}
                         </div>
-
-                        {/* Message when all items are loaded */}
-                        {!hasMore && filter.length > foodPerPage && (
-                            <div className="text-center mt-8 text-gray-400">
-                                You've reached the end of the list.
-                            </div>
-                        )}
                     </>
                 )}
             </div>
