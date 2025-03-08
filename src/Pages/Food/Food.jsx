@@ -10,7 +10,6 @@ import Fuse from 'fuse.js';
 const Food = () => {
     const dispatch = useDispatch();
     const { foods, loading, error } = useSelector(state => state.food);
-    console.log('Foods:', foods);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
@@ -44,7 +43,6 @@ const Food = () => {
 
     useEffect(() => {
         dispatch(fetchFoods({ page: 0, size: 1000 }));
-        console.log('Fetching all foods at once');
     }, [dispatch]);
 
     useEffect(() => {
