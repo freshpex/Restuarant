@@ -31,8 +31,12 @@ const UpdateFood = () => {
                 .then(food => {
                     if (food.email !== user.email && isAdmin) {
                         setIsEditingAsAdmin(true);
-                        toast.info('You are editing this food as an admin', {
-                            icon: <FaUserShield className="text-blue-500" />
+                        toast('You are editing this food as an admin', {
+                            icon: <FaUserShield className="text-blue-500" />,
+                            style: {
+                                borderLeft: '4px solid #3B82F6',
+                                background: '#EFF6FF'
+                            }
                         });
                     }
                     
@@ -42,7 +46,8 @@ const UpdateFood = () => {
                 })
                 .catch(error => {
                     console.error("Error fetching food:", error);
-                    if (error.includes("Unauthorized")) {
+                    const errorMessage = error?.message || String(error);
+                    if (errorMessage.includes("Unauthorized")) {
                         toast.error("You don't have permission to edit this food", {
                             icon: <FaExclamationTriangle className="text-red-500" />
                         });
