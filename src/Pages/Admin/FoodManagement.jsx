@@ -212,7 +212,7 @@ const FoodManagement = () => {
                           <FaEye className="mr-2" /> View
                         </Link>
                         <NavLink 
-                          to={`/admin/update/${food._id}`}
+                          to={`/admin/update-food/${food._id}`}
                           className="flex-1 flex justify-center items-center py-2 text-indigo-600 hover:bg-indigo-50 rounded"
                         >
                           <FaEdit className="mr-2" /> Edit
