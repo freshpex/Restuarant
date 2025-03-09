@@ -60,6 +60,7 @@ import StaffAddOrder from './Pages/Staff/StaffAddOrder';
 import StaffActivities from './Pages/Admin/StaffActivities';
 import RawMaterials from './Pages/Admin/RawMaterials';
 import StaffDrinks from './Pages/Staff/StaffDrinks';
+import PageErrorBoundary from './Components/ErrorBoundary/PageErrorBoundary';
 
 function App() {
     const dispatch = useDispatch();
@@ -102,7 +103,7 @@ function App() {
             children: [
                 {
                     path: '/',
-                    element: <Hero />
+                    element: <PageErrorBoundary pageName="Home Page"><Hero /></PageErrorBoundary>
                 },
                 {
                     path: "/about",
@@ -186,15 +187,15 @@ function App() {
                 },
                 {
                     path: "/checkout",
-                    element: <Checkout />
+                    element: <PageErrorBoundary pageName="Checkout"><Checkout /></PageErrorBoundary>
                 },
                 {
                     path: "/order-success",
-                    element: <OrderSuccess />
+                    element: <PageErrorBoundary pageName="Order Confirmation"><OrderSuccess /></PageErrorBoundary>
                 },
                 {
                     path: "/track-order",
-                    element: <PrivateRouter><OrderTracking /></PrivateRouter>
+                    element: <PrivateRouter><PageErrorBoundary pageName="Order Tracking"><OrderTracking /></PageErrorBoundary></PrivateRouter>
                 },
                 {
                     path: "/track-order/:orderId",
@@ -204,7 +205,7 @@ function App() {
         },
         {
             path: '/admin',
-            element: <AdminRoute><AdminDashboard /></AdminRoute>,
+            element: <AdminRoute><PageErrorBoundary pageName="Admin Dashboard"><AdminDashboard /></PageErrorBoundary></AdminRoute>,
             children: [
                 {
                     index: true,
@@ -262,7 +263,7 @@ function App() {
         },
         {
             path: '/staff',
-            element: <StaffRoute />,
+            element: <PageErrorBoundary pageName="Staff Dashboard"><StaffRoute /></PageErrorBoundary>,
             children: [
                 {
                     path: 'dashboard',
@@ -301,14 +302,12 @@ function App() {
     ]);
 
     return (
-        <Provider store={store}>
-            <PersistGate loading={null} persistor={persistor}>
-                <GlobalLoadingSpinner />
-                <RouterProvider router={router} />
-                <Toaster />
-                {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
-            </PersistGate>
-        </Provider>
+        <>
+            <GlobalLoadingSpinner />
+            <RouterProvider router={router} />
+            <Toaster />
+            {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
+        </>
     );
 }
 

@@ -10,6 +10,7 @@ import ErrorBoundary from './Components/ErrorBoundary/ErrorBoundary';
 // Error reporting service integration
 const reportError = (error, errorInfo) => {
   console.error("Captured error:", error, errorInfo);
+
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       onError={reportError}
       onReset={() => {
         console.log("Error boundary reset");
+        window.location.href = '/';
       }}
     >
       <Provider store={store}>
