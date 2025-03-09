@@ -427,8 +427,8 @@ const StaffFoods = () => {
                   <div>
                     <p className="text-sm text-gray-700">
                       Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
-                      <span className="font-medium">{Math.min(indexOfLastItem, sortedAndFilteredDrinks.length)}</span> of{" "}
-                      <span className="font-medium">{sortedAndFilteredDrinks.length}</span> results
+                      <span className="font-medium">{Math.min(indexOfLastItem, sortedAndFilteredFoods.length)}</span> of{" "}
+                      <span className="font-medium">{sortedAndFilteredFoods.length}</span> results
                     </p>
                   </div>
                   <Pagination

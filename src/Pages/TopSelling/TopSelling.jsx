@@ -107,7 +107,7 @@ const TopSelling = () => {
                         Browse All Foods
                     </button>
                 </Link>
-                <Link to="/drinks">
+                <Link to="/drink">
                     <button className='text-white border-2 border-yellow-700 hover:bg-yellow-700/20 px-6 py-3 rounded-lg tracking-wider transition-all'>
                         Browse All Drinks
                     </button>
