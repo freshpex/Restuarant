@@ -6,11 +6,22 @@ import { store, persistor } from './redux/store';
 import App from './App';
 import './index.css';
 import ErrorBoundary from './Components/ErrorBoundary/ErrorBoundary';
+import { registerSW } from 'virtual:pwa-register';
+
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm('New content available. Reload?')) {
+      updateSW(true);
+    }
+  },
+  onOfflineReady() {
+    console.log('App ready to work offline');
+  },
+});
 
 // Error reporting service integration
 const reportError = (error, errorInfo) => {
   console.error("Captured error:", error, errorInfo);
-
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(

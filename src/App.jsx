@@ -61,6 +61,7 @@ import StaffActivities from './Pages/Admin/StaffActivities';
 import RawMaterials from './Pages/Admin/RawMaterials';
 import StaffDrinks from './Pages/Staff/StaffDrinks';
 import PageErrorBoundary from './Components/ErrorBoundary/PageErrorBoundary';
+import PWAInstallPrompt from './Components/PWAInstallPrompt';
 
 function App() {
     const dispatch = useDispatch();
@@ -306,6 +307,7 @@ function App() {
             <GlobalLoadingSpinner />
             <RouterProvider router={router} />
             <Toaster />
+            <PWAInstallPrompt />
             {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
         </>
     );
