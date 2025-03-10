@@ -11,18 +11,24 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'logo.png', 'robots.txt', 'offline.html'],
       manifest: {
-        id: "com.timskitchen.app",
+        id: "/",
         name: "Tim's Kitchen",
         short_name: "Tim's Kitchen",
         description: "Delicious homemade meals made with fresh ingredients and love. Order authentic Nigerian cuisine delivered to your doorstep.",
         theme_color: '#4285f4',
         background_color: '#121212',
-        orientation: 'any',
+        orientation: 'portrait-primary',
         categories: ["food", "restaurant", "delivery", "cooking"],
         lang: "en-US",
         dir: "ltr",
+        iarc_rating_id: "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
         prefer_related_applications: false,
         scope: "/",
+        scope_extensions: [
+          {
+            origin: "https://timskitchen.vercel.app"
+          }
+        ],
         launch_handler: {
           client_mode: ["navigate-existing", "auto"]
         },
@@ -47,13 +53,15 @@ export default defineConfig({
             src: "screenshots/desktop1.png",
             sizes: "1280x720",
             type: "image/png",
-            form_factor: "wide"
+            form_factor: "wide",
+            label: "Tim's Kitchen homepage"
           },
           {
             src: "screenshots/mobile1.png", 
             sizes: "750x1334",
             type: "image/png",
-            form_factor: "narrow"
+            form_factor: "narrow",
+            label: "Tim's Kitchen on mobile"
           }
         ]
       },

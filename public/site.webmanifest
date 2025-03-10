@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Tim's Kitchen",
   "short_name": "Tim's Kitchen",
   "description": "Delicious homemade meals made with fresh ingredients and love. Order authentic Nigerian cuisine delivered to your doorstep.",
@@ -12,11 +13,13 @@
     {
       "src": "icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#121212",
   "theme_color": "#4285f4"
 }
