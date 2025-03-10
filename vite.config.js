@@ -108,9 +108,7 @@ export default defineConfig({
               }
             }
           }
-        ],
-        navigateFallback: '/offline.html',
-        force: true
+        ]
       }
     })
   ],
