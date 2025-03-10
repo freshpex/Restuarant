@@ -21,5 +21,6 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#121212",
-  "theme_color": "#4285f4"
+  "theme_color": "#4285f4",
+  "scope": "https://timskitchen.vercel.app/"
 }

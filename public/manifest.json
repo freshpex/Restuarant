@@ -1,5 +1,5 @@
 {
-  "id": "/",
+  "id": "com.timskitchen.app",
   "name": "Tim's Kitchen",
   "short_name": "Tim's Kitchen",
   "description": "Delicious homemade meals made with fresh ingredients and love. Order authentic Nigerian cuisine delivered to your doorstep.",
@@ -14,7 +14,7 @@
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "prefer_related_applications": false,
   "related_applications": [],
-  "scope": "/",
+  "scope": "https://timskitchen.vercel.app/",
   "scope_extensions": [
     {
       "origin": "https://timskitchen.vercel.app"

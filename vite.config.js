@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    https: process.env.NODE_ENV === 'production',
+    port: 5173
+  },
   plugins: [
     react(),
     VitePWA({
@@ -105,7 +109,8 @@ export default defineConfig({
             }
           }
         ],
-        navigateFallback: '/offline.html'
+        navigateFallback: '/offline.html',
+        force: true
       }
     })
   ],
