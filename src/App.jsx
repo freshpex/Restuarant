@@ -62,6 +62,7 @@ import RawMaterials from './Pages/Admin/RawMaterials';
 import StaffDrinks from './Pages/Staff/StaffDrinks';
 import PageErrorBoundary from './Components/ErrorBoundary/PageErrorBoundary';
 import PWAInstallPrompt from './Components/PWAInstallPrompt';
+import OfflineDetector from './Components/OfflineDetector';
 
 function App() {
     const dispatch = useDispatch();
@@ -308,6 +309,7 @@ function App() {
             <RouterProvider router={router} />
             <Toaster />
             <PWAInstallPrompt />
+            <OfflineDetector />
             {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
         </>
     );

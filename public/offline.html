@@ -53,12 +53,22 @@
     <img src="/logo.png" alt="Tim's Kitchen Logo" class="logo">
     <h1>You're offline</h1>
     <p>Sorry, you're currently offline and we couldn't load the page you requested. Please check your internet connection and try again.</p>
-    <button onclick="window.location.reload()">Try Again</button>
+    <button id="tryAgainBtn">Try Again</button>
     
     <script>
+        const lastPath = sessionStorage.getItem('lastPath') || '/';
+        
+        document.getElementById('tryAgainBtn').addEventListener('click', function() {
+            if (navigator.onLine) {
+                window.location.href = lastPath;
+            } else {
+                window.location.reload();
+            }
+        });
+
         // Check if online status changes
         window.addEventListener('online', () => {
-            window.location.reload();
+            window.location.href = lastPath;
         });
     </script>
 </body>
