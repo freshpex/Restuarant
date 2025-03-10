@@ -7,19 +7,15 @@
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#4285f4",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "categories": ["food", "restaurant", "delivery", "cooking"],
   "lang": "en-US",
   "dir": "ltr",
-  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  "iarc_rating_id": "",
   "prefer_related_applications": false,
   "related_applications": [],
-  "scope": "https://timskitchen.vercel.app/",
-  "scope_extensions": [
-    {
-      "origin": "https://timskitchen.vercel.app"
-    }
-  ],
+  "scope": "/",
+  "scope_extensions": [],
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
@@ -72,29 +68,25 @@
       "src": "screenshots/desktop1.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide",
-      "label": "Tim's Kitchen homepage"
+      "form_factor": "wide"
     },
     {
       "src": "screenshots/desktop2.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide",
-      "label": "Browse our menu"
+      "form_factor": "wide"
     },
     {
       "src": "screenshots/mobile1.png",
       "sizes": "750x1334",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Tim's Kitchen on mobile"
+      "form_factor": "narrow"
     },
     {
       "src": "screenshots/mobile2.png",
       "sizes": "750x1334",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Order your favorite food"
+      "form_factor": "narrow"
     }
   ]
 }
