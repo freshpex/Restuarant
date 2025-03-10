@@ -9,31 +9,57 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.ico', 'logo.png', 'robots.txt'],
+      includeAssets: ['favicon.ico', 'logo.png', 'robots.txt', 'offline.html'],
       manifest: {
+        id: "com.timskitchen.app",
         name: "Tim's Kitchen",
         short_name: "Tim's Kitchen",
-        description: "Delicious homemade meals made with fresh ingredients and love",
+        description: "Delicious homemade meals made with fresh ingredients and love. Order authentic Nigerian cuisine delivered to your doorstep.",
         theme_color: '#4285f4',
+        background_color: '#121212',
+        orientation: 'any',
+        categories: ["food", "restaurant", "delivery", "cooking"],
+        lang: "en-US",
+        dir: "ltr",
+        prefer_related_applications: false,
+        scope: "/",
+        launch_handler: {
+          client_mode: ["navigate-existing", "auto"]
+        },
         icons: [
           {
             src: 'icons/icon-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
             src: 'icons/icon-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ],
         start_url: '/',
         display: 'standalone',
-        background_color: '#121212'
+        screenshots: [
+          {
+            src: "screenshots/desktop1.png",
+            sizes: "1280x720",
+            type: "image/png",
+            form_factor: "wide"
+          },
+          {
+            src: "screenshots/mobile1.png", 
+            sizes: "750x1334",
+            type: "image/png",
+            form_factor: "narrow"
+          }
+        ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, 
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,
@@ -68,7 +94,8 @@ export default defineConfig({
               }
             }
           }
-        ]
+        ],
+        navigateFallback: '/offline.html'
       }
     })
   ],
