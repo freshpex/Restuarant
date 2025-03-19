@@ -1,78 +1,78 @@
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { FaArrowLeft, FaSpinner } from 'react-icons/fa';
-import toast from 'react-hot-toast';
-import { clearCart } from '../../redux/slices/cartSlice';
-import { formatPrice } from '../../utils/formatUtils';
-import { selectCurrentUser } from '../../redux/selectors';
-import CustomPaymentModal from '../../Components/Payment/CustomPaymentModal';
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import { FaArrowLeft, FaSpinner } from "react-icons/fa";
+import toast from "react-hot-toast";
+import { clearCart } from "../../redux/slices/cartSlice";
+import { formatPrice } from "../../utils/formatUtils";
+import { selectCurrentUser } from "../../redux/selectors";
+import CustomPaymentModal from "../../Components/Payment/CustomPaymentModal";
 
 const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-  
+
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('online');
+  const [paymentMethod, setPaymentMethod] = useState("online");
   const [processingPayment, setProcessingPayment] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
-  const [phoneError, setPhoneError] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
+  const [phoneError, setPhoneError] = useState("");
   const [lastOrderId, setLastOrderId] = useState(null);
-  const [guestName, setGuestName] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
-  
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+
   // Custom Payment Modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState(null);
-  
-  const { 
-    cartItems, 
-    totalAmount, 
-    deliveryLocation, 
-    deliveryFee, 
+
+  const {
+    cartItems,
+    totalAmount,
+    deliveryLocation,
+    deliveryFee,
     fullAddress,
     grandTotal,
-    isGuest = false
+    isGuest = false,
   } = location.state || {};
-  
+
   if (!cartItems || cartItems.length === 0) {
-    navigate('/cart');
+    navigate("/cart");
     return null;
   }
-  
+
   const handleBackToCart = () => {
-    navigate('/cart');
+    navigate("/cart");
   };
-  
+
   const validatePhoneNumber = (phone) => {
     const phoneRegex = /^\+?[0-9\s\-()]{7,15}$/;
     return phoneRegex.test(phone);
   };
-  
+
   const processOrder = async (transactionDetails = null) => {
     setLoading(true);
-    
+
     if (!phoneNumber.trim()) {
-      setPhoneError('Phone number is required');
+      setPhoneError("Phone number is required");
       setLoading(false);
       return;
     }
-    
+
     if (!validatePhoneNumber(phoneNumber.trim())) {
-      setPhoneError('Please enter a valid phone number');
+      setPhoneError("Please enter a valid phone number");
       setLoading(false);
       return;
     }
 
     if (isGuest && !guestName.trim()) {
-      toast.error('Please enter your name');
+      toast.error("Please enter your name");
       setLoading(false);
       return;
     }
-    
+
     try {
       const orderData = {
         items: prepareOrderItems(),
@@ -82,104 +82,113 @@ const Checkout = () => {
         subtotal: totalAmount,
         total: grandTotal,
         paymentMethod,
-        paymentStatus: transactionDetails ? 'paid' : 'unpaid',
+        paymentStatus: transactionDetails ? "paid" : "unpaid",
         transactionRef: transactionDetails?.transaction_id || null,
-        buyerName: isGuest ? guestName : user?.displayName || '',
-        email: isGuest ? guestEmail : user?.email || '',
-        userEmail: isGuest ? guestEmail : user?.email || '',
+        buyerName: isGuest ? guestName : user?.displayName || "",
+        email: isGuest ? guestEmail : user?.email || "",
+        userEmail: isGuest ? guestEmail : user?.email || "",
         phone: phoneNumber.trim(),
-        date: new Date().toISOString().split('T')[0],
-        isGuestOrder: isGuest
+        date: new Date().toISOString().split("T")[0],
+        isGuestOrder: isGuest,
       };
-      
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/bulk-order`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(orderData),
         },
-        body: JSON.stringify(orderData)
-      });
-      
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to place order');
+        throw new Error(errorData.error || "Failed to place order");
       }
-      
+
       const data = await response.json();
       setLastOrderId(data.orderId);
-      
+
       dispatch(clearCart());
-      
-      navigate('/order-success', { 
-        state: { 
+
+      navigate("/order-success", {
+        state: {
           orderId: data.orderId,
           orderReference: data.orderReference,
           isPaid: !!transactionDetails,
-          contactPhone: phoneNumber.trim()
-        }
+          contactPhone: phoneNumber.trim(),
+        },
       });
-      
     } catch (error) {
-      console.error('Order processing error:', error);
-      toast.error(error.message || 'Something went wrong. Please try again.');
+      console.error("Order processing error:", error);
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
       setProcessingPayment(false);
     }
   };
-  
+
   const handlePayWithWhatsApp = () => {
     if (!phoneNumber.trim()) {
-      setPhoneError('Phone number is required');
-      return;
-    }
-    
-    if (!validatePhoneNumber(phoneNumber.trim())) {
-      setPhoneError('Please enter a valid phone number');
+      setPhoneError("Phone number is required");
       return;
     }
 
-    const customerName = isGuest ? guestName || 'Guest Customer' : user?.displayName || '';
-    
-    const items = cartItems.map(item => `- ${getItemName(item)} x ${item.quantity}: ₦${item.totalPrice}`).join('\n');
-    
+    if (!validatePhoneNumber(phoneNumber.trim())) {
+      setPhoneError("Please enter a valid phone number");
+      return;
+    }
+
+    const customerName = isGuest
+      ? guestName || "Guest Customer"
+      : user?.displayName || "";
+
+    const items = cartItems
+      .map(
+        (item) =>
+          `- ${getItemName(item)} x ${item.quantity}: ₦${item.totalPrice}`,
+      )
+      .join("\n");
+
     const message = encodeURIComponent(
       `Hello! I'd like to place an order:\n\n${items}\n\n` +
-      `Subtotal: ₦${totalAmount}\n` +
-      `Delivery to ${deliveryLocation} (${fullAddress}): ₦${deliveryFee}\n` +
-      `Total: ₦${grandTotal}\n\n` +
-      `My name is ${customerName}.\n` +
-      `My contact number: ${phoneNumber}\n` + 
-      `Please confirm if these items are available.`
+        `Subtotal: ₦${totalAmount}\n` +
+        `Delivery to ${deliveryLocation} (${fullAddress}): ₦${deliveryFee}\n` +
+        `Total: ₦${grandTotal}\n\n` +
+        `My name is ${customerName}.\n` +
+        `My contact number: ${phoneNumber}\n` +
+        `Please confirm if these items are available.`,
     );
-    
-    window.open(`https://wa.me/+2349041801170?text=${message}`, '_blank');
-    
+
+    window.open(`https://wa.me/+2349041801170?text=${message}`, "_blank");
+
     processOrder();
   };
 
   const handlePayOnline = async () => {
     if (!phoneNumber.trim()) {
-      setPhoneError('Phone number is required');
+      setPhoneError("Phone number is required");
       return;
     }
-    
+
     if (!validatePhoneNumber(phoneNumber.trim())) {
-      setPhoneError('Please enter a valid phone number');
+      setPhoneError("Please enter a valid phone number");
       return;
     }
-    
+
     if (isGuest && !guestName.trim()) {
-      toast.error('Please enter your name');
+      toast.error("Please enter your name");
       return;
     }
-    
+
     setProcessingPayment(true);
-    
+
     try {
       const orderReference = `TK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
+
       const orderData = {
         items: prepareOrderItems(),
         deliveryLocation,
@@ -187,122 +196,129 @@ const Checkout = () => {
         fullAddress,
         subtotal: totalAmount,
         total: grandTotal,
-        paymentMethod: 'bank_transfer',
-        paymentStatus: 'pending',
+        paymentMethod: "bank_transfer",
+        paymentStatus: "pending",
         transactionRef: null,
-        buyerName: isGuest ? guestName : user?.displayName || 'Guest',
-        email: isGuest ? guestEmail : user?.email || 'guest@gmail.com',
-        userEmail: isGuest ? guestEmail : user?.email || '',
+        buyerName: isGuest ? guestName : user?.displayName || "Guest",
+        email: isGuest ? guestEmail : user?.email || "guest@gmail.com",
+        userEmail: isGuest ? guestEmail : user?.email || "",
         phone: phoneNumber.trim(),
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toISOString().split("T")[0],
         isGuestOrder: isGuest,
-        orderReference: orderReference
+        orderReference: orderReference,
       };
-      
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/bulk-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/bulk-order`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(orderData),
         },
-        body: JSON.stringify(orderData)
-      });
-      
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create order');
+        throw new Error(errorData.error || "Failed to create order");
       }
-      
+
       const data = await response.json();
-      
+
       setPaymentDetails({
         orderId: data.orderId,
         orderReference: data.orderReference || orderReference,
-        amount: grandTotal
+        amount: grandTotal,
       });
-      
+
       setShowPaymentModal(true);
     } catch (error) {
-      console.error('Error creating order:', error);
-      toast.error(error.message || 'Failed to initialize payment');
+      console.error("Error creating order:", error);
+      toast.error(error.message || "Failed to initialize payment");
       setProcessingPayment(false);
     }
   };
-  
+
   const handlePaymentSuccess = () => {
     dispatch(clearCart());
-    navigate('/order-success', { 
-      state: { 
+    navigate("/order-success", {
+      state: {
         orderId: paymentDetails.orderId,
         orderReference: paymentDetails.orderReference,
         isPaid: true,
-        contactPhone: phoneNumber.trim()
-      }
+        contactPhone: phoneNumber.trim(),
+      },
     });
     setShowPaymentModal(false);
     setProcessingPayment(false);
   };
-  
+
   const handlePaymentModalClose = () => {
     setShowPaymentModal(false);
     setProcessingPayment(false);
-    
+
     if (paymentDetails) {
-      navigate('/order-success', { 
-        state: { 
+      navigate("/order-success", {
+        state: {
           orderId: paymentDetails.orderId,
           orderReference: paymentDetails.orderReference,
           isPaid: false,
           paymentPending: true,
-          contactPhone: phoneNumber.trim()
-        }
+          contactPhone: phoneNumber.trim(),
+        },
       });
     }
   };
 
   const handlePlaceOrder = () => {
     if (!phoneNumber.trim()) {
-      setPhoneError('Phone number is required');
-      document.getElementById('phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setPhoneError("Phone number is required");
+      document
+        .getElementById("phone")
+        .scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    
+
     if (!validatePhoneNumber(phoneNumber.trim())) {
-      setPhoneError('Please enter a valid phone number');
-      document.getElementById('phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setPhoneError("Please enter a valid phone number");
+      document
+        .getElementById("phone")
+        .scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    
-    if (paymentMethod === 'online') {
+
+    if (paymentMethod === "online") {
       handlePayOnline();
-    } else if (paymentMethod === 'whatsapp') {
+    } else if (paymentMethod === "whatsapp") {
       handlePayWithWhatsApp();
     }
   };
-  
+
   const getItemName = (item) => {
-    return item.foodName || item.drinkName || 'Unknown Item';
+    return item.foodName || item.drinkName || "Unknown Item";
   };
-  
+
   const getItemImage = (item) => {
-    return item.foodImage || item.drinkImage || '/default-product.png';
+    return item.foodImage || item.drinkImage || "/default-product.png";
   };
 
   const getItemPrice = (item) => {
-    return item.foodPrice || item.drinkPrice || '0';
+    return item.foodPrice || item.drinkPrice || "0";
   };
 
   const getItemType = (item) => {
-    if (item.foodName) return 'food';
-    if (item.drinkName) return 'drink';
-    return 'unknown';
+    if (item.foodName) return "food";
+    if (item.drinkName) return "drink";
+    return "unknown";
   };
-  
+
   const prepareOrderItems = () => {
-    return cartItems.map(item => {
+    return cartItems.map((item) => {
       const itemType = getItemType(item);
-      
-      if (itemType === 'food') {
+
+      if (itemType === "food") {
         return {
           foodId: item._id,
           foodName: item.foodName,
@@ -310,9 +326,9 @@ const Checkout = () => {
           price: item.foodPrice,
           quantity: item.quantity,
           totalPrice: (parseFloat(item.foodPrice) * item.quantity).toFixed(2),
-          itemType: 'food'
+          itemType: "food",
         };
-      } else if (itemType === 'drink') {
+      } else if (itemType === "drink") {
         return {
           drinkId: item._id,
           drinkName: item.drinkName,
@@ -320,7 +336,7 @@ const Checkout = () => {
           price: item.drinkPrice,
           quantity: item.quantity,
           totalPrice: (parseFloat(item.drinkPrice) * item.quantity).toFixed(2),
-          itemType: 'drink'
+          itemType: "drink",
         };
       } else {
         return {
@@ -329,8 +345,10 @@ const Checkout = () => {
           image: getItemImage(item),
           price: getItemPrice(item),
           quantity: item.quantity,
-          totalPrice: (parseFloat(getItemPrice(item)) * item.quantity).toFixed(2),
-          itemType: 'unknown'
+          totalPrice: (parseFloat(getItemPrice(item)) * item.quantity).toFixed(
+            2,
+          ),
+          itemType: "unknown",
         };
       }
     });
@@ -344,7 +362,7 @@ const Checkout = () => {
       <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center mb-8">
-            <button 
+            <button
               onClick={handleBackToCart}
               className="flex items-center text-yellow-600 hover:text-yellow-800 mr-4"
               disabled={loading || processingPayment}
@@ -354,10 +372,12 @@ const Checkout = () => {
             </button>
             <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">Order Details</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-6">
+                Order Details
+              </h2>
               <div className="divide-y divide-gray-200">
                 {cartItems.map((item) => (
                   <div key={item._id} className="py-4 flex items-center">
@@ -375,23 +395,35 @@ const Checkout = () => {
                             {getItemName(item)}
                           </h3>
                           <p className="text-sm text-gray-500">
-                            Qty: {item.quantity} {item.foodName ? '(Food)' : item.drinkName ? '(Drink)' : ''}
+                            Qty: {item.quantity}{" "}
+                            {item.foodName
+                              ? "(Food)"
+                              : item.drinkName
+                                ? "(Drink)"
+                                : ""}
                           </p>
                         </div>
                         <p className="text-sm font-medium text-gray-900">
-                          {formatPrice(parseFloat(getItemPrice(item)) * item.quantity)}
+                          {formatPrice(
+                            parseFloat(getItemPrice(item)) * item.quantity,
+                          )}
                         </p>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Contact Information
+                </h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="mb-4">
-                    <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="phone"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -401,9 +433,9 @@ const Checkout = () => {
                       value={phoneNumber}
                       onChange={(e) => {
                         setPhoneNumber(e.target.value);
-                        setPhoneError('');
+                        setPhoneError("");
                       }}
-                      className={`bg-white border ${phoneError ? 'border-red-500' : phoneNumber.trim() ? 'border-green-500' : 'border-gray-300'} text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5`}
+                      className={`bg-white border ${phoneError ? "border-red-500" : phoneNumber.trim() ? "border-green-500" : "border-gray-300"} text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5`}
                       placeholder="e.g., +234 904 123 4567"
                       required
                     />
@@ -411,33 +443,50 @@ const Checkout = () => {
                       <p className="mt-1 text-sm text-red-500">{phoneError}</p>
                     )}
                     <p className="mt-1 text-xs text-gray-500">
-                      <strong>Required</strong> for delivery coordination. The delivery personnel will call this number.
+                      <strong>Required</strong> for delivery coordination. The
+                      delivery personnel will call this number.
                     </p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Delivery Location:</p>
-                      <p className="text-sm text-gray-900">{deliveryLocation.charAt(0).toUpperCase() + deliveryLocation.slice(1)}</p>
+                      <p className="text-sm font-medium text-gray-700">
+                        Delivery Location:
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        {deliveryLocation.charAt(0).toUpperCase() +
+                          deliveryLocation.slice(1)}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Delivery Fee:</p>
-                      <p className="text-sm text-gray-900">{formatPrice(deliveryFee)}</p>
+                      <p className="text-sm font-medium text-gray-700">
+                        Delivery Fee:
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        {formatPrice(deliveryFee)}
+                      </p>
                     </div>
                   </div>
                   <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700">Full Address:</p>
+                    <p className="text-sm font-medium text-gray-700">
+                      Full Address:
+                    </p>
                     <p className="text-sm text-gray-900">{fullAddress}</p>
                   </div>
                 </div>
               </div>
-              
+
               {isGuest && (
                 <div className="mt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Guest Information</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Guest Information
+                  </h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="mb-4">
-                      <label htmlFor="guestName" className="block mb-2 text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="guestName"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
                         Full Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -450,10 +499,14 @@ const Checkout = () => {
                         required
                       />
                     </div>
-                    
+
                     <div className="mb-4">
-                      <label htmlFor="guestEmail" className="block mb-2 text-sm font-medium text-gray-700">
-                        Email Address <span className="text-gray-500">(optional)</span>
+                      <label
+                        htmlFor="guestEmail"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Email Address{" "}
+                        <span className="text-gray-500">(optional)</span>
                       </label>
                       <input
                         type="email"
@@ -464,19 +517,22 @@ const Checkout = () => {
                         placeholder="Enter your email address"
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Your order confirmation and tracking details will be sent here if provided
+                        Your order confirmation and tracking details will be
+                        sent here if provided
                       </p>
                     </div>
                   </div>
                 </div>
               )}
-              
+
               <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Payment Method
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div
-                    className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'online' ? 'border-yellow-600 bg-yellow-50' : 'border-gray-200'}`}
-                    onClick={() => setPaymentMethod('online')}
+                    className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === "online" ? "border-yellow-600 bg-yellow-50" : "border-gray-200"}`}
+                    onClick={() => setPaymentMethod("online")}
                   >
                     <div className="flex items-center">
                       <input
@@ -484,23 +540,27 @@ const Checkout = () => {
                         id="online"
                         name="paymentMethod"
                         value="online"
-                        checked={paymentMethod === 'online'}
-                        onChange={() => setPaymentMethod('online')}
+                        checked={paymentMethod === "online"}
+                        onChange={() => setPaymentMethod("online")}
                         className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
                       />
-                      <label htmlFor="online" className="ml-3 block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="online"
+                        className="ml-3 block text-sm font-medium text-gray-700"
+                      >
                         Pay Online (Bank Transfer)
                       </label>
                     </div>
-                    {paymentMethod === 'online' && (
+                    {paymentMethod === "online" && (
                       <p className="mt-2 text-xs text-gray-500 pl-7">
-                        We'll provide account details for direct bank transfer. Payment is confirmed quickly.
+                        We'll provide account details for direct bank transfer.
+                        Payment is confirmed quickly.
                       </p>
                     )}
                   </div>
                   <div
-                    className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === 'whatsapp' ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}
-                    onClick={() => setPaymentMethod('whatsapp')}
+                    className={`border rounded-lg p-4 cursor-pointer ${paymentMethod === "whatsapp" ? "border-green-600 bg-green-50" : "border-gray-200"}`}
+                    onClick={() => setPaymentMethod("whatsapp")}
                   >
                     <div className="flex items-center">
                       <input
@@ -508,47 +568,59 @@ const Checkout = () => {
                         id="whatsapp"
                         name="paymentMethod"
                         value="whatsapp"
-                        checked={paymentMethod === 'whatsapp'}
-                        onChange={() => setPaymentMethod('whatsapp')}
+                        checked={paymentMethod === "whatsapp"}
+                        onChange={() => setPaymentMethod("whatsapp")}
                         className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                       />
-                      <label htmlFor="whatsapp" className="ml-3 block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="whatsapp"
+                        className="ml-3 block text-sm font-medium text-gray-700"
+                      >
                         Pay via WhatsApp Chat
                       </label>
                     </div>
-                    {paymentMethod === 'whatsapp' && (
+                    {paymentMethod === "whatsapp" && (
                       <p className="mt-2 text-xs text-gray-500 pl-7">
-                        Chat directly with our staff to arrange payment and confirm order details.
+                        Chat directly with our staff to arrange payment and
+                        confirm order details.
                       </p>
                     )}
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Order Summary
+              </h2>
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <p className="text-sm text-gray-600">Subtotal</p>
-                  <p className="font-medium text-gray-900">{formatPrice(totalAmount)}</p>
+                  <p className="font-medium text-gray-900">
+                    {formatPrice(totalAmount)}
+                  </p>
                 </div>
                 <div className="flex justify-between">
                   <p className="text-sm text-gray-600">Delivery Fee</p>
-                  <p className="font-medium text-gray-900">{formatPrice(deliveryFee)}</p>
+                  <p className="font-medium text-gray-900">
+                    {formatPrice(deliveryFee)}
+                  </p>
                 </div>
                 <div className="border-t border-gray-200 pt-4">
                   <div className="flex justify-between">
                     <p className="text-base font-medium text-gray-900">Total</p>
-                    <p className="text-base font-bold text-gray-900">{formatPrice(grandTotal)}</p>
+                    <p className="text-base font-bold text-gray-900">
+                      {formatPrice(grandTotal)}
+                    </p>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={handlePlaceOrder}
                   disabled={loading || processingPayment}
                   className={`w-full mt-6 bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 flex items-center justify-center
-                    ${(loading || processingPayment) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    ${loading || processingPayment ? "opacity-70 cursor-not-allowed" : ""}`}
                 >
                   {processingPayment ? (
                     <>
@@ -556,7 +628,7 @@ const Checkout = () => {
                       Processing Payment...
                     </>
                   ) : (
-                    'Complete Order'
+                    "Complete Order"
                   )}
                 </button>
               </div>

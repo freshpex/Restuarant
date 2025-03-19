@@ -1,118 +1,124 @@
-import React, { createContext, useEffect, useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { app } from '../Firebase/firebase.config';
-import axios from 'axios';
+import React, { createContext, useEffect, useState } from "react";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
+import { app } from "../Firebase/firebase.config";
+import axios from "axios";
 
+export const AuthContext = createContext(null);
 
-export const  AuthContext = createContext(null)
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  let [isLoading, setLoading] = useState("loading");
+  const provider = new GoogleAuthProvider();
+  const auth = getAuth(app);
 
-const AuthProvider = ({children}) => {
-    const [user,setUser] = useState(null)
-    let [isLoading, setLoading] = useState("loading")
-    const provider = new GoogleAuthProvider();
-    const auth = getAuth(app)
-   
+  const createUser = (email, password) => {
+    setLoading(true);
 
-    
-    const createUser = (email,password) => {
-        setLoading(true)
-        
-        return createUserWithEmailAndPassword(auth, email, password)
-    }
+    return createUserWithEmailAndPassword(auth, email, password);
+  };
 
-    const logIn = (email, password) => {
-        setLoading(true)
-        
-        return signInWithEmailAndPassword(auth, email, password)
-            .then(async (result) => {
-                // Get JWT token after successful login
-                const response = await fetch(`${import.meta.env.VITE_API}/jwt`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email: result.user.email })
-                });
-                
-                const data = await response.json();
-                if (data.token) {
-                    localStorage.setItem('token', data.token);
-                }
-                return result;
-            });
-    }
+  const logIn = (email, password) => {
+    setLoading(true);
 
-    const [toggle,setToggle] = useState(false)
-    const handleToggle = () => {
-        setToggle(!toggle)
-    }
+    return signInWithEmailAndPassword(auth, email, password).then(
+      async (result) => {
+        // Get JWT token after successful login
+        const response = await fetch(`${import.meta.env.VITE_API}/jwt`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: result.user.email }),
+        });
 
-    const logOut = () => {
-        setLoading(true)
-        localStorage.removeItem('token');
-        return signOut(auth).catch(error => {
-            console.error("Logout error:", error.message)
-            setLoading(false)
-        })
-    }
-
-    const signInWithGoogle = () => {
-        setLoading(true)
-        
-        return  signInWithPopup(auth, provider)
-    }
-
-    useEffect(() => {
-        const unSubscribe = onAuthStateChanged(auth, currentUser => {
-            setUser(currentUser)
-            const userEmail = currentUser?.email || user?.email
-            const loggedUser = {email : userEmail}
-            setLoading(false)
-            
-            if(currentUser){
-                axios.post(`${import.meta.env.VITE_API}/jwt`, loggedUser, {
-                    withCredentials: true
-                })
-                .then(res => {
-                    if(res.data.success) {
-                        console.log("JWT token created successfully")
-                    }
-                })
-                .catch(error => {
-                    console.error("JWT creation error:", error.message)
-                })
-            } else {
-                axios.post(`${import.meta.env.VITE_API}/logout`, loggedUser, {
-                    withCredentials: true
-                })
-                .then(res => {
-                    if(res.data.success) {
-                        console.log("Logged out successfully")
-                    }
-                })
-            }
-        })
-
-        return () => {
-            unSubscribe()
+        const data = await response.json();
+        if (data.token) {
+          localStorage.setItem("token", data.token);
         }
-    }, [])
-
-    const userInfo = {
-        user,
-        setUser,
-        createUser,
-        logIn,
-        logOut,
-        isLoading,
-        signInWithGoogle,
-        handleToggle
-    }
-    return (
-        <AuthContext.Provider value={userInfo}>
-            {children}
-        </AuthContext.Provider>
+        return result;
+      },
     );
+  };
+
+  const [toggle, setToggle] = useState(false);
+  const handleToggle = () => {
+    setToggle(!toggle);
+  };
+
+  const logOut = () => {
+    setLoading(true);
+    localStorage.removeItem("token");
+    return signOut(auth).catch((error) => {
+      console.error("Logout error:", error.message);
+      setLoading(false);
+    });
+  };
+
+  const signInWithGoogle = () => {
+    setLoading(true);
+
+    return signInWithPopup(auth, provider);
+  };
+
+  useEffect(() => {
+    const unSubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      const userEmail = currentUser?.email || user?.email;
+      const loggedUser = { email: userEmail };
+      setLoading(false);
+
+      if (currentUser) {
+        axios
+          .post(`${import.meta.env.VITE_API}/jwt`, loggedUser, {
+            withCredentials: true,
+          })
+          .then((res) => {
+            if (res.data.success) {
+              console.log("JWT token created successfully");
+            }
+          })
+          .catch((error) => {
+            console.error("JWT creation error:", error.message);
+          });
+      } else {
+        axios
+          .post(`${import.meta.env.VITE_API}/logout`, loggedUser, {
+            withCredentials: true,
+          })
+          .then((res) => {
+            if (res.data.success) {
+              console.log("Logged out successfully");
+            }
+          });
+      }
+    });
+
+    return () => {
+      unSubscribe();
+    };
+  }, []);
+
+  const userInfo = {
+    user,
+    setUser,
+    createUser,
+    logIn,
+    logOut,
+    isLoading,
+    signInWithGoogle,
+    handleToggle,
+  };
+  return (
+    <AuthContext.Provider value={userInfo}>{children}</AuthContext.Provider>
+  );
 };
 
 export default AuthProvider;

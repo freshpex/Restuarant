@@ -36,11 +36,15 @@ export default function Testimonial() {
         <div className=" flex gap-4 lg:flex-col flex-col items-center ">
           <div className=" rounded-md w-10 h-1 bg-yellow-700"></div>
           <div>
-            <h2 className=" text-white text-lg tracking-widest pb-3">Testimonials</h2>
+            <h2 className=" text-white text-lg tracking-widest pb-3">
+              Testimonials
+            </h2>
           </div>
         </div>
         <div>
-            <h2 className=" text-gray-200 pb-16 text-center text-5xl tracking-wider font-bold ">What Our visitors say</h2>
+          <h2 className=" text-gray-200 pb-16 text-center text-5xl tracking-wider font-bold ">
+            What Our visitors say
+          </h2>
         </div>
       </div>
       {/*<!-- Component: Carousel with indicators outside --> */}
@@ -53,13 +57,13 @@ export default function Testimonial() {
                 The Best Restaurant
               </h2>
               <p className=" text-gray-600">
-                The dining experience at Tim's Kitchen Restaurant is unparalleled. From
-                the moment you step in, the ambiance exudes elegance, and the
-                service is top-notch. The menu is a culinary journey, offering
-                an array of exquisite dishes that are both visually stunning and
-                delicious. Each bite is a revelation of flavors, expertly
-                crafted by their talented chefs. A must-visit for any food
-                enthusiast!
+                The dining experience at Tim's Kitchen Restaurant is
+                unparalleled. From the moment you step in, the ambiance exudes
+                elegance, and the service is top-notch. The menu is a culinary
+                journey, offering an array of exquisite dishes that are both
+                visually stunning and delicious. Each bite is a revelation of
+                flavors, expertly crafted by their talented chefs. A must-visit
+                for any food enthusiast!
               </p>
 
               <div className=" border border-gray-900 mt-5 mb-5"></div>
@@ -82,7 +86,7 @@ export default function Testimonial() {
                 Best In This City
               </h2>
               <p className=" text-gray-600">
-              Tim's Kitchen is unequivocally the best in the city. From the
+                Tim's Kitchen is unequivocally the best in the city. From the
                 moment you enter, the atmosphere exudes elegance, and the
                 service is exceptional. The menu is a culinary masterpiece,
                 offering an array of dishes that are as visually stunning as
@@ -139,12 +143,13 @@ export default function Testimonial() {
                 I Am Delighted
               </h2>
               <p className=" text-gray-600">
-                I am delighted to share my experience at Tim's Kitchen Restaurant. From
-                the moment I walked in, the ambiance exuded elegance, and the
-                attentive service enhanced my dining pleasure. The menu is a
-                culinary masterpiece, with visually stunning and delectable
-                dishes. Each bite was a revelation of flavors, expertly crafted
-                by the talented chefs. A must-visit for every food enthusiast.
+                I am delighted to share my experience at Tim's Kitchen
+                Restaurant. From the moment I walked in, the ambiance exuded
+                elegance, and the attentive service enhanced my dining pleasure.
+                The menu is a culinary masterpiece, with visually stunning and
+                delectable dishes. Each bite was a revelation of flavors,
+                expertly crafted by the talented chefs. A must-visit for every
+                food enthusiast.
               </p>
 
               <div className=" border border-gray-900 mt-5 mb-5"></div>
@@ -167,9 +172,9 @@ export default function Testimonial() {
                 I Will Visit Again
               </h2>
               <p className=" text-gray-600">
-                I will definitely visit Tim's Kitchen Restaurant again. My dining
-                experience was exceptional, from the elegant ambiance to the
-                top-notch service. The menu offered a delightful culinary
+                I will definitely visit Tim's Kitchen Restaurant again. My
+                dining experience was exceptional, from the elegant ambiance to
+                the top-notch service. The menu offered a delightful culinary
                 journey with visually stunning and delectable dishes. The
                 flavors were expertly crafted, leaving me eager to return. It's
                 a must-visit for anyone seeking an unforgettable dining

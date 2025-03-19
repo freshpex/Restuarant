@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './Firebase/firebase.config.js';
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./Firebase/firebase.config.js";
 import Layout from "./MainLayout/Layout";
 import Registration from "./Registration/Registration";
 import SignIn from "./SignIN/SignIn";
@@ -13,7 +13,7 @@ import Food from "./Pages/Food/Food";
 import Drink from "./Pages/Drink/Drink";
 import Blog from "./Pages/Blog/Blog";
 import SeeFood from "./Pages/SeeFood/SeeFood";
-import SeeDrink from './Pages/SeeDrink/SeeDrink.jsx';
+import SeeDrink from "./Pages/SeeDrink/SeeDrink.jsx";
 import PrivateRouter from "./PrivateRouter/PrivateRouter";
 import FoodOrder from "./Pages/FoodOrder/FoodOrder";
 import MyFood from "./Pages/AddFood/MyFood";
@@ -22,295 +22,345 @@ import OrderFood from "./Pages/AddFood/OrderFood";
 import AddFood from "./Pages/AddFood/AddFood";
 import AddDrink from "./Pages/AddDrink/AddDrink";
 import UpdateFood from "./Pages/UpdateFood/UpdateFood";
-import UpdateDrink from './Pages/UpdateDrink/UpdateDrink.jsx';
+import UpdateDrink from "./Pages/UpdateDrink/UpdateDrink.jsx";
 import TopSelling from "./Pages/TopSelling/TopSelling";
 import TopFood from "./Pages/TopSelling/TopFood";
 import Error from "./Error/Error";
 import { Toaster } from "react-hot-toast";
-import { stopGlobalLoading } from './redux/slices/uiSlice';
-import GlobalLoadingSpinner from './Components/GlobalLoadingSpinner';
-import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from './redux/store';
-import { getSerializableUser } from './utils/userUtils';
-import { setCredentials, clearCredentials, fetchUserProfile } from './redux/slices/authSlice';
-import { checkTokenValidity } from './utils/authUtils';
-import AdminRoute from './Components/AdminRoute';
-import Unauthorized from './Pages/Unauthorized';
-import AdminDashboard from './Pages/Admin/AdminDashboard';
-import UserManagement from './Pages/Admin/UserManagement';
-import RoleDebugger from './Components/RoleDebugger';
-import Dashboard from './Pages/Admin/Dashboard';
-import FoodManagement from './Pages/Admin/FoodManagement';
-import DrinkManagement from './Pages/Admin/DrinkManagement';
-import OrderManagement from './Pages/Admin/OrderManagement';
-import Analytics from './Pages/Admin/Analytics';
-import TermsAndConditions from './Pages/Terms/TermsAndConditions';
-import Cart from './Pages/Cart/Cart';
-import Checkout from './Pages/Cart/Checkout';
-import OrderSuccess from './Pages/Cart/OrderSuccess';
+import { stopGlobalLoading } from "./redux/slices/uiSlice";
+import GlobalLoadingSpinner from "./Components/GlobalLoadingSpinner";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "./redux/store";
+import { getSerializableUser } from "./utils/userUtils";
+import {
+  setCredentials,
+  clearCredentials,
+  fetchUserProfile,
+} from "./redux/slices/authSlice";
+import { checkTokenValidity } from "./utils/authUtils";
+import AdminRoute from "./Components/AdminRoute";
+import Unauthorized from "./Pages/Unauthorized";
+import AdminDashboard from "./Pages/Admin/AdminDashboard";
+import UserManagement from "./Pages/Admin/UserManagement";
+import RoleDebugger from "./Components/RoleDebugger";
+import Dashboard from "./Pages/Admin/Dashboard";
+import FoodManagement from "./Pages/Admin/FoodManagement";
+import DrinkManagement from "./Pages/Admin/DrinkManagement";
+import OrderManagement from "./Pages/Admin/OrderManagement";
+import Analytics from "./Pages/Admin/Analytics";
+import TermsAndConditions from "./Pages/Terms/TermsAndConditions";
+import Cart from "./Pages/Cart/Cart";
+import Checkout from "./Pages/Cart/Checkout";
+import OrderSuccess from "./Pages/Cart/OrderSuccess";
 import Contact from "./Pages/Contact/Contact";
 import Events from "./Pages/Events/Events";
-import OrderTracking from './Pages/OrderTracking/OrderTracking';
-import StaffRoute from './Components/StaffRoute';
-import StaffDashboard from './Pages/Staff/StaffDashboard';
-import StaffOrders from './Pages/Staff/StaffOrders';
-import StaffFoods from './Pages/Staff/StaffFoods';
-import StaffAddOrder from './Pages/Staff/StaffAddOrder';
-import StaffActivities from './Pages/Admin/StaffActivities';
-import RawMaterials from './Pages/Admin/RawMaterials';
-import StaffDrinks from './Pages/Staff/StaffDrinks';
-import PageErrorBoundary from './Components/ErrorBoundary/PageErrorBoundary';
-import PWAInstallPrompt from './Components/PWAInstallPrompt';
+import OrderTracking from "./Pages/OrderTracking/OrderTracking";
+import StaffRoute from "./Components/StaffRoute";
+import StaffDashboard from "./Pages/Staff/StaffDashboard";
+import StaffOrders from "./Pages/Staff/StaffOrders";
+import StaffFoods from "./Pages/Staff/StaffFoods";
+import StaffAddOrder from "./Pages/Staff/StaffAddOrder";
+import StaffActivities from "./Pages/Admin/StaffActivities";
+import RawMaterials from "./Pages/Admin/RawMaterials";
+import StaffDrinks from "./Pages/Staff/StaffDrinks";
+import PageErrorBoundary from "./Components/ErrorBoundary/PageErrorBoundary";
+import PWAInstallPrompt from "./Components/PWAInstallPrompt";
 
 function App() {
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
 
-    useEffect(() => {
-        if (!checkTokenValidity()) {
-            dispatch(clearCredentials());
+  useEffect(() => {
+    if (!checkTokenValidity()) {
+      dispatch(clearCredentials());
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const serializedUser = getSerializableUser(user);
+        try {
+          const token = await user.getIdToken(true);
+          localStorage.setItem("token", token);
+          dispatch(
+            setCredentials({
+              user: serializedUser,
+              token,
+            }),
+          );
+
+          dispatch(fetchUserProfile());
+        } catch (error) {
+          console.error("Token refresh failed:", error);
+          dispatch(clearCredentials());
         }
+      } else {
+        dispatch(clearCredentials());
+      }
+      dispatch(stopGlobalLoading());
+    });
 
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const serializedUser = getSerializableUser(user);
-                try {
-                    const token = await user.getIdToken(true);
-                    localStorage.setItem('token', token);
-                    dispatch(setCredentials({
-                        user: serializedUser,
-                        token
-                    }));
-                    
-                    dispatch(fetchUserProfile());
-                } catch (error) {
-                    console.error('Token refresh failed:', error);
-                    dispatch(clearCredentials());
-                }
-            } else {
-                dispatch(clearCredentials());
-            }
-            dispatch(stopGlobalLoading());
-        });
+    return () => unsubscribe();
+  }, [dispatch]);
 
-        return () => unsubscribe();
-    }, [dispatch]);
-
-    const router = createBrowserRouter([
+  const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <Layout />,
+      errorElement: <Error />,
+      children: [
         {
-            path: '/',
-            element: <Layout />,
-            errorElement: <Error />,
-            children: [
-                {
-                    path: '/',
-                    element: <PageErrorBoundary pageName="Home Page"><Hero /></PageErrorBoundary>
-                },
-                {
-                    path: "/about",
-                    element: <About />
-                },
-                {
-                    path: "/aboutUs",
-                    element: <AboutUs />
-                },
-                {
-                    path: "/food",
-                    element: <Food />
-                },
-                {
-                    path: "/seeFood/:id",
-                    element: <SeeFood />
-                },
-                {
-                    path: "/topFood/:id",
-                    element: <TopFood />
-                },
-                {
-                    path: "/foodOrder/:id",
-                    element: <PrivateRouter><FoodOrder /></PrivateRouter>
-                },
-                {
-                    path: "/myFood",
-                    element: <PrivateRouter><MyFood /></PrivateRouter>
-                },                
-                {
-                    path: "/orderFood",
-                    element: <PrivateRouter><OrderFood /></PrivateRouter>
-                },
-                {
-                    path: "/drink",
-                    element: <Drink />
-                },
-                {
-                    path: "/seeDrink/:id",
-                    element: <SeeDrink />
-                },
-                {
-                    path: "/myDrink",
-                    element: <PrivateRouter><MyDrink /></PrivateRouter>
-                },                
-                {
-                    path: "/topSelling",
-                    element: <TopSelling />
-                },
-                {
-                    path: "/blog",
-                    element: <Blog />
-                },
-                {
-                    path: "/signup",
-                    element: <Registration />
-                },
-                {
-                    path: "/signIn",
-                    element: <SignIn />
-                },
-                {
-                    path: "/unauthorized",
-                    element: <Unauthorized />
-                },
-                {
-                    path: "/termsandcondition",
-                    element: <TermsAndConditions />
-                },
-                {
-                    path: "/contact",
-                    element: <Contact />
-                },
-                {
-                    path: "/event",
-                    element: <Events />
-                },
-                {
-                    path: "/cart",
-                    element: <Cart />
-                },
-                {
-                    path: "/checkout",
-                    element: <PageErrorBoundary pageName="Checkout"><Checkout /></PageErrorBoundary>
-                },
-                {
-                    path: "/order-success",
-                    element: <PageErrorBoundary pageName="Order Confirmation"><OrderSuccess /></PageErrorBoundary>
-                },
-                {
-                    path: "/track-order",
-                    element: <PrivateRouter><PageErrorBoundary pageName="Order Tracking"><OrderTracking /></PageErrorBoundary></PrivateRouter>
-                },
-                {
-                    path: "/track-order/:orderId",
-                    element: <OrderTracking />
-                }
-            ]
+          path: "/",
+          element: (
+            <PageErrorBoundary pageName="Home Page">
+              <Hero />
+            </PageErrorBoundary>
+          ),
         },
         {
-            path: '/admin',
-            element: <AdminRoute><PageErrorBoundary pageName="Admin Dashboard"><AdminDashboard /></PageErrorBoundary></AdminRoute>,
-            children: [
-                {
-                    index: true,
-                    element: <Dashboard />
-                },
-                {
-                    path: 'users',
-                    element: <UserManagement />
-                },
-                {
-                    path: 'foods',
-                    element: <FoodManagement />
-                },
-                {
-                    path: 'drinks',
-                    element: <DrinkManagement />
-                },
-                {
-                    path: 'orders',
-                    element: <OrderManagement />
-                },
-                {
-                    path: 'analytics',
-                    element: <Analytics />
-                },
-                {
-                    path: 'staff-activities',
-                    element: <StaffActivities />
-                },
-                {
-                    path: "material",
-                    element: <RawMaterials />
-                },
-                {
-                    path: 'add-order',
-                    element: <StaffAddOrder />
-                },
-                {
-                    path: "addFood",
-                    element: <AddFood />
-                },                
-                {
-                    path: "addDrink",
-                    element: <AddDrink />
-                },
-                {
-                    path: "update-food/:id",
-                    element: <UpdateFood />
-                },
-                {
-                    path: "update-drink/:id",
-                    element: <UpdateDrink />
-                },
-            ]
+          path: "/about",
+          element: <About />,
         },
         {
-            path: '/staff',
-            element: <PageErrorBoundary pageName="Staff Dashboard"><StaffRoute /></PageErrorBoundary>,
-            children: [
-                {
-                    path: 'dashboard',
-                    element: <StaffDashboard />
-                },
-                {
-                    path: 'orders',
-                    element: <StaffOrders />
-                },
-                {
-                    path: 'foods',
-                    element: <StaffFoods />
-                },
-                {
-                    path: 'drinks',
-                    element: <StaffDrinks />
-                },
-                {
-                    path: 'add-order',
-                    element: <StaffAddOrder />
-                },
-                {
-                    path: "material",
-                    element: <RawMaterials />
-                },
-                {
-                    path: "addFood",
-                    element: <AddFood />
-                },                
-                {
-                    path: "addDrink",
-                    element: <AddDrink />
-                },
-            ]
-        }
-    ]);
+          path: "/aboutUs",
+          element: <AboutUs />,
+        },
+        {
+          path: "/food",
+          element: <Food />,
+        },
+        {
+          path: "/seeFood/:id",
+          element: <SeeFood />,
+        },
+        {
+          path: "/topFood/:id",
+          element: <TopFood />,
+        },
+        {
+          path: "/foodOrder/:id",
+          element: (
+            <PrivateRouter>
+              <FoodOrder />
+            </PrivateRouter>
+          ),
+        },
+        {
+          path: "/myFood",
+          element: (
+            <PrivateRouter>
+              <MyFood />
+            </PrivateRouter>
+          ),
+        },
+        {
+          path: "/orderFood",
+          element: (
+            <PrivateRouter>
+              <OrderFood />
+            </PrivateRouter>
+          ),
+        },
+        {
+          path: "/drink",
+          element: <Drink />,
+        },
+        {
+          path: "/seeDrink/:id",
+          element: <SeeDrink />,
+        },
+        {
+          path: "/myDrink",
+          element: (
+            <PrivateRouter>
+              <MyDrink />
+            </PrivateRouter>
+          ),
+        },
+        {
+          path: "/topSelling",
+          element: <TopSelling />,
+        },
+        {
+          path: "/blog",
+          element: <Blog />,
+        },
+        {
+          path: "/signup",
+          element: <Registration />,
+        },
+        {
+          path: "/signIn",
+          element: <SignIn />,
+        },
+        {
+          path: "/unauthorized",
+          element: <Unauthorized />,
+        },
+        {
+          path: "/termsandcondition",
+          element: <TermsAndConditions />,
+        },
+        {
+          path: "/contact",
+          element: <Contact />,
+        },
+        {
+          path: "/event",
+          element: <Events />,
+        },
+        {
+          path: "/cart",
+          element: <Cart />,
+        },
+        {
+          path: "/checkout",
+          element: (
+            <PageErrorBoundary pageName="Checkout">
+              <Checkout />
+            </PageErrorBoundary>
+          ),
+        },
+        {
+          path: "/order-success",
+          element: (
+            <PageErrorBoundary pageName="Order Confirmation">
+              <OrderSuccess />
+            </PageErrorBoundary>
+          ),
+        },
+        {
+          path: "/track-order",
+          element: (
+            <PrivateRouter>
+              <PageErrorBoundary pageName="Order Tracking">
+                <OrderTracking />
+              </PageErrorBoundary>
+            </PrivateRouter>
+          ),
+        },
+        {
+          path: "/track-order/:orderId",
+          element: <OrderTracking />,
+        },
+      ],
+    },
+    {
+      path: "/admin",
+      element: (
+        <AdminRoute>
+          <PageErrorBoundary pageName="Admin Dashboard">
+            <AdminDashboard />
+          </PageErrorBoundary>
+        </AdminRoute>
+      ),
+      children: [
+        {
+          index: true,
+          element: <Dashboard />,
+        },
+        {
+          path: "users",
+          element: <UserManagement />,
+        },
+        {
+          path: "foods",
+          element: <FoodManagement />,
+        },
+        {
+          path: "drinks",
+          element: <DrinkManagement />,
+        },
+        {
+          path: "orders",
+          element: <OrderManagement />,
+        },
+        {
+          path: "analytics",
+          element: <Analytics />,
+        },
+        {
+          path: "staff-activities",
+          element: <StaffActivities />,
+        },
+        {
+          path: "material",
+          element: <RawMaterials />,
+        },
+        {
+          path: "add-order",
+          element: <StaffAddOrder />,
+        },
+        {
+          path: "addFood",
+          element: <AddFood />,
+        },
+        {
+          path: "addDrink",
+          element: <AddDrink />,
+        },
+        {
+          path: "update-food/:id",
+          element: <UpdateFood />,
+        },
+        {
+          path: "update-drink/:id",
+          element: <UpdateDrink />,
+        },
+      ],
+    },
+    {
+      path: "/staff",
+      element: (
+        <PageErrorBoundary pageName="Staff Dashboard">
+          <StaffRoute />
+        </PageErrorBoundary>
+      ),
+      children: [
+        {
+          path: "dashboard",
+          element: <StaffDashboard />,
+        },
+        {
+          path: "orders",
+          element: <StaffOrders />,
+        },
+        {
+          path: "foods",
+          element: <StaffFoods />,
+        },
+        {
+          path: "drinks",
+          element: <StaffDrinks />,
+        },
+        {
+          path: "add-order",
+          element: <StaffAddOrder />,
+        },
+        {
+          path: "material",
+          element: <RawMaterials />,
+        },
+        {
+          path: "addFood",
+          element: <AddFood />,
+        },
+        {
+          path: "addDrink",
+          element: <AddDrink />,
+        },
+      ],
+    },
+  ]);
 
-    return (
-        <>
-            <GlobalLoadingSpinner />
-            <RouterProvider router={router} />
-            <Toaster />
-            <PWAInstallPrompt />
-            {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
-        </>
-    );
+  return (
+    <>
+      <GlobalLoadingSpinner />
+      <RouterProvider router={router} />
+      <Toaster />
+      <PWAInstallPrompt />
+      {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
+    </>
+  );
 }
 
 export default App;

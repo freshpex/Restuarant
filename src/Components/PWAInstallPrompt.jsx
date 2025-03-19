@@ -1,27 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { FaDownload, FaTimes } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import { FaDownload, FaTimes } from "react-icons/fa";
 
 const PWAInstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  
+
   useEffect(() => {
     // Check if it's iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(isIOS);
-    
+
     if (!isIOS) {
       const handler = (e) => {
         e.preventDefault();
         setDeferredPrompt(e);
         setShowPrompt(true);
       };
-      
-      window.addEventListener('beforeinstallprompt', handler);
-      
+
+      window.addEventListener("beforeinstallprompt", handler);
+
       return () => {
-        window.removeEventListener('beforeinstallprompt', handler);
+        window.removeEventListener("beforeinstallprompt", handler);
       };
     } else {
       const isInStandaloneMode = window.navigator.standalone === true;
@@ -33,14 +34,14 @@ const PWAInstallPrompt = () => {
 
   const installApp = () => {
     if (!deferredPrompt) return;
-    
+
     deferredPrompt.prompt();
-    
+
     deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
+      if (choiceResult.outcome === "accepted") {
+        console.log("User accepted the install prompt");
       } else {
-        console.log('User dismissed the install prompt');
+        console.log("User dismissed the install prompt");
       }
       setDeferredPrompt(null);
       setShowPrompt(false);
@@ -49,7 +50,7 @@ const PWAInstallPrompt = () => {
 
   const dismissPrompt = () => {
     setShowPrompt(false);
-    localStorage.setItem('pwaPromptDismissed', Date.now().toString());
+    localStorage.setItem("pwaPromptDismissed", Date.now().toString());
   };
 
   if (!showPrompt) return null;
@@ -63,10 +64,11 @@ const PWAInstallPrompt = () => {
               Install Tim's Kitchen App
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Tap <FaDownload className="inline text-yellow-600" /> and then 'Add to Home Screen'
+              Tap <FaDownload className="inline text-yellow-600" /> and then
+              'Add to Home Screen'
             </p>
           </div>
-          <button 
+          <button
             onClick={dismissPrompt}
             className="ml-4 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
             aria-label="Dismiss"
@@ -85,13 +87,13 @@ const PWAInstallPrompt = () => {
             </p>
           </div>
           <div className="flex space-x-2">
-            <button 
+            <button
               onClick={dismissPrompt}
               className="px-3 py-1 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
             >
               Not now
             </button>
-            <button 
+            <button
               onClick={installApp}
               className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 flex items-center"
             >

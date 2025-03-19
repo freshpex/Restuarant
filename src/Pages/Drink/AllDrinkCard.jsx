@@ -1,7 +1,7 @@
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { addToCart } from "../../redux/slices/cartSlice";
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 import {
   Card,
   CardHeader,
@@ -11,14 +11,14 @@ import {
   Button,
   IconButton,
 } from "@material-tailwind/react";
-import { FaShoppingCart } from 'react-icons/fa';
-import { formatPrice } from '../../utils/formatUtils';
-   
-export default function AllDrinkCard({data}) {
+import { FaShoppingCart } from "react-icons/fa";
+import { formatPrice } from "../../utils/formatUtils";
+
+export default function AllDrinkCard({ data }) {
   const dispatch = useDispatch();
-  const cartItems = useSelector(state => state.cart.items);
-  
-  const itemInCart = cartItems.find(item => item._id === data._id);
+  const cartItems = useSelector((state) => state.cart.items);
+
+  const itemInCart = cartItems.find((item) => item._id === data._id);
   const currentCartQty = itemInCart ? itemInCart.quantity : 0;
   const availableQty = parseInt(data.drinkQuantity) || 0;
 
@@ -27,16 +27,20 @@ export default function AllDrinkCard({data}) {
       toast.error(`${data.drinkName} is currently out of stock!`);
       return;
     }
-    
+
     if (currentCartQty >= availableQty) {
-      toast.error(`Cannot add more ${data.drinkName}. Only ${availableQty} available in stock!`);
+      toast.error(
+        `Cannot add more ${data.drinkName}. Only ${availableQty} available in stock!`,
+      );
       return;
     }
-    
-    dispatch(addToCart({ 
-      item: data, 
-      quantity: 1 
-    }));
+
+    dispatch(
+      addToCart({
+        item: data,
+        quantity: 1,
+      }),
+    );
     toast.success(`${data.drinkName} added to cart!`);
   };
 
@@ -46,7 +50,11 @@ export default function AllDrinkCard({data}) {
 
   return (
     <Card className="w-full max-w-[32rem] shadow-lg">
-      <CardHeader floated={false} color="blue-gray" className="h-64 overflow-hidden">
+      <CardHeader
+        floated={false}
+        color="blue-gray"
+        className="h-64 overflow-hidden"
+      >
         <img
           className="h-full w-full object-cover object-center"
           src={data.drinkImage}
@@ -75,12 +83,11 @@ export default function AllDrinkCard({data}) {
             {data.drinkName}
           </Typography>
           <Typography variant="h5" color="blue-gray" className="font-semibold">
-          {formatPrice(parseFloat(data.drinkPrice))}
-          </Typography>          
-         
+            {formatPrice(parseFloat(data.drinkPrice))}
+          </Typography>
         </div>
         <div className=" flex justify-between pt-2 pb-3">
-        <Typography variant="h5" color="blue-gray" className="font-semibold">
+          <Typography variant="h5" color="blue-gray" className="font-semibold">
             {data.drinkCategory}
           </Typography>
           <Typography
@@ -102,28 +109,36 @@ export default function AllDrinkCard({data}) {
             5.0
           </Typography>
         </div>
-       
+
         <Typography className="text-xl" color="gray">
           Quantity: {data.drinkQuantity}
-          {isOutOfStock && <span className="text-red-600 ml-2 font-bold">Out of Stock</span>}
-          {isMaxInCart && !isOutOfStock && <span className="text-orange-600 ml-2 font-bold">Max In Cart</span>}
+          {isOutOfStock && (
+            <span className="text-red-600 ml-2 font-bold">Out of Stock</span>
+          )}
+          {isMaxInCart && !isOutOfStock && (
+            <span className="text-orange-600 ml-2 font-bold">Max In Cart</span>
+          )}
         </Typography>
-        
       </CardBody>
       <CardFooter className="pt-3 flex gap-2">
         <Link to={`/seedrink/${data._id}`} className="flex-1">
-          <Button size="lg" fullWidth={true}>Details</Button>
+          <Button size="lg" fullWidth={true}>
+            Details
+          </Button>
         </Link>
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           color={buttonDisabled ? "gray" : "yellow"}
-          className={`flex items-center justify-center gap-2 ${buttonDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+          className={`flex items-center justify-center gap-2 ${buttonDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
           onClick={handleAddToCart}
           disabled={buttonDisabled}
         >
-          <FaShoppingCart /> 
-          {isOutOfStock ? 'Out of Stock' : 
-           isMaxInCart ? 'Max In Cart' : 'Add to Cart'}
+          <FaShoppingCart />
+          {isOutOfStock
+            ? "Out of Stock"
+            : isMaxInCart
+              ? "Max In Cart"
+              : "Add to Cart"}
         </Button>
       </CardFooter>
     </Card>

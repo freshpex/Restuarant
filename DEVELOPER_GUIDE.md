@@ -35,12 +35,14 @@ Tim's Kitchen follows a client-server architecture with:
 ## Data Flow
 
 1. **User Authentication**:
+
    - Frontend calls Firebase Auth
    - Firebase returns token
    - Token sent to backend for verification and JWT generation
    - JWT stored in local storage and used for authentication
 
 2. **Food Management**:
+
    - Food data stored in MongoDB
    - Images uploaded to Supabase
    - Frontend fetches food data from backend API
@@ -65,9 +67,9 @@ const store = configureStore({
     auth: authReducer,
     food: foodReducer,
     foodActions: foodActionsReducer,
-    ui: uiReducer
+    ui: uiReducer,
   },
-  middleware: (getDefaultMiddleware) => 
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
@@ -149,6 +151,7 @@ The API follows RESTful principles and is organized by resource type:
 Key collection structures:
 
 **foods Collection**:
+
 ```javascript
 {
   _id: ObjectId,
@@ -168,6 +171,7 @@ Key collection structures:
 ```
 
 **orders Collection**:
+
 ```javascript
 {
   _id: ObjectId,
@@ -204,6 +208,7 @@ Files are uploaded using Multer and stored in Supabase:
 ### Development Environment
 
 1. **Frontend**:
+
    ```bash
    cd timkitchenFrontend
    npm install
@@ -224,6 +229,7 @@ Files are uploaded using Multer and stored in Supabase:
 ### Configuration Files
 
 **Frontend** (.env):
+
 ```
 VITE_API_URL=http://localhost:5000/api
 VITE_API_KEY=your_firebase_api_key
@@ -239,6 +245,7 @@ VITE_SUPABASE_BUCKET_NAME=your_bucket_name
 ```
 
 **Backend** (.env):
+
 ```
 MONGODB_URI=your_mongodb_uri
 DB_ACCESS_SECRET_TOKEN=your_jwt_secret_token
@@ -262,6 +269,7 @@ npm test
 ```
 
 Key testing approaches:
+
 - React Testing Library for component tests
 - Jest for unit tests
 - Mock Service Worker for API mocking
@@ -274,6 +282,7 @@ npm test
 ```
 
 Key testing approaches:
+
 - Mocha and Chai for API testing
 - MongoDB memory server for database testing
 - Supertest for endpoint testing
@@ -283,6 +292,7 @@ Key testing approaches:
 ### Frontend Issues
 
 1. **Authentication Errors**:
+
    - Check Firebase configuration in `.env` file
    - Ensure token is being properly stored in localStorage
    - Verify token is being sent in Authorization header
@@ -295,11 +305,13 @@ Key testing approaches:
 ### Backend Issues
 
 1. **Database Connection Issues**:
+
    - Verify MongoDB connection string
    - Check IP whitelist in MongoDB Atlas
    - Ensure proper error handling in database.js
 
 2. **JWT Verification Failures**:
+
    - Check JWT secret in environment variables
    - Verify token format in Authorization header
    - Check token expiration
@@ -312,6 +324,7 @@ Key testing approaches:
 ## Performance Considerations
 
 1. **Frontend Optimization**:
+
    - Implement code splitting
    - Lazy load images
    - Use memoization for expensive computations
@@ -326,6 +339,7 @@ Key testing approaches:
 ## Security Best Practices
 
 1. **Frontend Security**:
+
    - Store tokens securely
    - Implement CSRF protection
    - Sanitize user input
@@ -344,6 +358,7 @@ Key testing approaches:
 ### Frontend Deployment
 
 Recommended platform: Vercel
+
 ```bash
 npm run build
 vercel --prod
@@ -352,6 +367,7 @@ vercel --prod
 ### Backend Deployment
 
 Recommended platform: Render, Railway, or Heroku
+
 ```bash
 npm run build
 # Follow platform-specific deployment instructions
@@ -369,6 +385,7 @@ npm run build
 ## Version Control Workflow
 
 We follow GitHub Flow:
+
 1. Create feature branches from main
 2. Submit pull requests to main
 3. Require code review before merging

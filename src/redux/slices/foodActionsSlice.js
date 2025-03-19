@@ -1,135 +1,138 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const addFood = createAsyncThunk(
-  'foodActions/addFood',
+  "foodActions/addFood",
   async ({ foodData, token, imageFile }, { rejectWithValue }) => {
-    try {      
+    try {
       let url = `${API_URL}/addFood`;
       let response;
 
       if (imageFile) {
         const formData = new FormData();
-        formData.append('foodImage', imageFile);
-        
-        Object.keys(foodData).forEach(key => {
+        formData.append("foodImage", imageFile);
+
+        Object.keys(foodData).forEach((key) => {
           formData.append(key, foodData[key]);
         });
-        
+
         response = await axios.post(url, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
         });
       } else {
         response = await axios.post(url, foodData, {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
       }
 
       return response.data;
     } catch (error) {
-      console.error('Error adding food:', error);
-      console.error('Response:', error.response?.data);
-      return rejectWithValue(error.response?.data?.error || 'Failed to add food');
+      console.error("Error adding food:", error);
+      console.error("Response:", error.response?.data);
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to add food",
+      );
     }
-  }
+  },
 );
 
 export const updateFood = createAsyncThunk(
-  'foodActions/updateFood',
+  "foodActions/updateFood",
   async ({ id, foodData, token, imageFile }, { rejectWithValue }) => {
     try {
       let response;
 
       if (imageFile) {
         const formData = new FormData();
-        formData.append('foodImage', imageFile);
-        Object.keys(foodData).forEach(key => {
+        formData.append("foodImage", imageFile);
+        Object.keys(foodData).forEach((key) => {
           formData.append(key, foodData[key]);
         });
-        
+
         response = await fetch(`${API_URL}/update/${id}`, {
-          method: 'PUT',
+          method: "PUT",
           headers: {
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
           },
-          body: formData
+          body: formData,
         });
       } else {
         response = await fetch(`${API_URL}/update/${id}`, {
-          method: 'PUT',
+          method: "PUT",
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(foodData)
+          body: JSON.stringify(foodData),
         });
       }
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        return rejectWithValue(errorData.message || errorData.error || 'Failed to update food');
+        return rejectWithValue(
+          errorData.message || errorData.error || "Failed to update food",
+        );
       }
-      
+
       const data = await response.json();
-      return { id, ...foodData, foodImage: data.imageUrl || foodData.foodImage };
+      return {
+        id,
+        ...foodData,
+        foodImage: data.imageUrl || foodData.foodImage,
+      };
     } catch (error) {
-      return rejectWithValue(error.message || 'Error updating food');
+      return rejectWithValue(error.message || "Error updating food");
     }
-  }
+  },
 );
 
 export const fetchUserFoods = createAsyncThunk(
-  'foodActions/fetchUserFoods',
+  "foodActions/fetchUserFoods",
   async ({ email, token }, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `${API_URL}/foods/user/${email}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        }
-      );
-      
+      const response = await fetch(`${API_URL}/foods/user/${email}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
       if (!response.ok) {
         const error = await response.json();
-        return rejectWithValue(error.message || 'Failed to fetch user foods');
+        return rejectWithValue(error.message || "Failed to fetch user foods");
       }
 
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
-const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const fetchTopFoods = createAsyncThunk(
-  'foodActions/fetchTopFoods',
+  "foodActions/fetchTopFoods",
   async (_, { rejectWithValue }) => {
     let retries = 0;
     while (retries < MAX_RETRIES) {
       try {
-        const response = await fetch(
-          `${API_URL}/topSellingFoods`
-        );
+        const response = await fetch(`${API_URL}/topSellingFoods`);
 
-        if (!response.ok) throw new Error('Failed to fetch top foods');
+        if (!response.ok) throw new Error("Failed to fetch top foods");
         return await response.json();
       } catch (error) {
         retries++;
@@ -139,47 +142,44 @@ export const fetchTopFoods = createAsyncThunk(
         await wait(RETRY_DELAY * retries);
       }
     }
-  }
+  },
 );
 
 export const orderFood = createAsyncThunk(
-  'foodActions/orderFood',
+  "foodActions/orderFood",
   async ({ orderData, token }, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `${API_URL}/purchaseFood`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            ...orderData,
-            quantity: parseInt(orderData.quantity)
-          })
-        }
-      );
+      const response = await fetch(`${API_URL}/purchaseFood`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          ...orderData,
+          quantity: parseInt(orderData.quantity),
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to place order');
+        throw new Error(errorData.message || "Failed to place order");
       }
 
       const data = await response.json();
-      
+
       // Update food quantity after successful order
       try {
         await fetch(`${import.meta.env.VITE_API}/foods/${orderData.foodId}`, {
-          method: 'PATCH',
+          method: "PATCH",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            quantity: -orderData.quantity
-          })
+            quantity: -orderData.quantity,
+          }),
         });
       } catch (quantityError) {
         console.error("Failed to update food quantity:", quantityError);
@@ -189,142 +189,142 @@ export const orderFood = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const fetchOrders = createAsyncThunk(
-  'foodActions/fetchOrders',
+  "foodActions/fetchOrders",
   async ({ email, token }, { rejectWithValue }) => {
     try {
       if (!email) {
-        throw new Error('Email is required to fetch orders');
+        throw new Error("Email is required to fetch orders");
       }
-      
-      const response = await fetch(
-        `${API_URL}/orders/user/${email}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
-        }
-      );
+
+      const response = await fetch(`${API_URL}/orders/user/${email}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        credentials: "include",
+      });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch orders');
+        throw new Error(error.message || "Failed to fetch orders");
       }
-      
+
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const deleteOrder = createAsyncThunk(
-  'foodActions/deleteOrder',
+  "foodActions/deleteOrder",
   async ({ id, token }, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `${API_URL}/orders/${id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include'
-        }
-      );
+      const response = await fetch(`${API_URL}/orders/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
 
-      if (!response.ok) throw new Error('Failed to delete order');
+      if (!response.ok) throw new Error("Failed to delete order");
       return id;
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const fetchTopFoodById = createAsyncThunk(
-  'foodActions/fetchTopFoodById',
+  "foodActions/fetchTopFoodById",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `${API_URL}/topFood/${id}`,
-        {
-          credentials: 'include'
-        }
-      );
+      const response = await fetch(`${API_URL}/topFood/${id}`, {
+        credentials: "include",
+      });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch food');
+        throw new Error(error.error || "Failed to fetch food");
       }
 
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const fetchFoodForUpdate = createAsyncThunk(
-  'foodActions/fetchFoodForUpdate',
+  "foodActions/fetchFoodForUpdate",
   async ({ id, token }, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `${API_URL}/update/${id}`,
-        {
+      const response = await fetch(`${API_URL}/update/${id}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        return rejectWithValue(errorData.error || 'Failed to fetch food for update');
+        return rejectWithValue(
+          errorData.error || "Failed to fetch food for update",
+        );
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch food for update');
+      return rejectWithValue(
+        error.message || "Failed to fetch food for update",
+      );
     }
-  }
+  },
 );
 
 export const updatePaymentStatus = createAsyncThunk(
-  'foodActions/updatePaymentStatus',
-  async ({ orderId, paymentStatus, transactionRef, token }, { rejectWithValue }) => {
+  "foodActions/updatePaymentStatus",
+  async (
+    { orderId, paymentStatus, transactionRef, token },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await fetch(`${API_URL}/orders/${orderId}/payment`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           paymentStatus,
-          transactionRef
-        })
+          transactionRef,
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || errorData.error || 'Failed to update payment status');
+        throw new Error(
+          errorData.message ||
+            errorData.error ||
+            "Failed to update payment status",
+        );
       }
 
       return { orderId, paymentStatus, transactionRef };
     } catch (error) {
-      return rejectWithValue(error.message || 'Error updating payment status');
+      return rejectWithValue(error.message || "Error updating payment status");
     }
-  }
+  },
 );
 
 const foodActionsSlice = createSlice({
-  name: 'foodActions',
+  name: "foodActions",
   initialState: {
     userFoods: [],
     topFoods: [],
@@ -344,7 +344,7 @@ const foodActionsSlice = createSlice({
     },
     clearFoodForUpdate: (state) => {
       state.foodForUpdate = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -421,7 +421,9 @@ const foodActionsSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(deleteOrder.fulfilled, (state, action) => {
-        state.orders = state.orders.filter(order => order._id !== action.payload);
+        state.orders = state.orders.filter(
+          (order) => order._id !== action.payload,
+        );
       })
       .addCase(fetchTopFoodById.pending, (state) => {
         state.loading = true;
@@ -452,10 +454,10 @@ const foodActionsSlice = createSlice({
       .addCase(updatePaymentStatus.fulfilled, (state, action) => {
         state.loading = false;
         if (state.orders.length > 0) {
-          state.orders = state.orders.map(order => 
-            order._id === action.payload.orderId 
-              ? { ...order, paymentStatus: action.payload.paymentStatus } 
-              : order
+          state.orders = state.orders.map((order) =>
+            order._id === action.payload.orderId
+              ? { ...order, paymentStatus: action.payload.paymentStatus }
+              : order,
           );
         }
       })
@@ -463,8 +465,9 @@ const foodActionsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       });
-  }
+  },
 });
 
-export const { clearError, clearSuccess, clearFoodForUpdate } = foodActionsSlice.actions;
+export const { clearError, clearSuccess, clearFoodForUpdate } =
+  foodActionsSlice.actions;
 export default foodActionsSlice.reducer;

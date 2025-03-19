@@ -1,77 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tim's Kitchen - Offline</title>
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #f9f9f9;
-            text-align: center;
-            padding: 0 20px;
-        }
-        .logo {
-            width: 120px;
-            height: auto;
-            margin-bottom: 20px;
-        }
-        h1 {
-            font-size: 2rem;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        p {
-            font-size: 1.1rem;
-            color: #666;
-            margin-bottom: 20px;
-            max-width: 500px;
-        }
-        button {
-            background-color: #FDAF01;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #E59D00;
-        }
+      body {
+        font-family: "Poppins", sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background-color: #f9f9f9;
+        text-align: center;
+        padding: 0 20px;
+      }
+      .logo {
+        width: 120px;
+        height: auto;
+        margin-bottom: 20px;
+      }
+      h1 {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 10px;
+      }
+      p {
+        font-size: 1.1rem;
+        color: #666;
+        margin-bottom: 20px;
+        max-width: 500px;
+      }
+      button {
+        background-color: #fdaf01;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #e59d00;
+      }
     </style>
-</head>
-<body>
-    <img src="/logo.png" alt="Tim's Kitchen Logo" class="logo">
+  </head>
+  <body>
+    <img src="/logo.png" alt="Tim's Kitchen Logo" class="logo" />
     <h1>You're offline</h1>
-    <p>Sorry, you're currently offline and we couldn't load the page you requested. Please check your internet connection and try again.</p>
+    <p>
+      Sorry, you're currently offline and we couldn't load the page you
+      requested. Please check your internet connection and try again.
+    </p>
     <button id="tryAgainBtn" href="/">Try Again</button>
-    
+
     <script>
-        const lastPath = sessionStorage.getItem('lastPath');
-        const home = '/';
-        
-        document.getElementById('tryAgainBtn').addEventListener('click', function() {
-            if (navigator.onLine) {
-                window.location.href = home;
-            } else {
-                window.location.href = home;
-                alert('You are still offline. Please check your internet connection.');
-            }
+      const lastPath = sessionStorage.getItem("lastPath");
+      const home = "/";
+
+      document
+        .getElementById("tryAgainBtn")
+        .addEventListener("click", function () {
+          if (navigator.onLine) {
+            window.location.href = home;
+          } else {
+            window.location.href = home;
+            alert(
+              "You are still offline. Please check your internet connection.",
+            );
+          }
         });
 
-        // Check if online status changes
-        window.addEventListener('online', () => {
-            window.location.href = lastPath;
-        });
+      // Check if online status changes
+      window.addEventListener("online", () => {
+        window.location.href = lastPath;
+      });
     </script>
-</body>
+  </body>
 </html>

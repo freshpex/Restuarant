@@ -1,6 +1,6 @@
-import React from 'react';
-import { FaSpinner } from 'react-icons/fa';
-import { formatPrice, capitalizeWords } from '../../../utils/formatUtils';
+import React from "react";
+import { FaSpinner } from "react-icons/fa";
+import { formatPrice, capitalizeWords } from "../../../utils/formatUtils";
 
 const AddOrderModal = ({
   showModal,
@@ -13,7 +13,7 @@ const AddOrderModal = ({
   isCreatingOrder,
   availableFoods,
   isLoadingFoods,
-  selectedFood
+  selectedFood,
 }) => {
   if (!showModal) return null;
 
@@ -23,12 +23,23 @@ const AddOrderModal = ({
         <div className="p-5 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Add Manual Order</h3>
-            <button 
+            <button
               onClick={closeModal}
               className="text-gray-400 hover:text-gray-600"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -38,9 +49,14 @@ const AddOrderModal = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <h4 className="font-medium mb-3">Customer Information</h4>
-              
+
               <div className="mb-3">
-                <label htmlFor="buyerName" className="block text-sm text-gray-600 mb-1">Customer Name*</label>
+                <label
+                  htmlFor="buyerName"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Customer Name*
+                </label>
                 <input
                   type="text"
                   id="buyerName"
@@ -52,9 +68,14 @@ const AddOrderModal = ({
                   required
                 />
               </div>
-              
+
               <div className="mb-3">
-                <label htmlFor="email" className="block text-sm text-gray-600 mb-1">Email*</label>
+                <label
+                  htmlFor="email"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Email*
+                </label>
                 <input
                   type="email"
                   id="email"
@@ -66,9 +87,14 @@ const AddOrderModal = ({
                   required
                 />
               </div>
-              
+
               <div className="mb-3">
-                <label htmlFor="phone" className="block text-sm text-gray-600 mb-1">Phone Number*</label>
+                <label
+                  htmlFor="phone"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Phone Number*
+                </label>
                 <input
                   type="tel"
                   id="phone"
@@ -84,12 +110,18 @@ const AddOrderModal = ({
 
             <div>
               <h4 className="font-medium mb-3">Order Details</h4>
-              
+
               <div className="mb-3">
-                <label htmlFor="foodId" className="block text-sm text-gray-600 mb-1">Food Item*</label>
+                <label
+                  htmlFor="foodId"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Food Item*
+                </label>
                 {isLoadingFoods ? (
                   <div className="flex items-center text-gray-500">
-                    <FaSpinner className="animate-spin mr-2" /> Loading food items...
+                    <FaSpinner className="animate-spin mr-2" /> Loading food
+                    items...
                   </div>
                 ) : (
                   <select
@@ -101,17 +133,23 @@ const AddOrderModal = ({
                     required
                   >
                     <option value="">-- Select a food item --</option>
-                    {availableFoods.map(food => (
+                    {availableFoods.map((food) => (
                       <option key={food._id} value={food._id}>
-                        {food.foodName} - {formatPrice(parseFloat(food.foodPrice))}
+                        {food.foodName} -{" "}
+                        {formatPrice(parseFloat(food.foodPrice))}
                       </option>
                     ))}
                   </select>
                 )}
               </div>
-              
+
               <div className="mb-3">
-                <label htmlFor="quantity" className="block text-sm text-gray-600 mb-1">Quantity*</label>
+                <label
+                  htmlFor="quantity"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Quantity*
+                </label>
                 <input
                   type="number"
                   id="quantity"
@@ -125,12 +163,17 @@ const AddOrderModal = ({
               </div>
 
               <div className="mb-3">
-                <label htmlFor="totalPrice" className="block text-sm text-gray-600 mb-1">Total Price</label>
+                <label
+                  htmlFor="totalPrice"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Total Price
+                </label>
                 <input
                   type="text"
                   id="totalPrice"
                   name="totalPrice"
-                  value={`${formatPrice(newOrder.totalPrice) || '0.00'}`}
+                  value={`${formatPrice(newOrder.totalPrice) || "0.00"}`}
                   disabled
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-gray-50"
                 />
@@ -141,9 +184,14 @@ const AddOrderModal = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <h4 className="font-medium mb-3">Delivery Information</h4>
-              
+
               <div className="mb-3">
-                <label htmlFor="deliveryLocation" className="block text-sm text-gray-600 mb-1">Delivery Location*</label>
+                <label
+                  htmlFor="deliveryLocation"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Delivery Location*
+                </label>
                 <select
                   id="deliveryLocation"
                   name="deliveryLocation"
@@ -157,9 +205,14 @@ const AddOrderModal = ({
                   <option value="village">Village</option>
                 </select>
               </div>
-              
+
               <div className="mb-3">
-                <label htmlFor="fullAddress" className="block text-sm text-gray-600 mb-1">Full Address*</label>
+                <label
+                  htmlFor="fullAddress"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Full Address*
+                </label>
                 <textarea
                   id="fullAddress"
                   name="fullAddress"
@@ -175,9 +228,14 @@ const AddOrderModal = ({
 
             <div>
               <h4 className="font-medium mb-3">Payment Information</h4>
-              
+
               <div className="mb-3">
-                <label htmlFor="paymentMethod" className="block text-sm text-gray-600 mb-1">Payment Method*</label>
+                <label
+                  htmlFor="paymentMethod"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Payment Method*
+                </label>
                 <select
                   id="paymentMethod"
                   name="paymentMethod"
@@ -191,9 +249,14 @@ const AddOrderModal = ({
                   <option value="online">Online</option>
                 </select>
               </div>
-              
+
               <div className="mb-3">
-                <label htmlFor="paymentStatus" className="block text-sm text-gray-600 mb-1">Payment Status*</label>
+                <label
+                  htmlFor="paymentStatus"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Payment Status*
+                </label>
                 <select
                   id="paymentStatus"
                   name="paymentStatus"
@@ -206,9 +269,14 @@ const AddOrderModal = ({
                   <option value="unpaid">Unpaid</option>
                 </select>
               </div>
-              
+
               <div className="mb-3">
-                <label htmlFor="status" className="block text-sm text-gray-600 mb-1">Order Status*</label>
+                <label
+                  htmlFor="status"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Order Status*
+                </label>
                 <select
                   id="status"
                   name="status"
@@ -244,7 +312,7 @@ const AddOrderModal = ({
                   <FaSpinner className="animate-spin mr-2" /> Creating Order...
                 </>
               ) : (
-                'Create Order'
+                "Create Order"
               )}
             </button>
           </div>

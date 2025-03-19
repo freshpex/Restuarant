@@ -32,6 +32,7 @@ Tim's Kitchen is a modern food ordering platform where customers can browse, ord
 ### ✨ Key Features
 
 **For Customers**
+
 - Browse a wide variety of food items with detailed descriptions
 - Filter food items by category, price, and origin
 - Add food items to cart and place orders
@@ -40,6 +41,7 @@ Tim's Kitchen is a modern food ordering platform where customers can browse, ord
 - User authentication and profile management
 
 **For Chefs/Admins**
+
 - Add, edit, and remove food items
 - Upload food images directly or via URL
 - Track food inventory and order statistics
@@ -70,16 +72,19 @@ Tim's Kitchen is a modern food ordering platform where customers can browse, ord
 ### Installation
 
 1. Clone the repository
+
    ```sh
    git clone https://github.com/freshpex/timkitchenFrontend.git
    ```
 
 2. Navigate to the project directory
+
    ```sh
    cd timkitchenFrontend
    ```
 
 3. Install dependencies
+
    ```sh
    npm install
    # or
@@ -87,10 +92,11 @@ Tim's Kitchen is a modern food ordering platform where customers can browse, ord
    ```
 
 4. Create a `.env` file in the root directory based on `.env.example`
+
    ```
    # API Configuration
    VITE_API_URL=http://localhost:5000/api
-   
+
    # Firebase Configuration
    VITE_API_KEY=your_firebase_api_key
    VITE_AUTH_DOMAIN=your-project-id.firebaseapp.com
@@ -98,10 +104,10 @@ Tim's Kitchen is a modern food ordering platform where customers can browse, ord
    VITE_STORAGE_BUCKET=your-project-id.appspot.com
    VITE_MESSAGING_SENDER_ID=your_messaging_sender_id
    VITE_APP_ID=1:your_app_id:web:your_web_app_id
-   
+
    # Payment Gateway (Flutterwave)
    VITE_FLUTTERWAVE_PUBLIC_KEY=FLWPUBK_TEST-your-public-key-here-X
-   
+
    # Supabase Configuration
    VITE_SUPABASE_URL=https://your-project-id.supabase.co
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -109,6 +115,7 @@ Tim's Kitchen is a modern food ordering platform where customers can browse, ord
    ```
 
 5. Start the development server
+
    ```sh
    npm run dev
    # or

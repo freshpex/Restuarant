@@ -1,21 +1,21 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from './redux/store';
-import App from './App';
-import './index.css';
-import ErrorBoundary from './Components/ErrorBoundary/ErrorBoundary';
-import { registerSW } from 'virtual:pwa-register';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "./redux/store";
+import App from "./App";
+import "./index.css";
+import ErrorBoundary from "./Components/ErrorBoundary/ErrorBoundary";
+import { registerSW } from "virtual:pwa-register";
 
 const updateSW = registerSW({
   onNeedRefresh() {
-    if (confirm('New content available. Reload?')) {
+    if (confirm("New content available. Reload?")) {
       updateSW(true);
     }
   },
   onOfflineReady() {
-    console.log('App ready to work offline');
+    console.log("App ready to work offline");
   },
 });
 
@@ -24,13 +24,13 @@ const reportError = (error, errorInfo) => {
   console.error("Captured error:", error, errorInfo);
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ErrorBoundary 
+    <ErrorBoundary
       onError={reportError}
       onReset={() => {
         console.log("Error boundary reset");
-        window.location.href = '/';
+        window.location.href = "/";
       }}
     >
       <Provider store={store}>
@@ -39,5 +39,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </PersistGate>
       </Provider>
     </ErrorBoundary>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

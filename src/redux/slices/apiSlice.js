@@ -1,10 +1,10 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const apiSlice = createSlice({
-  name: 'api',
+  name: "api",
   initialState: {
     requests: {},
-    errors: {}
+    errors: {},
   },
   reducers: {
     startRequest: (state, action) => {
@@ -19,9 +19,10 @@ const apiSlice = createSlice({
     },
     clearError: (state, action) => {
       delete state.errors[action.payload];
-    }
-  }
+    },
+  },
 });
 
-export const { startRequest, endRequest, setError, clearError } = apiSlice.actions;
+export const { startRequest, endRequest, setError, clearError } =
+  apiSlice.actions;
 export default apiSlice.reducer;

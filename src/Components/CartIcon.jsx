@@ -1,8 +1,8 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { FaShoppingCart } from 'react-icons/fa';
-import { selectCartTotalQuantity } from '../redux/slices/cartSlice';
+import React from "react";
+import { useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import { FaShoppingCart } from "react-icons/fa";
+import { selectCartTotalQuantity } from "../redux/slices/cartSlice";
 
 const CartIcon = () => {
   const totalQuantity = useSelector(selectCartTotalQuantity);

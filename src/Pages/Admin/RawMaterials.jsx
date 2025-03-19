@@ -1,16 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { Helmet } from 'react-helmet';
-import { 
-  FaPlus, FaSearch, FaSpinner, FaExclamationTriangle, 
-  FaFilter, FaDownload, FaPlusCircle, FaCalendarAlt, FaTimes
-} from 'react-icons/fa';
-import { toast } from 'react-hot-toast';
-import { selectToken, selectCurrentUser } from '../../redux/selectors';
-import MaterialsTable from '../../Components/RawMaterials/MaterialsTable';
-import MaterialForm from '../../Components/RawMaterials/MaterialForm';
-import Modal from '../../Components/Common/Modal';
-import ConfirmationModal from '../../Components/Common/ConfirmationModal';
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { Helmet } from "react-helmet";
+import {
+  FaPlus,
+  FaSearch,
+  FaSpinner,
+  FaExclamationTriangle,
+  FaFilter,
+  FaDownload,
+  FaPlusCircle,
+  FaCalendarAlt,
+  FaTimes,
+} from "react-icons/fa";
+import { toast } from "react-hot-toast";
+import { selectToken, selectCurrentUser } from "../../redux/selectors";
+import MaterialsTable from "../../Components/RawMaterials/MaterialsTable";
+import MaterialForm from "../../Components/RawMaterials/MaterialForm";
+import Modal from "../../Components/Common/Modal";
+import ConfirmationModal from "../../Components/Common/ConfirmationModal";
 
 const RawMaterials = () => {
   const [materials, setMaterials] = useState([]);
@@ -19,34 +26,34 @@ const RawMaterials = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState("name");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [filterLowStock, setFilterLowStock] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [dateFilterActive, setDateFilterActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const currentUser = useSelector(selectCurrentUser);
-  
+
   const [formValues, setFormValues] = useState({
-    name: '',
-    quantity: '',
-    unit: 'kg',
-    supplier: '',
-    cost: '',
-    description: '',
-    minStockLevel: ''
+    name: "",
+    quantity: "",
+    unit: "kg",
+    supplier: "",
+    cost: "",
+    description: "",
+    minStockLevel: "",
   });
 
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
-  
-  const isAdmin = currentUser?.role === 'admin';
-  const isManager = currentUser?.role === 'manager';
-  const isChef = currentUser?.role === 'chef';
-  
+
+  const isAdmin = currentUser?.role === "admin";
+  const isManager = currentUser?.role === "manager";
+  const isChef = currentUser?.role === "chef";
+
   const hasAccess = isAdmin || isManager || isChef;
   const canEditDelete = isAdmin;
 
@@ -60,32 +67,32 @@ const RawMaterials = () => {
     try {
       setLoading(true);
       let url = `${API_URL}/staff/raw-materials`;
-      
+
       // Add date filters if active
       if (dateFilterActive && (startDate || endDate)) {
-        url += '?';
+        url += "?";
         if (startDate) url += `startDate=${startDate}`;
-        if (startDate && endDate) url += '&';
+        if (startDate && endDate) url += "&";
         if (endDate) url += `endDate=${endDate}`;
       }
-      
+
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch raw materials');
+        throw new Error("Failed to fetch raw materials");
       }
 
       const data = await response.json();
       setMaterials(data.materials || []);
     } catch (error) {
-      console.error('Error fetching materials:', error);
-      setError(error.message || 'Error fetching materials');
-      toast.error('Failed to load raw materials data');
+      console.error("Error fetching materials:", error);
+      setError(error.message || "Error fetching materials");
+      toast.error("Failed to load raw materials data");
     } finally {
       setLoading(false);
     }
@@ -95,19 +102,19 @@ const RawMaterials = () => {
     const { name, value } = e.target;
     setFormValues({
       ...formValues,
-      [name]: value
+      [name]: value,
     });
   };
 
   const resetForm = () => {
     setFormValues({
-      name: '',
-      quantity: '',
-      unit: 'kg',
-      supplier: '',
-      cost: '',
-      description: '',
-      minStockLevel: ''
+      name: "",
+      quantity: "",
+      unit: "kg",
+      supplier: "",
+      cost: "",
+      description: "",
+      minStockLevel: "",
     });
     setEditingMaterial(null);
   };
@@ -122,10 +129,12 @@ const RawMaterials = () => {
       name: material.name,
       quantity: material.quantity.toString(),
       unit: material.unit,
-      supplier: material.supplier || '',
-      cost: material.cost ? material.cost.toString() : '',
-      description: material.description || '',
-      minStockLevel: material.minStockLevel ? material.minStockLevel.toString() : ''
+      supplier: material.supplier || "",
+      cost: material.cost ? material.cost.toString() : "",
+      description: material.description || "",
+      minStockLevel: material.minStockLevel
+        ? material.minStockLevel.toString()
+        : "",
     });
     setEditingMaterial(material);
     setShowAddModal(true);
@@ -133,67 +142,74 @@ const RawMaterials = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formValues.name || !formValues.quantity || !formValues.unit) {
-      toast.error('Name, quantity, and unit are required');
+      toast.error("Name, quantity, and unit are required");
       return;
     }
-    
+
     setSubmitting(true);
-    
+
     try {
       if (editingMaterial) {
-        const response = await fetch(`${API_URL}/staff/raw-materials/${editingMaterial._id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        const response = await fetch(
+          `${API_URL}/staff/raw-materials/${editingMaterial._id}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formValues),
           },
-          body: JSON.stringify(formValues)
-        });
-        
+        );
+
         if (!response.ok) {
-          throw new Error('Failed to update raw material');
+          throw new Error("Failed to update raw material");
         }
-        
-        toast.success('Raw material updated successfully');
-        
-        setMaterials(materials.map(mat => 
-          mat._id === editingMaterial._id ? { 
-            ...mat, 
-            ...formValues,
-            quantity: parseFloat(formValues.quantity),
-            cost: parseFloat(formValues.cost) || 0,
-            minStockLevel: parseFloat(formValues.minStockLevel) || 0,
-            updatedAt: new Date()
-          } : mat
-        ));
+
+        toast.success("Raw material updated successfully");
+
+        setMaterials(
+          materials.map((mat) =>
+            mat._id === editingMaterial._id
+              ? {
+                  ...mat,
+                  ...formValues,
+                  quantity: parseFloat(formValues.quantity),
+                  cost: parseFloat(formValues.cost) || 0,
+                  minStockLevel: parseFloat(formValues.minStockLevel) || 0,
+                  updatedAt: new Date(),
+                }
+              : mat,
+          ),
+        );
       } else {
         const response = await fetch(`${API_URL}/staff/raw-materials`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(formValues)
+          body: JSON.stringify(formValues),
         });
-        
+
         if (!response.ok) {
-          throw new Error('Failed to add raw material');
+          throw new Error("Failed to add raw material");
         }
-        
+
         const data = await response.json();
-        
-        toast.success('Raw material added successfully');
-        
+
+        toast.success("Raw material added successfully");
+
         fetchMaterials();
       }
-      
+
       setShowAddModal(false);
       resetForm();
     } catch (error) {
-      console.error('Error saving material:', error);
-      toast.error(error.message || 'Error saving raw material');
+      console.error("Error saving material:", error);
+      toast.error(error.message || "Error saving raw material");
     } finally {
       setSubmitting(false);
     }
@@ -201,30 +217,35 @@ const RawMaterials = () => {
 
   const handleDelete = async () => {
     if (!deleteConfirmation) return;
-    
+
     setDeleting(true);
-    
+
     try {
-      const response = await fetch(`${API_URL}/staff/raw-materials/${deleteConfirmation._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      const response = await fetch(
+        `${API_URL}/staff/raw-materials/${deleteConfirmation._id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to delete raw material');
+        throw new Error("Failed to delete raw material");
       }
-      
-      toast.success('Raw material deleted successfully');
-      
-      setMaterials(materials.filter(mat => mat._id !== deleteConfirmation._id));
-      
+
+      toast.success("Raw material deleted successfully");
+
+      setMaterials(
+        materials.filter((mat) => mat._id !== deleteConfirmation._id),
+      );
+
       setDeleteConfirmation(null);
     } catch (error) {
-      console.error('Error deleting material:', error);
-      toast.error(error.message || 'Error deleting raw material');
+      console.error("Error deleting material:", error);
+      toast.error(error.message || "Error deleting raw material");
     } finally {
       setDeleting(false);
     }
@@ -232,85 +253,99 @@ const RawMaterials = () => {
 
   const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
   const applyDateFilter = () => {
     if (!startDate && !endDate) {
-      toast.error('Please select at least one date');
+      toast.error("Please select at least one date");
       return;
     }
-    
+
     setDateFilterActive(true);
     fetchMaterials();
   };
-  
+
   const clearDateFilter = () => {
-    setStartDate('');
-    setEndDate('');
+    setStartDate("");
+    setEndDate("");
     setDateFilterActive(false);
     fetchMaterials();
   };
 
   const filteredAndSortedMaterials = materials
-    .filter(material => {
-      const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (material.supplier && material.supplier.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                           (material.description && material.description.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      const matchesLowStock = filterLowStock ? 
-        material.quantity <= (material.minStockLevel || 0) : true;
-      
+    .filter((material) => {
+      const matchesSearch =
+        material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (material.supplier &&
+          material.supplier.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (material.description &&
+          material.description
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()));
+
+      const matchesLowStock = filterLowStock
+        ? material.quantity <= (material.minStockLevel || 0)
+        : true;
+
       return matchesSearch && matchesLowStock;
     })
     .sort((a, b) => {
       let fieldA = a[sortField];
       let fieldB = b[sortField];
-      
-      if (['quantity', 'cost', 'minStockLevel'].includes(sortField)) {
+
+      if (["quantity", "cost", "minStockLevel"].includes(sortField)) {
         fieldA = parseFloat(fieldA) || 0;
         fieldB = parseFloat(fieldB) || 0;
-      } else if (typeof fieldA === 'string' && typeof fieldB === 'string') {
+      } else if (typeof fieldA === "string" && typeof fieldB === "string") {
         fieldA = fieldA.toLowerCase();
         fieldB = fieldB.toLowerCase();
       }
-      
-      if (fieldA < fieldB) return sortDirection === 'asc' ? -1 : 1;
-      if (fieldA > fieldB) return sortDirection === 'asc' ? 1 : -1;
+
+      if (fieldA < fieldB) return sortDirection === "asc" ? -1 : 1;
+      if (fieldA > fieldB) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
   const exportToCSV = () => {
     if (materials.length === 0) {
-      toast.error('No data to export');
+      toast.error("No data to export");
       return;
     }
-    
-    const headers = ['Name', 'Quantity', 'Unit', 'Supplier', 'Cost', 'Min Stock Level', 'Description'];
-    const rows = materials.map(material => [
+
+    const headers = [
+      "Name",
+      "Quantity",
+      "Unit",
+      "Supplier",
+      "Cost",
+      "Min Stock Level",
+      "Description",
+    ];
+    const rows = materials.map((material) => [
       material.name,
       material.quantity,
       material.unit,
-      material.supplier || '',
-      material.cost || '0',
-      material.minStockLevel || '0',
-      material.description || ''
+      material.supplier || "",
+      material.cost || "0",
+      material.minStockLevel || "0",
+      material.description || "",
     ]);
-    
+
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'raw_materials.csv');
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "raw_materials.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -335,11 +370,13 @@ const RawMaterials = () => {
       <Helmet>
         <title>Raw Materials | Tim's Kitchen</title>
       </Helmet>
-      
+
       <div className="container mx-auto p-6">
         <div className="flex flex-wrap justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold mb-2 md:mb-0">Raw Materials Inventory</h1>
-          
+          <h1 className="text-2xl font-bold mb-2 md:mb-0">
+            Raw Materials Inventory
+          </h1>
+
           <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <div className="relative flex-grow md:flex-grow-0">
               <input
@@ -351,45 +388,49 @@ const RawMaterials = () => {
               />
               <FaSearch className="absolute left-3 top-3 text-gray-400" />
             </div>
-            
+
             <button
-              onClick={() => document.getElementById('dateFilterPanel').classList.toggle('hidden')}
+              onClick={() =>
+                document
+                  .getElementById("dateFilterPanel")
+                  .classList.toggle("hidden")
+              }
               className={`px-4 py-2 rounded-lg flex items-center text-sm ${
-                dateFilterActive 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                dateFilterActive
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <FaCalendarAlt className="mr-2" /> Date Filter
               {dateFilterActive && (
-                <FaTimes 
-                  className="ml-1 text-white" 
+                <FaTimes
+                  className="ml-1 text-white"
                   onClick={(e) => {
-                    e.stopPropagation(); 
+                    e.stopPropagation();
                     clearDateFilter();
                   }}
                 />
               )}
             </button>
-            
+
             <button
               onClick={() => setFilterLowStock(!filterLowStock)}
               className={`px-4 py-2 rounded-lg flex items-center text-sm ${
-                filterLowStock 
-                  ? 'bg-yellow-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                filterLowStock
+                  ? "bg-yellow-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <FaFilter className="mr-2" /> Low Stock
             </button>
-            
+
             <button
               onClick={exportToCSV}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center text-sm"
             >
               <FaDownload className="mr-2" /> Export
             </button>
-            
+
             <button
               onClick={openAddModal}
               className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center text-sm"
@@ -398,11 +439,17 @@ const RawMaterials = () => {
             </button>
           </div>
         </div>
-        
-        <div id="dateFilterPanel" className="bg-white p-4 rounded-lg shadow-md mb-6 hidden">
+
+        <div
+          id="dateFilterPanel"
+          className="bg-white p-4 rounded-lg shadow-md mb-6 hidden"
+        >
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="startDate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 From Date
               </label>
               <input
@@ -413,21 +460,24 @@ const RawMaterials = () => {
                 className="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
               />
             </div>
-            
+
             <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="endDate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 To Date
               </label>
               <input
                 type="date"
                 id="endDate"
                 value={endDate}
-                max={new Date().toISOString().split('T')[0]}
+                max={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
               />
             </div>
-            
+
             <div className="mt-5">
               <button
                 onClick={applyDateFilter}
@@ -436,7 +486,7 @@ const RawMaterials = () => {
                 Apply Filter
               </button>
             </div>
-            
+
             <div className="mt-5">
               <button
                 onClick={clearDateFilter}
@@ -446,19 +496,19 @@ const RawMaterials = () => {
               </button>
             </div>
           </div>
-          
+
           {dateFilterActive && (
             <div className="mt-2 text-sm text-gray-600">
-              Currently filtering: {startDate && endDate 
+              Currently filtering:{" "}
+              {startDate && endDate
                 ? `From ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`
                 : startDate
-                ? `From ${new Date(startDate).toLocaleDateString()}`
-                : `Until ${new Date(endDate).toLocaleDateString()}`
-              }
+                  ? `From ${new Date(startDate).toLocaleDateString()}`
+                  : `Until ${new Date(endDate).toLocaleDateString()}`}
             </div>
           )}
         </div>
-        
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <FaSpinner className="animate-spin text-yellow-600 text-4xl" />
@@ -484,7 +534,7 @@ const RawMaterials = () => {
 
       <Modal
         isOpen={showAddModal}
-        title={editingMaterial ? 'Edit Raw Material' : 'Add Raw Material'}
+        title={editingMaterial ? "Edit Raw Material" : "Add Raw Material"}
         onClose={() => setShowAddModal(false)}
       >
         <MaterialForm

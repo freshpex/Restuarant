@@ -1,15 +1,18 @@
-import React from 'react';
-import { FaMoneyBillWave, FaDownload } from 'react-icons/fa';
-import { formatPrice } from '../../../utils/formatUtils';
-import { exportToCSV } from '../components/AnalyticsUtils';
-import MonthlyRevenueChart from '../Charts/MonthlyRevenueChart';
-import PaymentMethodChart from '../Charts/PaymentMethodChart';
+import React from "react";
+import { FaMoneyBillWave, FaDownload } from "react-icons/fa";
+import { formatPrice } from "../../../utils/formatUtils";
+import { exportToCSV } from "../components/AnalyticsUtils";
+import MonthlyRevenueChart from "../Charts/MonthlyRevenueChart";
+import PaymentMethodChart from "../Charts/PaymentMethodChart";
 
 const RevenueTab = ({ stats, monthlyRevenue, salesBreakdown }) => {
   const handleExport = () => {
     exportToCSV(
-      Object.entries(monthlyRevenue).map(([month, amount]) => ({month, amount})),
-      'revenue-data'
+      Object.entries(monthlyRevenue).map(([month, amount]) => ({
+        month,
+        amount,
+      })),
+      "revenue-data",
     );
   };
 
@@ -39,21 +42,25 @@ const RevenueTab = ({ stats, monthlyRevenue, salesBreakdown }) => {
         </div>
 
         <div className="bg-green-50 p-6 rounded-lg border border-green-100">
-          <p className="text-sm font-medium text-green-800">Average Order Value</p>
+          <p className="text-sm font-medium text-green-800">
+            Average Order Value
+          </p>
           <h3 className="text-2xl font-bold text-green-900 mt-2">
-            {stats?.orderCount > 0 
-              ? formatPrice(stats?.totalRevenue / stats?.orderCount) 
-              : '₦0.00'}
+            {stats?.orderCount > 0
+              ? formatPrice(stats?.totalRevenue / stats?.orderCount)
+              : "₦0.00"}
           </h3>
           <p className="text-xs text-green-700 mt-1">Per order</p>
         </div>
 
         <div className="bg-purple-50 p-6 rounded-lg border border-purple-100">
-          <p className="text-sm font-medium text-purple-800">Current Month Revenue</p>
+          <p className="text-sm font-medium text-purple-800">
+            Current Month Revenue
+          </p>
           <h3 className="text-2xl font-bold text-purple-900 mt-2">
             {(() => {
               const now = new Date();
-              const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+              const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
               return formatPrice(monthlyRevenue[monthKey] || 0);
             })()}
           </h3>

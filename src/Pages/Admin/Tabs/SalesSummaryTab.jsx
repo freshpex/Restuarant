@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { FaMoneyBillWave, FaDownload, FaChartBar, FaExclamationTriangle } from 'react-icons/fa';
-import { formatPrice } from '../../../utils/formatUtils';
-import { exportToCSV } from '../components/AnalyticsUtils';
-import Pagination from '../../../Components/Pagination';
+import React, { useState, useEffect } from "react";
+import {
+  FaMoneyBillWave,
+  FaDownload,
+  FaChartBar,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { formatPrice } from "../../../utils/formatUtils";
+import { exportToCSV } from "../components/AnalyticsUtils";
+import Pagination from "../../../Components/Pagination";
 
 const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,14 +22,14 @@ const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
 
   const handleExport = () => {
     exportToCSV(
-      salesSummary.items.map(item => ({
+      salesSummary.items.map((item) => ({
         itemName: item.itemName,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         totalPrice: item.totalPrice,
-        date: item.date
-      })), 
-      'sales-summary'
+        date: item.date,
+      })),
+      "sales-summary",
     );
   };
 
@@ -43,7 +48,7 @@ const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
           </button>
         </div>
       </div>
-      
+
       <div className="mb-6">
         <div className="bg-yellow-50 p-6 rounded-lg text-center">
           <h3 className="text-lg font-medium mb-1">Total Sales</h3>
@@ -51,9 +56,9 @@ const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
             {formatPrice(salesSummary.totalAmount)}
           </p>
           <p className="text-sm text-yellow-600 mt-1">
-            {startDate === endDate ? 
-              `For ${new Date(startDate).toLocaleDateString()}` : 
-              `From ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`}
+            {startDate === endDate
+              ? `For ${new Date(startDate).toLocaleDateString()}`
+              : `From ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`}
           </p>
         </div>
       </div>
@@ -82,12 +87,14 @@ const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
                       {new Date(item.date).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        item.itemType === 'food' 
-                          ? 'bg-yellow-100 text-yellow-800' 
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {item.itemType === 'food' ? 'Food' : 'Drink'}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          item.itemType === "food"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {item.itemType === "food" ? "Food" : "Drink"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap text-sm text-gray-500">
@@ -104,8 +111,14 @@ const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50">
-                  <td colSpan="5" className="sticky left-0 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900">
-                    Total: <span className="md:hidden ml-1 font-bold">{formatPrice(salesSummary.totalAmount)}</span>
+                  <td
+                    colSpan="5"
+                    className="sticky left-0 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900"
+                  >
+                    Total:{" "}
+                    <span className="md:hidden ml-1 font-bold">
+                      {formatPrice(salesSummary.totalAmount)}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
                     {formatPrice(salesSummary.totalAmount)}
@@ -114,7 +127,7 @@ const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
               </tfoot>
             </table>
           </div>
-          
+
           {/* Pagination */}
           <div className="mt-4">
             <Pagination
@@ -128,14 +141,18 @@ const SalesSummaryTab = ({ salesSummary, startDate, endDate }) => {
       ) : (
         <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg">
           <FaChartBar className="text-gray-300 text-4xl mb-3" />
-          <p className="text-gray-500 mb-1">No sales data available for the selected date range</p>
-          <p className="text-sm text-gray-400">Try selecting a different date range</p>
+          <p className="text-gray-500 mb-1">
+            No sales data available for the selected date range
+          </p>
+          <p className="text-sm text-gray-400">
+            Try selecting a different date range
+          </p>
         </div>
       )}
-      
+
       <div className="mt-4 text-sm text-gray-500">
         <p className="mb-2 flex items-center">
-          <FaExclamationTriangle className="text-yellow-500 mr-2" /> 
+          <FaExclamationTriangle className="text-yellow-500 mr-2" />
           <span>Tips for mobile users:</span>
         </p>
         <ul className="list-disc pl-10">

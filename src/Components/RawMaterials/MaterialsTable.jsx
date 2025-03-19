@@ -1,39 +1,44 @@
-import React from 'react';
-import { 
-  FaCheck, FaExclamationTriangle, FaEdit, FaTrash, 
-  FaSortAmountDown, FaSortAmountUp, FaBoxOpen
-} from 'react-icons/fa';
-import { formatPrice } from '../../utils/formatUtils';
+import React from "react";
+import {
+  FaCheck,
+  FaExclamationTriangle,
+  FaEdit,
+  FaTrash,
+  FaSortAmountDown,
+  FaSortAmountUp,
+  FaBoxOpen,
+} from "react-icons/fa";
+import { formatPrice } from "../../utils/formatUtils";
 
-const MaterialsTable = ({ 
-  materials, 
+const MaterialsTable = ({
+  materials,
   sortField,
   sortDirection,
   handleSort,
   onEdit,
   onDelete,
-  canEditDelete 
+  canEditDelete,
 }) => {
   const getStockStatus = (material) => {
     if (!material.minStockLevel || material.minStockLevel <= 0) {
-      return 'normal';
+      return "normal";
     }
-    
+
     if (material.quantity <= 0) {
-      return 'out';
+      return "out";
     } else if (material.quantity <= material.minStockLevel) {
-      return 'low';
+      return "low";
     } else {
-      return 'normal';
+      return "normal";
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '-';
+    if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -44,71 +49,76 @@ const MaterialsTable = ({
           <thead className="bg-gray-50">
             <tr>
               <th
-                onClick={() => handleSort('name')}
+                onClick={() => handleSort("name")}
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center">
                   Name
-                  {sortField === 'name' && (
-                    sortDirection === 'asc' ?
-                      <FaSortAmountUp className="ml-1" /> :
+                  {sortField === "name" &&
+                    (sortDirection === "asc" ? (
+                      <FaSortAmountUp className="ml-1" />
+                    ) : (
                       <FaSortAmountDown className="ml-1" />
-                  )}
+                    ))}
                 </div>
               </th>
               <th
-                onClick={() => handleSort('quantity')}
+                onClick={() => handleSort("quantity")}
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center">
                   Quantity
-                  {sortField === 'quantity' && (
-                    sortDirection === 'asc' ?
-                      <FaSortAmountUp className="ml-1" /> :
+                  {sortField === "quantity" &&
+                    (sortDirection === "asc" ? (
+                      <FaSortAmountUp className="ml-1" />
+                    ) : (
                       <FaSortAmountDown className="ml-1" />
-                  )}
+                    ))}
                 </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Unit
               </th>
               <th
-                onClick={() => handleSort('supplier')}
+                onClick={() => handleSort("supplier")}
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center">
                   Supplier
-                  {sortField === 'supplier' && (
-                    sortDirection === 'asc' ?
-                      <FaSortAmountUp className="ml-1" /> :
+                  {sortField === "supplier" &&
+                    (sortDirection === "asc" ? (
+                      <FaSortAmountUp className="ml-1" />
+                    ) : (
                       <FaSortAmountDown className="ml-1" />
-                  )}
+                    ))}
                 </div>
               </th>
               <th
-                onClick={() => handleSort('cost')}
+                onClick={() => handleSort("cost")}
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center">
                   Cost
-                  {sortField === 'cost' && (
-                    sortDirection === 'asc' ?
-                      <FaSortAmountUp className="ml-1" /> :
+                  {sortField === "cost" &&
+                    (sortDirection === "asc" ? (
+                      <FaSortAmountUp className="ml-1" />
+                    ) : (
                       <FaSortAmountDown className="ml-1" />
-                  )}
+                    ))}
                 </div>
               </th>
               <th
-                onClick={() => handleSort('createdAt')}
+                onClick={() => handleSort("createdAt")}
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center">
                   Added Date
-                  {sortField === 'createdAt' && (
-                    sortDirection === 'asc' ?
-                      <FaSortAmountUp className="ml-1" /> :
+                  {sortField === "createdAt" &&
+                    (sortDirection === "asc" ? (
+                      <FaSortAmountUp className="ml-1" />
+                    ) : (
                       <FaSortAmountDown className="ml-1" />
-                  )}
+                    ))}
                 </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -124,7 +134,10 @@ const MaterialsTable = ({
           <tbody className="bg-white divide-y divide-gray-200">
             {materials.length === 0 ? (
               <tr>
-                <td colSpan={canEditDelete ? 8 : 7} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={canEditDelete ? 8 : 7}
+                  className="px-6 py-4 text-center text-gray-500"
+                >
                   <div className="flex flex-col items-center">
                     <FaBoxOpen className="text-4xl mb-2 text-gray-300" />
                     <p>No raw materials found</p>
@@ -134,24 +147,26 @@ const MaterialsTable = ({
             ) : (
               materials.map((material) => {
                 const stockStatus = getStockStatus(material);
-                let statusColor = 'bg-green-100 text-green-800';
-                let statusText = 'In Stock';
+                let statusColor = "bg-green-100 text-green-800";
+                let statusText = "In Stock";
                 let statusIcon = <FaCheck />;
-                
-                if (stockStatus === 'low') {
-                  statusColor = 'bg-yellow-100 text-yellow-800';
-                  statusText = 'Low Stock';
+
+                if (stockStatus === "low") {
+                  statusColor = "bg-yellow-100 text-yellow-800";
+                  statusText = "Low Stock";
                   statusIcon = <FaExclamationTriangle />;
-                } else if (stockStatus === 'out') {
-                  statusColor = 'bg-red-100 text-red-800';
-                  statusText = 'Out of Stock';
+                } else if (stockStatus === "out") {
+                  statusColor = "bg-red-100 text-red-800";
+                  statusText = "Out of Stock";
                   statusIcon = <FaExclamationTriangle />;
                 }
-                
+
                 return (
                   <tr key={material._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{material.name}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {material.name}
+                      </div>
                       {material.description && (
                         <div className="text-xs text-gray-500 mt-1 max-w-xs truncate">
                           {material.description}
@@ -172,7 +187,7 @@ const MaterialsTable = ({
                       {material.unit}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {material.supplier || '-'}
+                      {material.supplier || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {material.cost ? (
@@ -187,7 +202,9 @@ const MaterialsTable = ({
                       {formatDate(material.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs leading-5 font-medium rounded-full flex items-center justify-center w-fit ${statusColor}`}>
+                      <span
+                        className={`px-2 py-1 text-xs leading-5 font-medium rounded-full flex items-center justify-center w-fit ${statusColor}`}
+                      >
                         {statusIcon}
                         <span className="ml-1">{statusText}</span>
                       </span>

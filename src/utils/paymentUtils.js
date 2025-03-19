@@ -1,26 +1,27 @@
-import { closePaymentModal, useFlutterwave } from 'flutterwave-react-v3';
+import { closePaymentModal, useFlutterwave } from "flutterwave-react-v3";
 
 // Configuration for Flutterwave payment
 export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
   const {
     onSuccess = () => {},
     onError = () => {},
-    onClose = () => {}
+    onClose = () => {},
   } = callbacks;
-  
+
   const unitPrice = parseFloat(orderDetails.foodPrice);
   const quantity = parseInt(orderDetails.quantity);
-  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
+  const totalPrice =
+    orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
 
   const config = {
     public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
     tx_ref: `tk-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     amount: parseFloat(totalPrice),
-    currency: 'NGN',
-    payment_options: 'card,mobilemoney,ussd,banktransfer',
+    currency: "NGN",
+    payment_options: "card,mobilemoney,ussd,banktransfer",
     customer: {
       email: user.email,
-      phone_number: '',
+      phone_number: "",
       name: user.displayName || orderDetails.buyerName,
     },
     customizations: {
@@ -32,7 +33,7 @@ export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
 
   try {
     const handleFlutterPayment = useFlutterwave(config);
-    
+
     return {
       initiatePayment: () => {
         handleFlutterPayment({
@@ -40,7 +41,7 @@ export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
             if (response.status === "successful") {
               onSuccess(response);
             } else {
-              onError(new Error('Payment was not successful'));
+              onError(new Error("Payment was not successful"));
             }
             closePaymentModal();
           },
@@ -48,10 +49,10 @@ export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
             onClose();
           },
         });
-      }
+      },
     };
   } catch (error) {
-    console.error('Flutterwave initialization error:', error);
+    console.error("Flutterwave initialization error:", error);
     onError(error);
     return { initiatePayment: () => {} };
   }
@@ -59,12 +60,13 @@ export const initFlutterwavePayment = (orderDetails, user, callbacks = {}) => {
 
 // Helper to create WhatsApp chat link
 export const createWhatsAppLink = (phoneNumber, orderDetails) => {
-  const formattedPhone = phoneNumber.replace(/\D/g, '');
-  
+  const formattedPhone = phoneNumber.replace(/\D/g, "");
+
   const unitPrice = parseFloat(orderDetails.foodPrice);
   const quantity = parseInt(orderDetails.quantity);
-  const totalPrice = orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
-  
+  const totalPrice =
+    orderDetails.totalPrice || (unitPrice * quantity).toFixed(2);
+
   const message = encodeURIComponent(
     `Hello! I'd like to order:
     - Food: ${orderDetails.foodName}
@@ -74,24 +76,24 @@ export const createWhatsAppLink = (phoneNumber, orderDetails) => {
     - Order Date: ${orderDetails.date}
     
     My name is ${orderDetails.buyerName}.
-    Please confirm if this order is available.`
+    Please confirm if this order is available.`,
   );
-  
+
   // Return WhatsApp web link
   return `https://wa.me/${formattedPhone}?text=${message}`;
 };
 
 // Handle Flutterwave payment errors
 export const handlePaymentError = (error) => {
-  console.error('Payment error:', error);
-  
-  if (error.message && error.message.includes('API key')) {
-    return 'Invalid payment configuration. Please contact support.';
+  console.error("Payment error:", error);
+
+  if (error.message && error.message.includes("API key")) {
+    return "Invalid payment configuration. Please contact support.";
   }
-  
-  if (error.message && error.message.includes('network')) {
-    return 'Network error. Please check your internet connection and try again.';
+
+  if (error.message && error.message.includes("network")) {
+    return "Network error. Please check your internet connection and try again.";
   }
-  
-  return 'Payment initialization failed. Please try again later.';
+
+  return "Payment initialization failed. Please try again later.";
 };

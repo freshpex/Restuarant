@@ -1,18 +1,18 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const uiSlice = createSlice({
-    name: 'ui',
-    initialState: {
-        globalLoading: true,
+  name: "ui",
+  initialState: {
+    globalLoading: true,
+  },
+  reducers: {
+    startGlobalLoading: (state) => {
+      state.globalLoading = true;
     },
-    reducers: {
-        startGlobalLoading: (state) => {
-            state.globalLoading = true;
-        },
-        stopGlobalLoading: (state) => {
-            state.globalLoading = false;
-        }
-    }
+    stopGlobalLoading: (state) => {
+      state.globalLoading = false;
+    },
+  },
 });
 
 export const { startGlobalLoading, stopGlobalLoading } = uiSlice.actions;

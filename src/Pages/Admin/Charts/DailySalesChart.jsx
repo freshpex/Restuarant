@@ -1,23 +1,23 @@
-import React from 'react';
-import { Line } from 'react-chartjs-2';
+import React from "react";
+import { Line } from "react-chartjs-2";
 
 const DailySalesChart = ({ dailySales }) => {
   const chartData = {
-    labels: dailySales.map(day => day.date),
+    labels: dailySales.map((day) => day.date),
     datasets: [
       {
-        label: 'Items Sold',
-        data: dailySales.map(day => day.itemCount),
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        yAxisID: 'y',
+        label: "Items Sold",
+        data: dailySales.map((day) => day.itemCount),
+        borderColor: "rgb(255, 99, 132)",
+        backgroundColor: "rgba(255, 99, 132, 0.5)",
+        yAxisID: "y",
       },
       {
-        label: 'Revenue (₦)',
-        data: dailySales.map(day => day.revenue),
-        borderColor: 'rgb(53, 162, 235)',
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
-        yAxisID: 'y1',
+        label: "Revenue (₦)",
+        data: dailySales.map((day) => day.revenue),
+        borderColor: "rgb(53, 162, 235)",
+        backgroundColor: "rgba(53, 162, 235, 0.5)",
+        yAxisID: "y1",
       },
     ],
   };
@@ -27,41 +27,45 @@ const DailySalesChart = ({ dailySales }) => {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-      mode: 'index',
+      mode: "index",
       intersect: false,
     },
     plugins: {
       tooltip: {
         callbacks: {
-          label: function(context) {
-            const label = context.dataset.label || '';
+          label: function (context) {
+            const label = context.dataset.label || "";
             const value = context.parsed.y;
-            return label + ': ' + (label.includes('Revenue') ? '₦' + value.toFixed(2) : value);
-          }
-        }
+            return (
+              label +
+              ": " +
+              (label.includes("Revenue") ? "₦" + value.toFixed(2) : value)
+            );
+          },
+        },
       },
     },
     scales: {
       y: {
-        type: 'linear',
+        type: "linear",
         display: true,
-        position: 'left',
+        position: "left",
         title: {
           display: true,
-          text: 'Items Sold'
-        }
+          text: "Items Sold",
+        },
       },
       y1: {
-        type: 'linear',
+        type: "linear",
         display: true,
-        position: 'right',
+        position: "right",
         grid: {
           drawOnChartArea: false,
         },
         title: {
           display: true,
-          text: 'Revenue (₦)'
-        }
+          text: "Revenue (₦)",
+        },
       },
     },
   };

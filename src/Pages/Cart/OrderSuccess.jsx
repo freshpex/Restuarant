@@ -1,69 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, Link, Navigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { 
-  FaCheckCircle, FaShoppingBag, FaClock, FaMotorcycle, 
-  FaUtensils, FaSpinner, FaCopy, FaExclamationTriangle, 
-  FaGlassWhiskey, FaHamburger 
-} from 'react-icons/fa';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { useLocation, Link, Navigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import {
+  FaCheckCircle,
+  FaShoppingBag,
+  FaClock,
+  FaMotorcycle,
+  FaUtensils,
+  FaSpinner,
+  FaCopy,
+  FaExclamationTriangle,
+  FaGlassWhiskey,
+  FaHamburger,
+} from "react-icons/fa";
+import toast from "react-hot-toast";
 
 const OrderSuccess = () => {
   const location = useLocation();
-  const { orderId, orderReference, isPaid, contactPhone, isProcessing, paymentPending } = location.state || {};
+  const {
+    orderId,
+    orderReference,
+    isPaid,
+    contactPhone,
+    isProcessing,
+    paymentPending,
+  } = location.state || {};
   const [processing, setProcessing] = useState(isProcessing || false);
-  const [paymentStatus, setPaymentStatus] = useState(isPaid ? 'paid' : 'pending');
-  const [orderStatus, setOrderStatus] = useState('pending');
+  const [paymentStatus, setPaymentStatus] = useState(
+    isPaid ? "paid" : "pending",
+  );
+  const [orderStatus, setOrderStatus] = useState("pending");
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
-  
+
   const trackingReference = orderReference || orderId;
 
   useEffect(() => {
-    if (trackingReference && !trackingReference.includes('temp-') && !processing) {
+    if (
+      trackingReference &&
+      !trackingReference.includes("temp-") &&
+      !processing
+    ) {
       setVerifyingPayment(true);
-      
-      fetch(`${import.meta.env.VITE_API_URL}/order/track?reference=${encodeURIComponent(trackingReference)}`)
-        .then(response => {
-          if (!response.ok) throw new Error('Could not verify order status');
+
+      fetch(
+        `${import.meta.env.VITE_API_URL}/order/track?reference=${encodeURIComponent(trackingReference)}`,
+      )
+        .then((response) => {
+          if (!response.ok) throw new Error("Could not verify order status");
           return response.json();
         })
-        .then(data => {
+        .then((data) => {
           if (data.success && data.order) {
             setPaymentStatus(data.order.paymentStatus);
             setOrderStatus(data.order.status);
             setOrderDetails(data.order);
-            
+
             // Handle group orders with multiple items
             if (data.order.items && Array.isArray(data.order.items)) {
               setOrderItems(data.order.items);
             }
-            
-            if (isPaid && (data.order.paymentStatus === 'processing' || data.order.paymentStatus === 'unpaid')) {
-              console.warn('Payment status mismatch - Frontend: paid, Backend:', data.order.paymentStatus);
-              toast.warning('Payment is being processed. Please check the order status later.', {
-                duration: 6000,
-              });
+
+            if (
+              isPaid &&
+              (data.order.paymentStatus === "processing" ||
+                data.order.paymentStatus === "unpaid")
+            ) {
+              console.warn(
+                "Payment status mismatch - Frontend: paid, Backend:",
+                data.order.paymentStatus,
+              );
+              toast.warning(
+                "Payment is being processed. Please check the order status later.",
+                {
+                  duration: 6000,
+                },
+              );
             }
           }
         })
-        .catch(error => {
-          console.error('Error fetching order status:', error);
+        .catch((error) => {
+          console.error("Error fetching order status:", error);
         })
         .finally(() => {
           setVerifyingPayment(false);
         });
     }
   }, [trackingReference, processing, isPaid]);
-  
+
   useEffect(() => {
     if (processing) {
       const timer = setTimeout(() => {
         setProcessing(false);
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [processing]);
@@ -73,7 +105,7 @@ const OrderSuccess = () => {
       const timer = setTimeout(() => {
         setShowSignupPrompt(true);
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [location.state]);
@@ -81,54 +113,62 @@ const OrderSuccess = () => {
   if (!orderId && !orderReference) {
     return <Navigate to="/" replace />;
   }
-  
+
   const estimatedDelivery = new Date();
   estimatedDelivery.setMinutes(estimatedDelivery.getMinutes() + 45);
-  const deliveryTimeString = estimatedDelivery.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
+  const deliveryTimeString = estimatedDelivery.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   const copyTrackingReference = () => {
-    navigator.clipboard.writeText(trackingReference)
+    navigator.clipboard
+      .writeText(trackingReference)
       .then(() => {
-        toast.success('Tracking reference copied to clipboard');
+        toast.success("Tracking reference copied to clipboard");
       })
       .catch(() => {
-        toast.error('Failed to copy tracking reference');
+        toast.error("Failed to copy tracking reference");
       });
   };
 
-  const isPaymentConfirmed = paymentStatus === 'paid';
-  const isPaymentProcessing = paymentStatus === 'processing';
+  const isPaymentConfirmed = paymentStatus === "paid";
+  const isPaymentProcessing = paymentStatus === "processing";
 
   const getFoodAndDrinkCounts = () => {
     if (!orderItems || orderItems.length === 0) {
       return { foodCount: 0, drinkCount: 0 };
     }
-    
-    const foodCount = orderItems.filter(item => item.type === 'food').length;
-    const drinkCount = orderItems.filter(item => item.type === 'drink').length;
-    
+
+    const foodCount = orderItems.filter((item) => item.type === "food").length;
+    const drinkCount = orderItems.filter(
+      (item) => item.type === "drink",
+    ).length;
+
     return { foodCount, drinkCount };
   };
-  
+
   const { foodCount, drinkCount } = getFoodAndDrinkCounts();
 
   // Format order summary with food and drink counts
   const getOrderSummaryText = () => {
     if (foodCount > 0 && drinkCount > 0) {
-      return `${foodCount} food item${foodCount > 1 ? 's' : ''} and ${drinkCount} drink${drinkCount > 1 ? 's' : ''}`;
+      return `${foodCount} food item${foodCount > 1 ? "s" : ""} and ${drinkCount} drink${drinkCount > 1 ? "s" : ""}`;
     } else if (foodCount > 0) {
-      return `${foodCount} food item${foodCount > 1 ? 's' : ''}`;
+      return `${foodCount} food item${foodCount > 1 ? "s" : ""}`;
     } else if (drinkCount > 0) {
-      return `${drinkCount} drink${drinkCount > 1 ? 's' : ''}`;
+      return `${drinkCount} drink${drinkCount > 1 ? "s" : ""}`;
     } else {
-      return 'items';
+      return "items";
     }
   };
-  
+
   return (
     <>
       <Helmet>
-        <title>Tim's Kitchen | Order {isPaymentConfirmed ? 'Successful' : 'Placed'}</title>
+        <title>
+          Tim's Kitchen | Order {isPaymentConfirmed ? "Successful" : "Placed"}
+        </title>
       </Helmet>
       <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
@@ -137,12 +177,14 @@ const OrderSuccess = () => {
               <div className="py-4">
                 <FaSpinner className="mx-auto animate-spin text-yellow-600 text-6xl mb-6" />
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {processing ? 'Finalizing Your Order...' : 'Verifying Payment Status...'}
+                  {processing
+                    ? "Finalizing Your Order..."
+                    : "Verifying Payment Status..."}
                 </h2>
                 <p className="text-gray-600">
-                  {processing 
-                    ? 'Your payment was successful! We\'re setting up your order...' 
-                    : 'Please wait while we verify your payment status...'}
+                  {processing
+                    ? "Your payment was successful! We're setting up your order..."
+                    : "Please wait while we verify your payment status..."}
                 </p>
               </div>
             ) : (
@@ -154,47 +196,66 @@ const OrderSuccess = () => {
                   <FaSpinner className="mx-auto text-yellow-600 text-6xl mb-6" />
                 ) : (
                   <div className="flex justify-center space-x-4 mb-6">
-                    {foodCount > 0 && <FaHamburger className="text-yellow-500 text-4xl" />}
+                    {foodCount > 0 && (
+                      <FaHamburger className="text-yellow-500 text-4xl" />
+                    )}
                     <FaShoppingBag className="text-yellow-500 text-6xl" />
-                    {drinkCount > 0 && <FaGlassWhiskey className="text-blue-500 text-4xl" />}
+                    {drinkCount > 0 && (
+                      <FaGlassWhiskey className="text-blue-500 text-4xl" />
+                    )}
                   </div>
                 )}
-                
+
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                  {isPaymentConfirmed 
-                    ? 'Order Placed & Payment Confirmed!' 
+                  {isPaymentConfirmed
+                    ? "Order Placed & Payment Confirmed!"
                     : isPaymentProcessing
-                      ? 'Order Placed - Processing Payment'
-                      : 'Order Placed Successfully!'}
+                      ? "Order Placed - Processing Payment"
+                      : "Order Placed Successfully!"}
                 </h1>
-                
+
                 <p className="text-gray-600 mb-6">
-                  Thank you for your order of {getOrderSummaryText()}. We've received your request and will begin preparing now.
+                  Thank you for your order of {getOrderSummaryText()}. We've
+                  received your request and will begin preparing now.
                 </p>
-                
+
                 {/* Order Details & Items Display */}
                 {orderItems.length > 0 && (
                   <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Your Order</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Your Order
+                    </h3>
                     <div className="divide-y divide-gray-200">
                       {orderItems.map((item, index) => (
                         <div key={index} className="py-2 flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full mr-3">
                             {item.image ? (
-                              <img src={item.image} alt={item.itemName} className="h-full w-full object-cover" />
+                              <img
+                                src={item.image}
+                                alt={item.itemName}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : item.type === "food" ? (
+                              <FaHamburger className="h-full w-full p-2 text-yellow-500" />
                             ) : (
-                              item.type === 'food' ? 
-                                <FaHamburger className="h-full w-full p-2 text-yellow-500" /> : 
-                                <FaGlassWhiskey className="h-full w-full p-2 text-blue-500" />
+                              <FaGlassWhiskey className="h-full w-full p-2 text-blue-500" />
                             )}
                           </div>
                           <div className="flex-1 text-left">
-                            <p className="text-sm font-medium text-gray-900">{item.itemName}</p>
-                            <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {item.itemName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Qty: {item.quantity}
+                            </p>
                           </div>
                           <div className="text-right">
                             <span className="text-xs text-gray-500">
-                              {item.type === 'food' ? 'Food' : item.type === 'drink' ? 'Drink' : 'Item'}
+                              {item.type === "food"
+                                ? "Food"
+                                : item.type === "drink"
+                                  ? "Drink"
+                                  : "Item"}
                             </span>
                           </div>
                         </div>
@@ -202,14 +263,18 @@ const OrderSuccess = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Highlight the tracking reference prominently */}
                 <div className="bg-yellow-50 p-6 rounded-lg mb-6">
-                  <h2 className="text-xl font-bold text-gray-800 mb-3">Your Order Tracking Reference</h2>
+                  <h2 className="text-xl font-bold text-gray-800 mb-3">
+                    Your Order Tracking Reference
+                  </h2>
                   <div className="flex items-center justify-center space-x-2 bg-white py-3 px-4 rounded-md border border-yellow-200">
-                    <span className="text-lg font-mono font-bold text-yellow-700">{trackingReference}</span>
-                    <button 
-                      onClick={copyTrackingReference} 
+                    <span className="text-lg font-mono font-bold text-yellow-700">
+                      {trackingReference}
+                    </span>
+                    <button
+                      onClick={copyTrackingReference}
                       className="text-yellow-600 hover:text-yellow-800 ml-2"
                       title="Copy tracking reference"
                     >
@@ -220,7 +285,7 @@ const OrderSuccess = () => {
                     Please save this reference number to track your order status
                   </p>
                 </div>
-                
+
                 {/* Payment status alert */}
                 {isPaymentProcessing && (
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
@@ -230,87 +295,107 @@ const OrderSuccess = () => {
                       </div>
                       <div className="ml-3">
                         <p className="text-sm text-yellow-700">
-                          Your payment is currently being processed. The order status will update automatically when the payment is confirmed.
+                          Your payment is currently being processed. The order
+                          status will update automatically when the payment is
+                          confirmed.
                         </p>
                       </div>
                     </div>
                   </div>
                 )}
-                
+
                 {/* Order details */}
                 <div className="bg-gray-50 p-4 rounded-lg mb-6">
                   <p className="text-sm text-gray-700 mb-1">
-                    Order Reference: <span className="font-medium">{trackingReference}</span>
+                    Order Reference:{" "}
+                    <span className="font-medium">{trackingReference}</span>
                   </p>
                   <p className="text-sm text-gray-700 mb-1">
-                    Contact Phone: {contactPhone ? (
-                      <span className="font-medium text-gray-900">{contactPhone}</span>
+                    Contact Phone:{" "}
+                    {contactPhone ? (
+                      <span className="font-medium text-gray-900">
+                        {contactPhone}
+                      </span>
                     ) : (
                       <span className="text-red-500">Not provided</span>
                     )}
                   </p>
                   <p className="text-sm text-gray-700">
-                    Payment Status: {' '}
+                    Payment Status:{" "}
                     {isPaymentConfirmed ? (
                       <span className="text-green-600 font-medium">Paid</span>
                     ) : isPaymentProcessing ? (
-                      <span className="text-yellow-600 font-medium">Processing</span>
+                      <span className="text-yellow-600 font-medium">
+                        Processing
+                      </span>
                     ) : (
-                      <span className="text-yellow-600 font-medium">Pending Payment</span>
+                      <span className="text-yellow-600 font-medium">
+                        Pending Payment
+                      </span>
                     )}
                   </p>
                 </div>
-                
+
                 {/* New preparation and delivery information section */}
                 <div className="bg-yellow-50 border border-yellow-100 p-6 rounded-lg mb-6">
                   <h2 className="text-xl font-bold text-yellow-700 mb-3">
-                    {isPaymentConfirmed 
-                      ? 'Your Food is Being Prepared!' 
-                      : 'Order Received!'}
+                    {isPaymentConfirmed
+                      ? "Your Food is Being Prepared!"
+                      : "Order Received!"}
                   </h2>
-                  
+
                   <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-4">
                     <div className="flex items-center">
                       <div className="bg-yellow-100 p-3 rounded-full mr-3">
                         <FaUtensils className="text-yellow-600 text-xl" />
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-yellow-800">Preparation Time</p>
+                        <p className="font-medium text-yellow-800">
+                          Preparation Time
+                        </p>
                         <p className="text-sm text-yellow-700">~30 minutes</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <div className="bg-yellow-100 p-3 rounded-full mr-3">
                         <FaMotorcycle className="text-yellow-600 text-xl" />
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-yellow-800">Delivery Time</p>
+                        <p className="font-medium text-yellow-800">
+                          Delivery Time
+                        </p>
                         <p className="text-sm text-yellow-700">~15 minutes</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <div className="bg-yellow-100 p-3 rounded-full mr-3">
                         <FaClock className="text-yellow-600 text-xl" />
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-yellow-800">Estimated Delivery</p>
-                        <p className="text-sm text-yellow-700">By {deliveryTimeString}</p>
+                        <p className="font-medium text-yellow-800">
+                          Estimated Delivery
+                        </p>
+                        <p className="text-sm text-yellow-700">
+                          By {deliveryTimeString}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  
+
                   <p className="text-yellow-700 text-sm bg-yellow-100 p-4 rounded-lg">
-                    At Tim's Kitchen, we take pride in preparing your food freshly made. 
-                    Our chefs will begin preparing your meal with fresh ingredients right away. 
-                    This will take about 30 minutes for preparation, plus 15 minutes for delivery. 
-                    This ensures you receive the highest quality, freshly-made meal delivered right to your doorstep.
+                    At Tim's Kitchen, we take pride in preparing your food
+                    freshly made. Our chefs will begin preparing your meal with
+                    fresh ingredients right away. This will take about 30
+                    minutes for preparation, plus 15 minutes for delivery. This
+                    ensures you receive the highest quality, freshly-made meal
+                    delivered right to your doorstep.
                   </p>
                 </div>
-                
+
                 <p className="text-gray-600 mb-8">
-                  {isPaymentConfirmed 
+                  {isPaymentConfirmed
                     ? "Your payment has been processed successfully. You'll receive updates about your order via the provided contact number."
                     : isPaymentProcessing
                       ? "Your payment is being processed. We'll update you once it's confirmed."
@@ -320,18 +405,22 @@ const OrderSuccess = () => {
                 {/* Signup prompt for guest orders */}
                 {showSignupPrompt && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                    <h3 className="text-lg font-medium text-blue-800 mb-2">Save your order details for next time!</h3>
+                    <h3 className="text-lg font-medium text-blue-800 mb-2">
+                      Save your order details for next time!
+                    </h3>
                     <p className="text-blue-700 mb-4">
-                      Create an account to easily track all your orders, save your delivery details, and reorder your favorite meals with just a few clicks.
+                      Create an account to easily track all your orders, save
+                      your delivery details, and reorder your favorite meals
+                      with just a few clicks.
                     </p>
                     <div className="flex space-x-4">
-                      <Link 
-                        to="/signup" 
+                      <Link
+                        to="/signup"
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
                       >
                         Create Account
                       </Link>
-                      <button 
+                      <button
                         className="text-blue-600 hover:text-blue-800 underline"
                         onClick={() => setShowSignupPrompt(false)}
                       >
@@ -342,16 +431,16 @@ const OrderSuccess = () => {
                 )}
               </>
             )}
-            
+
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-center">
-              <Link 
-                to="/orderFood" 
+              <Link
+                to="/orderFood"
                 className="py-2 px-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md font-medium"
               >
                 View My Orders
               </Link>
               {!processing ? (
-                <Link 
+                <Link
                   to={`/track-order/${trackingReference}`}
                   className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium"
                 >
@@ -366,8 +455,8 @@ const OrderSuccess = () => {
                   Order Processing...
                 </button>
               )}
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="py-2 px-4 border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50"
               >
                 Back to Homepage

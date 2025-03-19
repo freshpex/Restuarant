@@ -1,20 +1,25 @@
-import React, { Component } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaBug, FaHome, FaRedoAlt, FaExclamationTriangle } from 'react-icons/fa';
-import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
+import React, { Component } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FaBug,
+  FaHome,
+  FaRedoAlt,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import PropTypes from "prop-types";
+import { Link } from "react-router-dom";
 import Logo from "../../assets/Logo.png";
 
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { 
+    this.state = {
       hasError: false,
       error: null,
       errorInfo: null,
-      errorStack: '',
+      errorStack: "",
       displayStack: false,
-      isLoading: false
+      isLoading: false,
     };
   }
 
@@ -24,55 +29,55 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo, errorStack: error.stack });
-    
+
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-    
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Error caught by ErrorBoundary:', error, errorInfo);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Error caught by ErrorBoundary:", error, errorInfo);
     }
   }
 
   handleResetError = () => {
     this.setState({ isLoading: true });
-    
+
     setTimeout(() => {
-      this.setState({ 
-        hasError: false, 
-        error: null, 
+      this.setState({
+        hasError: false,
+        error: null,
         errorInfo: null,
-        isLoading: false 
+        isLoading: false,
       });
-      
+
       if (this.props.onReset) {
         this.props.onReset();
       }
     }, 1000);
-  }
+  };
 
   toggleErrorStack = () => {
-    this.setState(prevState => ({
-      displayStack: !prevState.displayStack
+    this.setState((prevState) => ({
+      displayStack: !prevState.displayStack,
     }));
-  }
+  };
 
   render() {
     const { hasError, error, errorStack, displayStack, isLoading } = this.state;
     const { fallback, children } = this.props;
-    
+
     // If there's a custom fallback component, use it
     if (hasError && fallback) {
-      return typeof fallback === 'function' 
+      return typeof fallback === "function"
         ? fallback(error, this.handleResetError)
         : fallback;
     }
-    
+
     if (hasError) {
       return (
         <AnimatePresence>
           <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white to-gray-100 p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="w-full max-w-lg bg-white rounded-xl overflow-hidden shadow-2xl"
@@ -81,31 +86,36 @@ class ErrorBoundary extends Component {
               <div className="bg-red-600 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center">
                   <FaExclamationTriangle className="text-white mr-2 text-xl" />
-                  <h2 className="text-white font-bold text-xl">Something went wrong</h2>
+                  <h2 className="text-white font-bold text-xl">
+                    Something went wrong
+                  </h2>
                 </div>
                 <div className="flex items-center space-x-2">
                   <motion.div
                     animate={{ rotate: isLoading ? 360 : 0 }}
-                    transition={{ duration: 1, repeat: isLoading ? Infinity : 0 }}
+                    transition={{
+                      duration: 1,
+                      repeat: isLoading ? Infinity : 0,
+                    }}
                   >
                     <FaRedoAlt className="text-white text-xl" />
                   </motion.div>
                 </div>
               </div>
-              
+
               {/* Error message */}
               <div className="p-6">
                 <div className="flex items-center mb-6">
                   <div className="mr-4 flex-shrink-0">
                     <motion.div
-                      animate={{ 
+                      animate={{
                         rotate: [0, 10, -10, 10, -10, 0],
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 0.5,
                         repeat: Infinity,
                         repeatType: "mirror",
-                        repeatDelay: 5
+                        repeatDelay: 5,
                       }}
                     >
                       <FaBug className="text-red-500 text-4xl" />
@@ -113,14 +123,15 @@ class ErrorBoundary extends Component {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">
-                      {error?.message || 'An unexpected error occurred'}
+                      {error?.message || "An unexpected error occurred"}
                     </h3>
                     <p className="text-gray-600 mt-1">
-                      Don't worry, this doesn't affect your data. Let us know if this keeps happening.
+                      Don't worry, this doesn't affect your data. Let us know if
+                      this keeps happening.
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Tim's Kitchen branding */}
                 <div className="flex justify-center mb-6">
                   <div className="flex flex-col items-center">
@@ -132,18 +143,18 @@ class ErrorBoundary extends Component {
                 {/* Error details collapsible section */}
                 {errorStack && (
                   <div className="mb-6">
-                    <button 
+                    <button
                       onClick={this.toggleErrorStack}
                       className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
                     >
-                      {displayStack ? 'Hide' : 'Show'} technical details
+                      {displayStack ? "Hide" : "Show"} technical details
                     </button>
-                    
+
                     <AnimatePresence>
                       {displayStack && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
+                          animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.3 }}
                           className="overflow-hidden"
@@ -156,7 +167,7 @@ class ErrorBoundary extends Component {
                     </AnimatePresence>
                   </div>
                 )}
-                
+
                 {/* Action buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 mt-6">
                   <motion.button
@@ -170,7 +181,11 @@ class ErrorBoundary extends Component {
                       <>
                         <motion.div
                           animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
                           className="mr-2"
                         >
                           <FaRedoAlt />
@@ -183,7 +198,7 @@ class ErrorBoundary extends Component {
                       </>
                     )}
                   </motion.button>
-                  
+
                   <Link to="/" className="flex-1">
                     <motion.button
                       whileHover={{ scale: 1.03 }}
@@ -196,10 +211,13 @@ class ErrorBoundary extends Component {
                 </div>
               </div>
             </motion.div>
-            
+
             {/* Support text */}
             <p className="text-gray-500 text-sm mt-6 text-center">
-              If this problem persists, please contact our support team. <a href="/contact" className="text-blue-600 hover:underline">Contact Us</a>
+              If this problem persists, please contact our support team.{" "}
+              <a href="/contact" className="text-blue-600 hover:underline">
+                Contact Us
+              </a>
             </p>
           </div>
         </AnimatePresence>
@@ -215,7 +233,7 @@ ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired,
   fallback: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
   onError: PropTypes.func,
-  onReset: PropTypes.func
+  onReset: PropTypes.func,
 };
 
 export default ErrorBoundary;

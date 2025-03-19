@@ -1,61 +1,61 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 export const fetchFoods = createAsyncThunk(
-  'food/fetchFoods',
+  "food/fetchFoods",
   async ({ page, size }, { rejectWithValue }) => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API}/foods?page=${page}&size=${size}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Accept': 'application/json'
-          }
-        }
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Accept: "application/json",
+          },
+        },
       );
 
-      if (!response.ok) throw new Error('Failed to fetch foods');
+      if (!response.ok) throw new Error("Failed to fetch foods");
       const data = await response.json();
-      
-      if (data && typeof data === 'object' && Array.isArray(data.foods)) {
+
+      if (data && typeof data === "object" && Array.isArray(data.foods)) {
         return {
           foods: data.foods,
           count: data.count || data.foods.length,
-          totalPages: data.totalPages || Math.ceil(data.count / size)
+          totalPages: data.totalPages || Math.ceil(data.count / size),
         };
       }
-      
+
       return {
         foods: Array.isArray(data) ? data : [],
         count: Array.isArray(data) ? data.length : 0,
-        totalPages: Array.isArray(data) ? Math.ceil(data.length / size) : 0
+        totalPages: Array.isArray(data) ? Math.ceil(data.length / size) : 0,
       };
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const fetchFoodById = createAsyncThunk(
-  'food/fetchFoodById',
+  "food/fetchFoodById",
   async (id, { rejectWithValue }) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API}/foods/${id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Accept': 'application/json'
-        }
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Accept: "application/json",
+        },
       });
-      if (!response.ok) throw new Error('Failed to fetch food');
+      if (!response.ok) throw new Error("Failed to fetch food");
       return await response.json();
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const foodSlice = createSlice({
-  name: 'food',
+  name: "food",
   initialState: {
     foods: [],
     loading: false,
@@ -64,7 +64,7 @@ const foodSlice = createSlice({
     totalPages: 0,
     currentFood: null,
     pageSize: 9,
-    count: 0
+    count: 0,
   },
   reducers: {
     setCurrentPage: (state, action) => {
@@ -81,7 +81,7 @@ const foodSlice = createSlice({
     },
     setCount: (state, action) => {
       state.count = action.payload;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -111,8 +111,14 @@ const foodSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       });
-  }
+  },
 });
 
-export const { setCurrentPage, clearCurrentFood, setTotalPages, setPageSize, setCount } = foodSlice.actions;
+export const {
+  setCurrentPage,
+  clearCurrentFood,
+  setTotalPages,
+  setPageSize,
+  setCount,
+} = foodSlice.actions;
 export default foodSlice.reducer;

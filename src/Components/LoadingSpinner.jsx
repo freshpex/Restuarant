@@ -1,13 +1,18 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { FaSpinner } from 'react-icons/fa';
+import React from "react";
+import PropTypes from "prop-types";
+import { FaSpinner } from "react-icons/fa";
 
-const LoadingSpinner = ({ size = 'md', color = 'text-yellow-700', className = '', text = '' }) => {
+const LoadingSpinner = ({
+  size = "md",
+  color = "text-yellow-700",
+  className = "",
+  text = "",
+}) => {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8',
-    xl: 'w-12 h-12'
+    sm: "w-4 h-4",
+    md: "w-6 h-6",
+    lg: "w-8 h-8",
+    xl: "w-12 h-12",
   };
 
   return (
@@ -19,10 +24,10 @@ const LoadingSpinner = ({ size = 'md', color = 'text-yellow-700', className = ''
 };
 
 LoadingSpinner.propTypes = {
-  size: PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
+  size: PropTypes.oneOf(["sm", "md", "lg", "xl"]),
   color: PropTypes.string,
   className: PropTypes.string,
-  text: PropTypes.string
+  text: PropTypes.string,
 };
 
 export default LoadingSpinner;

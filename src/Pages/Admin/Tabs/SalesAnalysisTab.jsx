@@ -1,11 +1,11 @@
-import React from 'react';
-import { FaChartBar, FaDownload } from 'react-icons/fa';
-import DailySalesChart from '../Charts/DailySalesChart';
-import { exportToCSV } from '../components/AnalyticsUtils';
+import React from "react";
+import { FaChartBar, FaDownload } from "react-icons/fa";
+import DailySalesChart from "../Charts/DailySalesChart";
+import { exportToCSV } from "../components/AnalyticsUtils";
 
 const SalesAnalysisTab = ({ dailySales }) => {
   const handleExport = () => {
-    exportToCSV(dailySales, 'daily-sales');
+    exportToCSV(dailySales, "daily-sales");
   };
 
   return (
@@ -23,7 +23,7 @@ const SalesAnalysisTab = ({ dailySales }) => {
           </button>
         </div>
       </div>
-      
+
       {dailySales.length > 0 ? (
         <>
           <div className="mb-6">

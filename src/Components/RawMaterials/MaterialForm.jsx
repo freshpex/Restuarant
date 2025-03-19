@@ -1,19 +1,22 @@
-import React from 'react';
-import { FaSpinner } from 'react-icons/fa';
+import React from "react";
+import { FaSpinner } from "react-icons/fa";
 
-const MaterialForm = ({ 
-  formValues, 
+const MaterialForm = ({
+  formValues,
   onInputChange,
   onSubmit,
   onCancel,
   isEditing,
-  isSubmitting
+  isSubmitting,
 }) => {
   return (
     <form onSubmit={onSubmit} className="p-6">
       <div className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700"
+          >
             Material Name *
           </label>
           <input
@@ -26,10 +29,13 @@ const MaterialForm = ({
             required
           />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="quantity"
+              className="block text-sm font-medium text-gray-700"
+            >
               Quantity *
             </label>
             <input
@@ -44,7 +50,10 @@ const MaterialForm = ({
             />
           </div>
           <div>
-            <label htmlFor="unit" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="unit"
+              className="block text-sm font-medium text-gray-700"
+            >
               Unit *
             </label>
             <select
@@ -67,9 +76,12 @@ const MaterialForm = ({
             </select>
           </div>
         </div>
-        
+
         <div>
-          <label htmlFor="supplier" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="supplier"
+            className="block text-sm font-medium text-gray-700"
+          >
             Supplier
           </label>
           <input
@@ -81,10 +93,13 @@ const MaterialForm = ({
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
           />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="cost" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="cost"
+              className="block text-sm font-medium text-gray-700"
+            >
               Cost (₦)
             </label>
             <input
@@ -98,7 +113,10 @@ const MaterialForm = ({
             />
           </div>
           <div>
-            <label htmlFor="minStockLevel" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="minStockLevel"
+              className="block text-sm font-medium text-gray-700"
+            >
               Min Stock Level
             </label>
             <input
@@ -112,9 +130,12 @@ const MaterialForm = ({
             />
           </div>
         </div>
-        
+
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700"
+          >
             Description
           </label>
           <textarea
@@ -144,10 +165,12 @@ const MaterialForm = ({
           {isSubmitting ? (
             <>
               <FaSpinner className="animate-spin mr-2" />
-              {isEditing ? 'Updating...' : 'Adding...'}
+              {isEditing ? "Updating..." : "Adding..."}
             </>
+          ) : isEditing ? (
+            "Update Material"
           ) : (
-            isEditing ? 'Update Material' : 'Add Material'
+            "Add Material"
           )}
         </button>
       </div>

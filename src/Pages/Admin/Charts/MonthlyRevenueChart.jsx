@@ -1,11 +1,24 @@
-import React from 'react';
-import { Line } from 'react-chartjs-2';
-import { formatPrice } from '../../../utils/formatUtils';
+import React from "react";
+import { Line } from "react-chartjs-2";
+import { formatPrice } from "../../../utils/formatUtils";
 
 const MonthlyRevenueChart = ({ monthlyRevenue }) => {
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const currentYear = new Date().getFullYear();
-  
+
   // Prepare chart data
   const chartData = {
     labels: monthNames,
@@ -13,11 +26,11 @@ const MonthlyRevenueChart = ({ monthlyRevenue }) => {
       {
         label: `Revenue ${currentYear}`,
         data: monthNames.map((_, index) => {
-          const monthKey = `${currentYear}-${String(index + 1).padStart(2, '0')}`;
+          const monthKey = `${currentYear}-${String(index + 1).padStart(2, "0")}`;
           return monthlyRevenue[monthKey] || 0;
         }),
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        borderColor: "rgb(75, 192, 192)",
+        backgroundColor: "rgba(75, 192, 192, 0.5)",
         tension: 0.3,
       },
     ],
@@ -29,27 +42,27 @@ const MonthlyRevenueChart = ({ monthlyRevenue }) => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        position: "top",
       },
       tooltip: {
         callbacks: {
-          label: function(context) {
-            const label = context.dataset.label || '';
+          label: function (context) {
+            const label = context.dataset.label || "";
             const value = context.raw || 0;
             return `${label}: ${formatPrice(value)}`;
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       y: {
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Revenue (₦)'
-        }
-      }
-    }
+          text: "Revenue (₦)",
+        },
+      },
+    },
   };
 
   return (

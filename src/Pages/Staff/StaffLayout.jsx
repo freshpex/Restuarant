@@ -1,15 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { NavLink, Link, Outlet, useLocation } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { logoutUser } from '../../redux/slices/authSlice';
-import { 
-  FaHome, FaUtensils, FaClipboardList, FaDrumstickBite, FaGlassMartini, 
-  FaSignOutAlt, FaBars, FaTimes, FaWarehouse, 
-  FaUserCog, FaCashRegister, FaUserTie, FaUserCheck, FaWineBottle
-} from 'react-icons/fa';
-import { selectCurrentUser } from '../../redux/selectors';
+import React, { useState, useRef, useEffect } from "react";
+import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { logoutUser } from "../../redux/slices/authSlice";
+import {
+  FaHome,
+  FaUtensils,
+  FaClipboardList,
+  FaDrumstickBite,
+  FaGlassMartini,
+  FaSignOutAlt,
+  FaBars,
+  FaTimes,
+  FaWarehouse,
+  FaUserCog,
+  FaCashRegister,
+  FaUserTie,
+  FaUserCheck,
+  FaWineBottle,
+} from "react-icons/fa";
+import { selectCurrentUser } from "../../redux/selectors";
 import Logo from "../../assets/Logo.png";
-import { toast } from 'react-hot-toast';
+import { toast } from "react-hot-toast";
 
 const StaffLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,9 +33,9 @@ const StaffLayout = ({ children }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        sidebarRef.current && 
+        sidebarRef.current &&
         !sidebarRef.current.contains(event.target) &&
-        toggleButtonRef.current && 
+        toggleButtonRef.current &&
         !toggleButtonRef.current.contains(event.target)
       ) {
         setSidebarOpen(false);
@@ -33,61 +44,61 @@ const StaffLayout = ({ children }) => {
 
     setSidebarOpen(false);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
       await dispatch(logoutUser()).unwrap();
-      toast.success('Logged out successfully');
+      toast.success("Logged out successfully");
     } catch (error) {
-      toast.error('Logout failed');
+      toast.error("Logout failed");
     }
   };
 
   const getRoleDetails = () => {
     switch (currentUser?.role) {
-      case 'admin':
+      case "admin":
         return {
           icon: <FaUserCog />,
-          name: 'Admin',
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-100'
+          name: "Admin",
+          color: "text-yellow-600",
+          bgColor: "bg-yellow-100",
         };
-      case 'manager':
+      case "manager":
         return {
           icon: <FaUserTie />,
-          name: 'Manager',
-          color: 'text-blue-600',
-          bgColor: 'bg-blue-100'
+          name: "Manager",
+          color: "text-blue-600",
+          bgColor: "bg-blue-100",
         };
-      case 'chef':
+      case "chef":
         return {
           icon: <FaUtensils />,
-          name: 'Chef',
-          color: 'text-orange-600',
-          bgColor: 'bg-orange-100'
+          name: "Chef",
+          color: "text-orange-600",
+          bgColor: "bg-orange-100",
         };
-      case 'cashier':
+      case "cashier":
         return {
           icon: <FaCashRegister />,
-          name: 'Cashier',
-          color: 'text-green-600',
-          bgColor: 'bg-green-100'
+          name: "Cashier",
+          color: "text-green-600",
+          bgColor: "bg-green-100",
         };
       default:
         return {
           icon: <FaUserCheck />,
-          name: 'Staff',
-          color: 'text-gray-600',
-          bgColor: 'bg-gray-100'
+          name: "Staff",
+          color: "text-gray-600",
+          bgColor: "bg-gray-100",
         };
     }
   };
 
   const roleDetails = getRoleDetails();
-  
+
   const isActive = (path) => {
     return location.pathname === path;
   };
@@ -100,8 +111,8 @@ const StaffLayout = ({ children }) => {
           <img src={Logo} alt="Tim's Kitchen" className="h-10 w-10" />
           <span className="ml-2 text-lg font-bold">Tim's Kitchen</span>
         </Link>
-        
-        <button 
+
+        <button
           ref={toggleButtonRef}
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 rounded-md hover:bg-gray-100"
@@ -109,47 +120,55 @@ const StaffLayout = ({ children }) => {
           {sidebarOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
         </button>
       </div>
-      
+
       {sidebarOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        <aside 
+        <aside
           ref={sidebarRef}
           className={`bg-white shadow-lg fixed md:static inset-y-0 left-0 z-50 md:z-auto w-64 transform transition-transform duration-300 ease-in-out ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           } overflow-y-auto`}
         >
           <div className="hidden md:flex flex-col items-center justify-center h-20 bg-gray-50">
             <Link to="/" className="flex items-center">
               <img src={Logo} alt="Tim's Kitchen" className="h-14 w-14" />
-              <span className="ml-2 text-xl font-bold text-gray-800">Tim's Kitchen</span>
+              <span className="ml-2 text-xl font-bold text-gray-800">
+                Tim's Kitchen
+              </span>
             </Link>
           </div>
-          
+
           <div className="p-4">
-            <div className={`${roleDetails.bgColor} p-4 rounded-lg flex items-center mb-6`}>
+            <div
+              className={`${roleDetails.bgColor} p-4 rounded-lg flex items-center mb-6`}
+            >
               <div className={`${roleDetails.color} mr-3 text-xl`}>
                 {roleDetails.icon}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-800">{roleDetails.name} Panel</p>
-                <p className="text-xs text-gray-500">{currentUser?.email || 'Not logged in'}</p>
+                <p className="text-sm font-medium text-gray-800">
+                  {roleDetails.name} Panel
+                </p>
+                <p className="text-xs text-gray-500">
+                  {currentUser?.email || "Not logged in"}
+                </p>
               </div>
             </div>
 
             <nav className="space-y-1">
-              <NavLink 
-                to="/staff/dashboard" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/staff/dashboard"
+                className={({ isActive }) =>
                   `flex items-center px-4 py-3 text-sm rounded-lg ${
-                    isActive 
-                      ? 'bg-yellow-100 text-yellow-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? "bg-yellow-100 text-yellow-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -157,14 +176,14 @@ const StaffLayout = ({ children }) => {
                 <FaHome className="mr-3" />
                 Dashboard
               </NavLink>
-              
-              <NavLink 
-                to="/staff/orders" 
-                className={({ isActive }) => 
+
+              <NavLink
+                to="/staff/orders"
+                className={({ isActive }) =>
                   `flex items-center px-4 py-3 text-sm rounded-lg ${
-                    isActive 
-                      ? 'bg-yellow-100 text-yellow-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? "bg-yellow-100 text-yellow-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -172,14 +191,14 @@ const StaffLayout = ({ children }) => {
                 <FaClipboardList className="mr-3" />
                 Orders
               </NavLink>
-              
-              <NavLink 
-                to="/staff/foods" 
-                className={({ isActive }) => 
+
+              <NavLink
+                to="/staff/foods"
+                className={({ isActive }) =>
                   `flex items-center px-4 py-3 text-sm rounded-lg ${
-                    isActive 
-                      ? 'bg-yellow-100 text-yellow-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? "bg-yellow-100 text-yellow-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -188,13 +207,13 @@ const StaffLayout = ({ children }) => {
                 Food Items
               </NavLink>
 
-              <NavLink 
-                to="/staff/drinks" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/staff/drinks"
+                className={({ isActive }) =>
                   `flex items-center px-4 py-3 text-sm rounded-lg ${
-                    isActive 
-                      ? 'bg-yellow-100 text-yellow-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? "bg-yellow-100 text-yellow-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -202,14 +221,14 @@ const StaffLayout = ({ children }) => {
                 <FaWineBottle className="mr-3" />
                 Drink items
               </NavLink>
-              
-              <NavLink 
-                to="/staff/add-order" 
-                className={({ isActive }) => 
+
+              <NavLink
+                to="/staff/add-order"
+                className={({ isActive }) =>
                   `flex items-center px-4 py-3 text-sm rounded-lg ${
-                    isActive 
-                      ? 'bg-yellow-100 text-yellow-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? "bg-yellow-100 text-yellow-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -217,14 +236,14 @@ const StaffLayout = ({ children }) => {
                 <FaClipboardList className="mr-3" />
                 Add Order
               </NavLink>
-              
-              <NavLink 
-                to="/staff/addFood" 
-                className={({ isActive }) => 
+
+              <NavLink
+                to="/staff/addFood"
+                className={({ isActive }) =>
                   `flex items-center px-4 py-3 text-sm rounded-lg ${
-                    isActive 
-                      ? 'bg-yellow-100 text-yellow-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? "bg-yellow-100 text-yellow-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -233,13 +252,13 @@ const StaffLayout = ({ children }) => {
                 Add Food
               </NavLink>
 
-              <NavLink 
-                to="/staff/addDrink" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/staff/addDrink"
+                className={({ isActive }) =>
                   `flex items-center px-4 py-3 text-sm rounded-lg ${
-                    isActive 
-                      ? 'bg-yellow-100 text-yellow-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? "bg-yellow-100 text-yellow-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -248,14 +267,15 @@ const StaffLayout = ({ children }) => {
                 Add Drink
               </NavLink>
 
-              {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
-                <NavLink 
-                  to="/staff/material" 
-                  className={({ isActive }) => 
+              {(currentUser?.role === "admin" ||
+                currentUser?.role === "manager") && (
+                <NavLink
+                  to="/staff/material"
+                  className={({ isActive }) =>
                     `flex items-center px-4 py-3 text-sm rounded-lg ${
-                      isActive 
-                        ? 'bg-yellow-100 text-yellow-700 font-medium'
-                        : 'text-gray-700 hover:bg-gray-100'
+                      isActive
+                        ? "bg-yellow-100 text-yellow-700 font-medium"
+                        : "text-gray-700 hover:bg-gray-100"
                     }`
                   }
                   onClick={() => setSidebarOpen(false)}
@@ -274,7 +294,7 @@ const StaffLayout = ({ children }) => {
                   <FaHome className="mr-3" />
                   Return to Home
                 </Link>
-                
+
                 <button
                   onClick={() => {
                     handleLogout();
@@ -289,7 +309,7 @@ const StaffLayout = ({ children }) => {
             </nav>
           </div>
         </aside>
-        
+
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children || <Outlet />}

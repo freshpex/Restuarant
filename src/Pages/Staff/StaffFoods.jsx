@@ -1,31 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { Helmet } from 'react-helmet';
-import { Link } from 'react-router-dom';
-import { FaSpinner, FaSearch, FaPlus, FaUtensils, FaArrowUp, FaArrowDown } from 'react-icons/fa';
-import { toast } from 'react-hot-toast';
-import { selectToken } from '../../redux/selectors';
-import { formatPrice } from '../../utils/formatUtils';
-import Pagination from '../../Components/Pagination';
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { Helmet } from "react-helmet";
+import { Link } from "react-router-dom";
+import {
+  FaSpinner,
+  FaSearch,
+  FaPlus,
+  FaUtensils,
+  FaArrowUp,
+  FaArrowDown,
+} from "react-icons/fa";
+import { toast } from "react-hot-toast";
+import { selectToken } from "../../redux/selectors";
+import { formatPrice } from "../../utils/formatUtils";
+import Pagination from "../../Components/Pagination";
 
 const StaffFoods = () => {
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [categories, setCategories] = useState([]);
-  const [sortField, setSortField] = useState('foodName');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortField, setSortField] = useState("foodName");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  
+
   const [updatingQuantity, setUpdatingQuantity] = useState({});
   const [quantityValues, setQuantityValues] = useState({});
-  
+
   const token = useSelector(selectToken);
   const API_URL = import.meta.env.VITE_API_URL;
-  const isAdmin = useSelector(state => state.auth.user?.role === 'admin');
+  const isAdmin = useSelector((state) => state.auth.user?.role === "admin");
 
   useEffect(() => {
     fetchFoods();
@@ -36,117 +43,125 @@ const StaffFoods = () => {
       setLoading(true);
       const response = await fetch(`${API_URL}/staff/foods`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch foods');
+        throw new Error("Failed to fetch foods");
       }
 
       const data = await response.json();
       setFoods(data.foods || []);
-      
+
       // Extract unique categories
-      const uniqueCategories = [...new Set(data.foods.map(food => food.foodCategory).filter(Boolean))];
+      const uniqueCategories = [
+        ...new Set(data.foods.map((food) => food.foodCategory).filter(Boolean)),
+      ];
       setCategories(uniqueCategories);
     } catch (error) {
-      setError(error.message || 'Error fetching foods');
-      toast.error(error.message || 'Error fetching foods');
+      setError(error.message || "Error fetching foods");
+      toast.error(error.message || "Error fetching foods");
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Sort and filter foods
   const getSortedAndFilteredFoods = () => {
-    let filteredFoods = foods.filter(food => {
-      const matchesSearch = food.foodName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            food.foodDescription?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesCategory = categoryFilter ? food.foodCategory === categoryFilter : true;
-      
+    let filteredFoods = foods.filter((food) => {
+      const matchesSearch =
+        food.foodName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        food.foodDescription?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory = categoryFilter
+        ? food.foodCategory === categoryFilter
+        : true;
+
       return matchesSearch && matchesCategory;
     });
-    
+
     return filteredFoods.sort((a, b) => {
-      if (['foodPrice', 'foodQuantity', 'orderCount'].includes(sortField)) {
+      if (["foodPrice", "foodQuantity", "orderCount"].includes(sortField)) {
         const valueA = parseFloat(a[sortField]) || 0;
         const valueB = parseFloat(b[sortField]) || 0;
-        
-        return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+
+        return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
       } else {
-        const valueA = (a[sortField] || '').toLowerCase();
-        const valueB = (b[sortField] || '').toLowerCase();
-        
-        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
-        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+        const valueA = (a[sortField] || "").toLowerCase();
+        const valueB = (b[sortField] || "").toLowerCase();
+
+        if (valueA < valueB) return sortDirection === "asc" ? -1 : 1;
+        if (valueA > valueB) return sortDirection === "asc" ? 1 : -1;
         return 0;
       }
     });
   };
-  
+
   const sortedAndFilteredFoods = getSortedAndFilteredFoods();
-  
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentFoods = sortedAndFilteredFoods.slice(indexOfFirstItem, indexOfLastItem);
+  const currentFoods = sortedAndFilteredFoods.slice(
+    indexOfFirstItem,
+    indexOfLastItem,
+  );
   const totalPages = Math.ceil(sortedAndFilteredFoods.length / itemsPerPage);
-  
+
   // Handle sorting
   const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
-  
+
   const SortIcon = ({ field }) => {
     if (sortField !== field) return null;
-    
-    return sortDirection === 'asc' ? (
+
+    return sortDirection === "asc" ? (
       <FaArrowUp className="ml-1 inline" />
     ) : (
       <FaArrowDown className="ml-1 inline" />
     );
   };
-  
+
   // Reset filters
   const resetFilters = () => {
-    setSearchTerm('');
-    setCategoryFilter('');
-    setSortField('foodName');
-    setSortDirection('asc');
+    setSearchTerm("");
+    setCategoryFilter("");
+    setSortField("foodName");
+    setSortDirection("asc");
     setCurrentPage(1);
   };
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  
+
   const handleQuantityChange = (foodId, value) => {
     setQuantityValues({
       ...quantityValues,
-      [foodId]: value
+      [foodId]: value,
     });
   };
 
   const incrementQuantity = (foodId) => {
-    const currentValue = parseInt(quantityValues[foodId] || '0');
+    const currentValue = parseInt(quantityValues[foodId] || "0");
     setQuantityValues({
       ...quantityValues,
-      [foodId]: (currentValue + 1).toString()
+      [foodId]: (currentValue + 1).toString(),
     });
   };
 
   const decrementQuantity = (foodId) => {
-    const currentValue = parseInt(quantityValues[foodId] || '0');
+    const currentValue = parseInt(quantityValues[foodId] || "0");
     if (currentValue > 0) {
       setQuantityValues({
         ...quantityValues,
-        [foodId]: (currentValue - 1).toString()
+        [foodId]: (currentValue - 1).toString(),
       });
     }
   };
@@ -155,54 +170,54 @@ const StaffFoods = () => {
     try {
       setUpdatingQuantity({
         ...updatingQuantity,
-        [foodId]: true
+        [foodId]: true,
       });
 
       const changeAmount = parseInt(quantityValues[foodId] || 0);
       if (isNaN(changeAmount) || changeAmount === 0) {
-        toast.error('Please enter a valid quantity');
+        toast.error("Please enter a valid quantity");
         return;
       }
 
       if (!isAdmin && changeAmount < 0) {
-        toast.error('Only admins can decrease inventory quantities');
+        toast.error("Only admins can decrease inventory quantities");
         return;
       }
 
       const response = await fetch(`${API_URL}/foods/${foodId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ quantity: changeAmount })
+        body: JSON.stringify({ quantity: changeAmount }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update quantity');
+        throw new Error("Failed to update quantity");
       }
 
       const data = await response.json();
-      
-      setFoods(prevFoods => 
-        prevFoods.map(food => 
-          food._id === foodId 
-            ? { ...food, foodQuantity: data.newQuantity.toString() } 
-            : food
-        )
+
+      setFoods((prevFoods) =>
+        prevFoods.map((food) =>
+          food._id === foodId
+            ? { ...food, foodQuantity: data.newQuantity.toString() }
+            : food,
+        ),
       );
-      
+
       toast.success(`Food quantity updated successfully`);
       setQuantityValues({
         ...quantityValues,
-        [foodId]: ''
+        [foodId]: "",
       });
     } catch (error) {
-      toast.error(error.message || 'Error updating food quantity');
+      toast.error(error.message || "Error updating food quantity");
     } finally {
       setUpdatingQuantity({
         ...updatingQuantity,
-        [foodId]: false
+        [foodId]: false,
       });
     }
   };
@@ -212,7 +227,7 @@ const StaffFoods = () => {
       <Helmet>
         <title>Staff | Food Management</title>
       </Helmet>
-      
+
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h1 className="text-2xl font-bold mb-4 md:mb-0">Food Management</h1>
@@ -223,7 +238,7 @@ const StaffFoods = () => {
             >
               <FaPlus className="mr-2" /> Add New Food
             </Link>
-            
+
             <button
               onClick={resetFilters}
               className="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg px-4 py-2"
@@ -232,7 +247,7 @@ const StaffFoods = () => {
             </button>
           </div>
         </div>
-        
+
         {/* Search and Filter */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -246,7 +261,7 @@ const StaffFoods = () => {
               />
               <FaSearch className="absolute left-3 top-3 text-gray-400" />
             </div>
-            
+
             <div className="w-full md:w-auto">
               <select
                 className="w-full md:w-64 border rounded-lg px-4 py-2 bg-white"
@@ -254,23 +269,23 @@ const StaffFoods = () => {
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
                 <option value="">All Categories</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
         </div>
-        
+
         {/* Food Items List */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <FaSpinner className="animate-spin text-yellow-600 text-4xl" />
           </div>
         ) : error ? (
-          <div className="text-center text-red-500 my-8">
-            {error}
-          </div>
+          <div className="text-center text-red-500 my-8">{error}</div>
         ) : (
           <>
             {/* Desktop Table View */}
@@ -278,33 +293,33 @@ const StaffFoods = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th 
+                    <th
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort('foodName')}
+                      onClick={() => handleSort("foodName")}
                     >
                       Food Name <SortIcon field="foodName" />
                     </th>
-                    <th 
+                    <th
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort('foodCategory')}
+                      onClick={() => handleSort("foodCategory")}
                     >
                       Category <SortIcon field="foodCategory" />
                     </th>
-                    <th 
+                    <th
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort('foodPrice')}
+                      onClick={() => handleSort("foodPrice")}
                     >
                       Price <SortIcon field="foodPrice" />
                     </th>
-                    <th 
+                    <th
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort('foodQuantity')}
+                      onClick={() => handleSort("foodQuantity")}
                     >
                       Stock <SortIcon field="foodQuantity" />
                     </th>
-                    <th 
+                    <th
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort('orderCount')}
+                      onClick={() => handleSort("orderCount")}
                     >
                       Orders <SortIcon field="orderCount" />
                     </th>
@@ -319,7 +334,10 @@ const StaffFoods = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentFoods.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      <td
+                        colSpan="7"
+                        className="px-6 py-4 text-center text-gray-500"
+                      >
                         No food items found.
                       </td>
                     </tr>
@@ -327,25 +345,35 @@ const StaffFoods = () => {
                     currentFoods.map((food) => (
                       <tr key={food._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">{food.foodName}</div>
+                          <div className="font-medium text-gray-900">
+                            {food.foodName}
+                          </div>
                           {food.foodDescription && (
-                            <div className="text-sm text-gray-500 truncate max-w-xs">{food.foodDescription}</div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                              {food.foodDescription}
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            {food.foodCategory || 'Uncategorized'}
+                            {food.foodCategory || "Uncategorized"}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatPrice(food.foodPrice)}</div>
+                          <div className="text-sm text-gray-900">
+                            {formatPrice(food.foodPrice)}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm ${parseInt(food.foodQuantity) <= 5 ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                          <div
+                            className={`text-sm ${parseInt(food.foodQuantity) <= 5 ? "text-red-600 font-medium" : "text-gray-900"}`}
+                          >
                             {food.foodQuantity}
                           </div>
                           {parseInt(food.foodQuantity) <= 5 && (
-                            <span className="text-xs text-red-600">Low stock</span>
+                            <span className="text-xs text-red-600">
+                              Low stock
+                            </span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -353,8 +381,8 @@ const StaffFoods = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {food.foodImage ? (
-                            <img 
-                              src={food.foodImage} 
+                            <img
+                              src={food.foodImage}
                               alt={food.foodName}
                               className="h-12 w-12 object-cover rounded"
                             />
@@ -382,8 +410,13 @@ const StaffFoods = () => {
                                   type="number"
                                   placeholder="Qty"
                                   className="w-16 h-8 px-2 border-0 text-center"
-                                  value={quantityValues[food._id] || ''}
-                                  onChange={(e) => handleQuantityChange(food._id, e.target.value)}
+                                  value={quantityValues[food._id] || ""}
+                                  onChange={(e) =>
+                                    handleQuantityChange(
+                                      food._id,
+                                      e.target.value,
+                                    )
+                                  }
                                 />
                                 <button
                                   onClick={() => incrementQuantity(food._id)}
@@ -405,9 +438,9 @@ const StaffFoods = () => {
                                 )}
                               </button>
                             </div>
-                            
-                            <Link 
-                              to={`/seeFood/${food._id}`} 
+
+                            <Link
+                              to={`/seeFood/${food._id}`}
                               className="text-blue-600 hover:text-blue-900 mr-3"
                             >
                               View
@@ -419,29 +452,42 @@ const StaffFoods = () => {
                   )}
                 </tbody>
               </table>
-              
+
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="px-6 py-3 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
-                      <span className="font-medium">{Math.min(indexOfLastItem, sortedAndFilteredFoods.length)}</span> of{" "}
-                      <span className="font-medium">{sortedAndFilteredFoods.length}</span> results
-                    </p>
-                  </div>
-                  <Pagination
-                    currentPage={currentPage}
-                    totalItems={sortedAndFilteredFoods.length}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={paginate}
-                  />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        Showing{" "}
+                        <span className="font-medium">
+                          {indexOfFirstItem + 1}
+                        </span>{" "}
+                        to{" "}
+                        <span className="font-medium">
+                          {Math.min(
+                            indexOfLastItem,
+                            sortedAndFilteredFoods.length,
+                          )}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-medium">
+                          {sortedAndFilteredFoods.length}
+                        </span>{" "}
+                        results
+                      </p>
+                    </div>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalItems={sortedAndFilteredFoods.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={paginate}
+                    />
                   </div>
                 </div>
               )}
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
               {currentFoods.length === 0 ? (
@@ -450,12 +496,15 @@ const StaffFoods = () => {
                 </div>
               ) : (
                 currentFoods.map((food) => (
-                  <div key={food._id} className="bg-white rounded-lg shadow overflow-hidden">
+                  <div
+                    key={food._id}
+                    className="bg-white rounded-lg shadow overflow-hidden"
+                  >
                     <div className="flex p-4">
                       <div className="mr-4">
                         {food.foodImage ? (
-                          <img 
-                            src={food.foodImage} 
+                          <img
+                            src={food.foodImage}
                             alt={food.foodName}
                             className="h-20 w-20 object-cover rounded"
                           />
@@ -466,12 +515,18 @@ const StaffFoods = () => {
                         )}
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900">{food.foodName}</h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">{food.foodDescription}</p>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {food.foodName}
+                        </h3>
+                        <p className="text-sm text-gray-500 line-clamp-2">
+                          {food.foodDescription}
+                        </p>
                         <div className="mt-2 flex justify-between items-center">
-                          <span className="font-medium text-gray-900">{formatPrice(food.foodPrice)}</span>
+                          <span className="font-medium text-gray-900">
+                            {formatPrice(food.foodPrice)}
+                          </span>
                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            {food.foodCategory || 'Uncategorized'}
+                            {food.foodCategory || "Uncategorized"}
                           </span>
                         </div>
                       </div>
@@ -479,13 +534,17 @@ const StaffFoods = () => {
                     <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div className="text-sm">
-                          <span className={`font-medium ${parseInt(food.foodQuantity) <= 5 ? 'text-red-600' : 'text-gray-900'}`}>
+                          <span
+                            className={`font-medium ${parseInt(food.foodQuantity) <= 5 ? "text-red-600" : "text-gray-900"}`}
+                          >
                             {food.foodQuantity}
                           </span>
                           <span className="text-gray-500 ml-1">in stock</span>
                         </div>
                         <div className="text-sm">
-                          <span className="font-medium text-gray-900">{food.orderCount || 0}</span>
+                          <span className="font-medium text-gray-900">
+                            {food.orderCount || 0}
+                          </span>
                           <span className="text-gray-500 ml-1">orders</span>
                         </div>
                       </div>
@@ -498,9 +557,11 @@ const StaffFoods = () => {
                         </Link>
                       </div>
                     </div>
-                    
+
                     <div className="px-4 py-3 border-t border-gray-100 flex flex-col">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Update Quantity</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        Update Quantity
+                      </h4>
                       <div className="flex items-center">
                         <div className="flex border border-gray-300 rounded">
                           {isAdmin && (
@@ -516,8 +577,10 @@ const StaffFoods = () => {
                             type="number"
                             placeholder="Qty"
                             className="w-16 h-8 px-2 border-0 text-center"
-                            value={quantityValues[food._id] || ''}
-                            onChange={(e) => handleQuantityChange(food._id, e.target.value)}
+                            value={quantityValues[food._id] || ""}
+                            onChange={(e) =>
+                              handleQuantityChange(food._id, e.target.value)
+                            }
                           />
                           <button
                             onClick={() => incrementQuantity(food._id)}
@@ -543,7 +606,7 @@ const StaffFoods = () => {
                   </div>
                 ))
               )}
-              
+
               {/* Mobile pagination */}
               {totalPages > 1 && (
                 <Pagination

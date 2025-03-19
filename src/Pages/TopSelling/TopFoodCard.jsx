@@ -1,8 +1,8 @@
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { addToCart } from "../../redux/slices/cartSlice";
-import toast from 'react-hot-toast';
-import { FaShoppingCart } from 'react-icons/fa';
+import toast from "react-hot-toast";
+import { FaShoppingCart } from "react-icons/fa";
 import {
   Card,
   CardHeader,
@@ -11,13 +11,13 @@ import {
   Typography,
   Button,
 } from "@material-tailwind/react";
-import { formatPrice } from '../../utils/formatUtils';
+import { formatPrice } from "../../utils/formatUtils";
 
 export default function TopFoodCard({ food }) {
   const dispatch = useDispatch();
-  const cartItems = useSelector(state => state.cart.items);
-  
-  const itemInCart = cartItems.find(item => item._id === food._id);
+  const cartItems = useSelector((state) => state.cart.items);
+
+  const itemInCart = cartItems.find((item) => item._id === food._id);
   const currentCartQty = itemInCart ? itemInCart.quantity : 0;
   const availableQty = parseInt(food.foodQuantity) || 0;
 
@@ -26,16 +26,20 @@ export default function TopFoodCard({ food }) {
       toast.error(`${food.foodName} is currently out of stock!`);
       return;
     }
-    
+
     if (currentCartQty >= availableQty) {
-      toast.error(`Cannot add more ${food.foodName}. Only ${availableQty} available in stock!`);
+      toast.error(
+        `Cannot add more ${food.foodName}. Only ${availableQty} available in stock!`,
+      );
       return;
     }
-    
-    dispatch(addToCart({
-      item: food,
-      quantity: 1
-    }));
+
+    dispatch(
+      addToCart({
+        item: food,
+        quantity: 1,
+      }),
+    );
     toast.success(`${food.foodName} added to cart!`);
   };
 
@@ -52,7 +56,11 @@ export default function TopFoodCard({ food }) {
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-          <Typography variant="h5" color="white" className="text-center font-bold">
+          <Typography
+            variant="h5"
+            color="white"
+            className="text-center font-bold"
+          >
             Top Selling
           </Typography>
         </div>
@@ -63,11 +71,12 @@ export default function TopFoodCard({ food }) {
             {food.foodName}
           </Typography>
           <Typography variant="h5" color="blue-gray" className="font-medium">
-          {formatPrice(parseFloat(food.foodPrice))}
+            {formatPrice(parseFloat(food.foodPrice))}
           </Typography>
         </div>
         <Typography color="gray" className="font-normal mb-2 line-clamp-2">
-          {food.foodDescription || "A delicious meal prepared with the finest ingredients."}
+          {food.foodDescription ||
+            "A delicious meal prepared with the finest ingredients."}
         </Typography>
         <div className="flex items-center justify-between">
           <Typography variant="small" color="blue-gray">
@@ -86,7 +95,9 @@ export default function TopFoodCard({ food }) {
                 clipRule="evenodd"
               />
             </svg>
-            <Typography color="blue-gray" className="font-medium">5.0</Typography>
+            <Typography color="blue-gray" className="font-medium">
+              5.0
+            </Typography>
           </div>
         </div>
       </CardBody>
@@ -96,16 +107,19 @@ export default function TopFoodCard({ food }) {
             View Details
           </Button>
         </Link>
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           color={buttonDisabled ? "gray" : "yellow"}
-          className={`flex items-center justify-center gap-2 ${buttonDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+          className={`flex items-center justify-center gap-2 ${buttonDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
           onClick={handleAddToCart}
           disabled={buttonDisabled}
         >
           <FaShoppingCart size={14} />
-          {isOutOfStock ? 'Out of Stock' : 
-           isMaxInCart ? 'Max In Cart' : 'Add to Cart'}
+          {isOutOfStock
+            ? "Out of Stock"
+            : isMaxInCart
+              ? "Max In Cart"
+              : "Add to Cart"}
         </Button>
       </CardFooter>
     </Card>
