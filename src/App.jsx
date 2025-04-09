@@ -66,6 +66,9 @@ import RawMaterials from "./Pages/Admin/RawMaterials";
 import StaffDrinks from "./Pages/Staff/StaffDrinks";
 import PageErrorBoundary from "./Components/ErrorBoundary/PageErrorBoundary";
 import PWAInstallPrompt from "./Components/PWAInstallPrompt";
+// Import our domain pages
+import ExpiredDomainPage from "./Domain/ExpiredDomainPage";
+import DomainProviderPage from "./Domain/DomainProviderPage";
 
 function App() {
   const dispatch = useDispatch();
@@ -103,253 +106,266 @@ function App() {
   }, [dispatch]);
 
   const router = createBrowserRouter([
+    // {
+    //   path: "/",
+    //   element: <Layout />,
+    //   errorElement: <Error />,
+    //   children: [
+    //     {
+    //       path: "/",
+    //       element: (
+    //         <PageErrorBoundary pageName="Home Page">
+    //           <Hero />
+    //         </PageErrorBoundary>
+    //       ),
+    //     },
+    //     {
+    //       path: "/about",
+    //       element: <About />,
+    //     },
+    //     {
+    //       path: "/aboutUs",
+    //       element: <AboutUs />,
+    //     },
+    //     {
+    //       path: "/food",
+    //       element: <Food />,
+    //     },
+    //     {
+    //       path: "/seeFood/:id",
+    //       element: <SeeFood />,
+    //     },
+    //     {
+    //       path: "/topFood/:id",
+    //       element: <TopFood />,
+    //     },
+    //     {
+    //       path: "/foodOrder/:id",
+    //       element: (
+    //         <PrivateRouter>
+    //           <FoodOrder />
+    //         </PrivateRouter>
+    //       ),
+    //     },
+    //     {
+    //       path: "/myFood",
+    //       element: (
+    //         <PrivateRouter>
+    //           <MyFood />
+    //         </PrivateRouter>
+    //       ),
+    //     },
+    //     {
+    //       path: "/orderFood",
+    //       element: (
+    //         <PrivateRouter>
+    //           <OrderFood />
+    //         </PrivateRouter>
+    //       ),
+    //     },
+    //     {
+    //       path: "/drink",
+    //       element: <Drink />,
+    //     },
+    //     {
+    //       path: "/seeDrink/:id",
+    //       element: <SeeDrink />,
+    //     },
+    //     {
+    //       path: "/myDrink",
+    //       element: (
+    //         <PrivateRouter>
+    //           <MyDrink />
+    //         </PrivateRouter>
+    //       ),
+    //     },
+    //     {
+    //       path: "/topSelling",
+    //       element: <TopSelling />,
+    //     },
+    //     {
+    //       path: "/blog",
+    //       element: <Blog />,
+    //     },
+    //     {
+    //       path: "/signup",
+    //       element: <Registration />,
+    //     },
+    //     {
+    //       path: "/signIn",
+    //       element: <SignIn />,
+    //     },
+    //     {
+    //       path: "/unauthorized",
+    //       element: <Unauthorized />,
+    //     },
+    //     {
+    //       path: "/termsandcondition",
+    //       element: <TermsAndConditions />,
+    //     },
+    //     {
+    //       path: "/contact",
+    //       element: <Contact />,
+    //     },
+    //     {
+    //       path: "/event",
+    //       element: <Events />,
+    //     },
+    //     {
+    //       path: "/cart",
+    //       element: <Cart />,
+    //     },
+    //     {
+    //       path: "/checkout",
+    //       element: (
+    //         <PageErrorBoundary pageName="Checkout">
+    //           <Checkout />
+    //         </PageErrorBoundary>
+    //       ),
+    //     },
+    //     {
+    //       path: "/order-success",
+    //       element: (
+    //         <PageErrorBoundary pageName="Order Confirmation">
+    //           <OrderSuccess />
+    //         </PageErrorBoundary>
+    //       ),
+    //     },
+    //     {
+    //       path: "/track-order",
+    //       element: (
+    //         <PrivateRouter>
+    //           <PageErrorBoundary pageName="Order Tracking">
+    //             <OrderTracking />
+    //           </PageErrorBoundary>
+    //         </PrivateRouter>
+    //       ),
+    //     },
+    //     {
+    //       path: "/track-order/:orderId",
+    //       element: <OrderTracking />,
+    //     },
+    //   ],
+    // },
+    // Domain Routes - Separate from the main app layout
     {
       path: "/",
-      element: <Layout />,
-      errorElement: <Error />,
-      children: [
-        {
-          path: "/",
-          element: (
-            <PageErrorBoundary pageName="Home Page">
-              <Hero />
-            </PageErrorBoundary>
-          ),
-        },
-        {
-          path: "/about",
-          element: <About />,
-        },
-        {
-          path: "/aboutUs",
-          element: <AboutUs />,
-        },
-        {
-          path: "/food",
-          element: <Food />,
-        },
-        {
-          path: "/seeFood/:id",
-          element: <SeeFood />,
-        },
-        {
-          path: "/topFood/:id",
-          element: <TopFood />,
-        },
-        {
-          path: "/foodOrder/:id",
-          element: (
-            <PrivateRouter>
-              <FoodOrder />
-            </PrivateRouter>
-          ),
-        },
-        {
-          path: "/myFood",
-          element: (
-            <PrivateRouter>
-              <MyFood />
-            </PrivateRouter>
-          ),
-        },
-        {
-          path: "/orderFood",
-          element: (
-            <PrivateRouter>
-              <OrderFood />
-            </PrivateRouter>
-          ),
-        },
-        {
-          path: "/drink",
-          element: <Drink />,
-        },
-        {
-          path: "/seeDrink/:id",
-          element: <SeeDrink />,
-        },
-        {
-          path: "/myDrink",
-          element: (
-            <PrivateRouter>
-              <MyDrink />
-            </PrivateRouter>
-          ),
-        },
-        {
-          path: "/topSelling",
-          element: <TopSelling />,
-        },
-        {
-          path: "/blog",
-          element: <Blog />,
-        },
-        {
-          path: "/signup",
-          element: <Registration />,
-        },
-        {
-          path: "/signIn",
-          element: <SignIn />,
-        },
-        {
-          path: "/unauthorized",
-          element: <Unauthorized />,
-        },
-        {
-          path: "/termsandcondition",
-          element: <TermsAndConditions />,
-        },
-        {
-          path: "/contact",
-          element: <Contact />,
-        },
-        {
-          path: "/event",
-          element: <Events />,
-        },
-        {
-          path: "/cart",
-          element: <Cart />,
-        },
-        {
-          path: "/checkout",
-          element: (
-            <PageErrorBoundary pageName="Checkout">
-              <Checkout />
-            </PageErrorBoundary>
-          ),
-        },
-        {
-          path: "/order-success",
-          element: (
-            <PageErrorBoundary pageName="Order Confirmation">
-              <OrderSuccess />
-            </PageErrorBoundary>
-          ),
-        },
-        {
-          path: "/track-order",
-          element: (
-            <PrivateRouter>
-              <PageErrorBoundary pageName="Order Tracking">
-                <OrderTracking />
-              </PageErrorBoundary>
-            </PrivateRouter>
-          ),
-        },
-        {
-          path: "/track-order/:orderId",
-          element: <OrderTracking />,
-        },
-      ],
+      element: <ExpiredDomainPage />,
     },
     {
-      path: "/admin",
-      element: (
-        <AdminRoute>
-          <PageErrorBoundary pageName="Admin Dashboard">
-            <AdminDashboard />
-          </PageErrorBoundary>
-        </AdminRoute>
-      ),
-      children: [
-        {
-          index: true,
-          element: <Dashboard />,
-        },
-        {
-          path: "users",
-          element: <UserManagement />,
-        },
-        {
-          path: "foods",
-          element: <FoodManagement />,
-        },
-        {
-          path: "drinks",
-          element: <DrinkManagement />,
-        },
-        {
-          path: "orders",
-          element: <OrderManagement />,
-        },
-        {
-          path: "analytics",
-          element: <Analytics />,
-        },
-        {
-          path: "staff-activities",
-          element: <StaffActivities />,
-        },
-        {
-          path: "material",
-          element: <RawMaterials />,
-        },
-        {
-          path: "add-order",
-          element: <StaffAddOrder />,
-        },
-        {
-          path: "addFood",
-          element: <AddFood />,
-        },
-        {
-          path: "addDrink",
-          element: <AddDrink />,
-        },
-        {
-          path: "update-food/:id",
-          element: <UpdateFood />,
-        },
-        {
-          path: "update-drink/:id",
-          element: <UpdateDrink />,
-        },
-      ],
+      path: "/domain",
+      element: <DomainProviderPage />,
     },
     {
-      path: "/staff",
-      element: (
-        <PageErrorBoundary pageName="Staff Dashboard">
-          <StaffRoute />
-        </PageErrorBoundary>
-      ),
-      children: [
-        {
-          path: "dashboard",
-          element: <StaffDashboard />,
-        },
-        {
-          path: "orders",
-          element: <StaffOrders />,
-        },
-        {
-          path: "foods",
-          element: <StaffFoods />,
-        },
-        {
-          path: "drinks",
-          element: <StaffDrinks />,
-        },
-        {
-          path: "add-order",
-          element: <StaffAddOrder />,
-        },
-        {
-          path: "material",
-          element: <RawMaterials />,
-        },
-        {
-          path: "addFood",
-          element: <AddFood />,
-        },
-        {
-          path: "addDrink",
-          element: <AddDrink />,
-        },
-      ],
+      path: "*",
+      element: <ExpiredDomainPage />,
     },
+    // {
+    //   path: "/admin",
+    //   element: (
+    //     <AdminRoute>
+    //       <PageErrorBoundary pageName="Admin Dashboard">
+    //         <AdminDashboard />
+    //       </PageErrorBoundary>
+    //     </AdminRoute>
+    //   ),
+    //   children: [
+    //     {
+    //       index: true,
+    //       element: <Dashboard />,
+    //     },
+    //     {
+    //       path: "users",
+    //       element: <UserManagement />,
+    //     },
+    //     {
+    //       path: "foods",
+    //       element: <FoodManagement />,
+    //     },
+    //     {
+    //       path: "drinks",
+    //       element: <DrinkManagement />,
+    //     },
+    //     {
+    //       path: "orders",
+    //       element: <OrderManagement />,
+    //     },
+    //     {
+    //       path: "analytics",
+    //       element: <Analytics />,
+    //     },
+    //     {
+    //       path: "staff-activities",
+    //       element: <StaffActivities />,
+    //     },
+    //     {
+    //       path: "material",
+    //       element: <RawMaterials />,
+    //     },
+    //     {
+    //       path: "add-order",
+    //       element: <StaffAddOrder />,
+    //     },
+    //     {
+    //       path: "addFood",
+    //       element: <AddFood />,
+    //     },
+    //     {
+    //       path: "addDrink",
+    //       element: <AddDrink />,
+    //     },
+    //     {
+    //       path: "update-food/:id",
+    //       element: <UpdateFood />,
+    //     },
+    //     {
+    //       path: "update-drink/:id",
+    //       element: <UpdateDrink />,
+    //     },
+    //   ],
+    // },
+    // {
+    //   path: "/staff",
+    //   element: (
+    //     <PageErrorBoundary pageName="Staff Dashboard">
+    //       <StaffRoute />
+    //     </PageErrorBoundary>
+    //   ),
+    //   children: [
+    //     {
+    //       path: "dashboard",
+    //       element: <StaffDashboard />,
+    //     },
+    //     {
+    //       path: "orders",
+    //       element: <StaffOrders />,
+    //     },
+    //     {
+    //       path: "foods",
+    //       element: <StaffFoods />,
+    //     },
+    //     {
+    //       path: "drinks",
+    //       element: <StaffDrinks />,
+    //     },
+    //     {
+    //       path: "add-order",
+    //       element: <StaffAddOrder />,
+    //     },
+    //     {
+    //       path: "material",
+    //       element: <RawMaterials />,
+    //     },
+    //     {
+    //       path: "addFood",
+    //       element: <AddFood />,
+    //     },
+    //     {
+    //       path: "addDrink",
+    //       element: <AddDrink />,
+    //     },
+      // ],
+    // },
   ]);
 
   return (
