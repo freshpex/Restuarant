@@ -66,7 +66,8 @@ import RawMaterials from "./Pages/Admin/RawMaterials";
 import StaffDrinks from "./Pages/Staff/StaffDrinks";
 import PageErrorBoundary from "./Components/ErrorBoundary/PageErrorBoundary";
 import PWAInstallPrompt from "./Components/PWAInstallPrompt";
-// Import our domain pages
+import PWAUpdateNotifier from "./Components/PWAUpdateNotifier";
+
 import ExpiredDomainPage from "./Domain/ExpiredDomainPage";
 import DomainProviderPage from "./Domain/DomainProviderPage";
 
@@ -374,6 +375,7 @@ function App() {
       <RouterProvider router={router} />
       <Toaster />
       <PWAInstallPrompt />
+      <PWAUpdateNotifier />
       {/* {process.env.NODE_ENV !== 'production' && <RoleDebugger />} */}
     </>
   );

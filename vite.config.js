@@ -59,6 +59,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cacheId: `timskitchen-${new Date().toISOString()}`,
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg}"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
@@ -85,18 +88,61 @@ export default defineConfig({
             },
           },
           {
+            // API calls should use NetworkFirst to prioritize fresh data
+            urlPattern: new RegExp('^' + import.meta.env.VITE_API_URL),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 5, // 5 minutes
+              },
+              networkTimeoutSeconds: 10,
+            },
+          },
+          {
             urlPattern: /\.(jpg|jpeg|png|gif|svg)$/,
             handler: "CacheFirst",
             options: {
               cacheName: "images",
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 30 * 24 * 60 * 60,
+                maxAgeSeconds: 7 * 24 * 60 * 60, // 1 week - reduced from 30 days
+              },
+            },
+          },
+          {
+            urlPattern: /\.html$/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-cache",
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60, // 1 hour
+              },
+            },
+          },
+          {
+            // JS and CSS files can use StaleWhileRevalidate for fast loading with background updates
+            urlPattern: /\.(js|css)$/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "static-resources",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 24 * 60 * 60, // 1 day
               },
             },
           },
         ],
         navigateFallback: "/offline.html",
+      },
+      // Add PWA strategies to improve update detection
+      strategies: "injectManifest",
+      minify: true,
+      devOptions: {
+        enabled: true,
+        type: "module",
       },
     }),
   ],
